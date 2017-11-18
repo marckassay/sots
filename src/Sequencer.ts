@@ -1,62 +1,112 @@
-import { CountdownSegment, CountdownConfig } from "./CountdownSegment";
-import { CountupSegment, CountupConfig } from "./CountupSegment";
-import { TimeConfig } from "./TimeSegment";
+import { Observable, Subject } from 'rxjs/Rx';
+import { ArrayObservable } from 'rxjs/observable/ArrayObservable';
 
-export enum UnitOfPeriod {
-    millisecond = 1,
-    decisecond = 100,
-    second = 1000,
-    minute = 60000,
-    hour = 3600000
+
+export interface TimeConfig {
+    period: number;
 }
 
-
-
-export interface CtorInterface {
-    new (config: TimeConfig): Segment;
+// static-side interface
+export interface SegmentType<T extends TimeSegment> {
+    new (config: TimeConfig): T;
 }
-export interface Segment {
-    intialize();
-}
+
 export interface SegmentInterface {
-    add(ctor: CtorInterface, config: TimeConfig): Segment;
+    add<T extends TimeSegment>(ctor: SegmentType<T>, config: TimeConfig): T;
+} 
+
+export class Sequencer implements SegmentInterface {
+    pauser: Subject<boolean>;
+    publication: Observable<any>;
+    source: Observable<number>;
+    
+    constructor (public config: TimeConfig) {
+
+    }
+
+    add<T extends TimeSegment>(ctor: SegmentType<T>, config: TimeConfig): T {
+         const segment:T = new ctor(config);
+         SegmentCollection.getInstance().push(segment);
+         return segment;
+    }
+
+    start() {
+        if(!this.source) {
+            this.source = ArrayObservable.create( SegmentCollection.getInstance().getObservables() ).concatAll();
+
+            this.pauser = new Subject<boolean>();
+            this.pauser.next(true);
+            this.publication = this.pauser.switchMap( (paused) => (paused == true) ? Observable.never() : this.source );
+            const subscribe = this.publication.subscribe(val => console.log(val));
+        }
+    }
 }
 
-export interface GroupInterface extends SegmentInterface{
-    group(config: object, ...a: Function[]): SegmentInterface;
-}
+export class SegmentCollection {
+    private static instance: SegmentCollection;
 
-export interface SequencerConfig {
-    // defaults to millisecond, which has a value of 1.  
-    // this is the base unit of time for Sequencer (and RxJS).
-    // this value is used for RxJS period parameter
-    period: UnitOfPeriod;
-}
+    segments: Array<TimeSegment>;
+    observables: Array<Observable<number>>;
 
-export class Sequencer implements GroupInterface {
-    constructor (public config: SequencerConfig) {
+    private constructor() {
+        this.segments = new Array();
+        this.observables = new Array();
         
     }
 
-    add(ctor: CtorInterface, config: TimeConfig): Segment {
-        return new ctor(config);
+    static getInstance() {
+        if (!SegmentCollection.instance) {
+            SegmentCollection.instance = new SegmentCollection();
+        }
+        return SegmentCollection.instance;
     }
 
-    group(config, ...a: Function[]): SegmentInterface {
-        // TODO: need to look into Array methods such as map and forEach
-        //return this.add(ctor, config);
-        //a.forEach()
-        //forEach(callbackfn: (value: T, index: number, array: T[]) => void, thisArg?: any): void;
-        return ;
+    getObservables(): Array<Observable<number>> {
+        return this.observables;
+    }
+
+    push(segment:TimeSegment) {
+        this.segments.push(segment);
+        this.observables.push(segment.source);
+    }
+}
+/* 
+export function add<T extends TimeSegment>(ctor: SegmentType<T>, config: TimeConfig): T {
+    return new ctor(config);
+} 
+*/
+export class TimeSegment implements SegmentInterface {
+    source: Observable<number>;
+
+    constructor (public config: TimeConfig) {
+        this.initializeObservable();
+    }
+    
+    initializeObservable() {
+        this.source = Observable.timer(0, this.config.period)
+                                .map((value,index)=>{ return index })
+                                .takeWhile((index) => { return index < this.config.period } );
+    }
+
+    add<T extends TimeSegment>(ctor: SegmentType<T>, config: TimeConfig): T {
+        const segment:T = new ctor(config);
+        SegmentCollection.getInstance().push(segment);
+        return segment;
+    }
+}
+export class CountdownSegment extends TimeSegment {
+    constructor (public config: TimeConfig) {
+        super(config);
+    }
+}
+export class CountupSegment extends TimeSegment {
+    constructor (public config: TimeConfig) {
+        super(config);
     }
 }
 
-// usage:
-/*
-let sequence = new Sequencer({period: UnitOfPeriod.decisecond});
-sequence.add(CountdownSegment, 10)
-        .group( add(CountdownSegment, 50), add(CountdownSegment, 10), 12)
-        .add(CountupSegment);
+const sequencer: Sequencer = new Sequencer({period: 1000});
+sequencer.add(CountdownSegment, {period: 3000})
+         .add(CountupSegment, {period: 2000});
 
-sequence.start();
-*/
+sequencer.start();

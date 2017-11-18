@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+      "module": "ES2015",
+      "noImplicitAny": true,
+      "removeComments": true,
+      "preserveConstEnums": true,
+      "outFile": "../dist/sots.js",
+      "sourceMap": true
+  },
+  "include": [
+      "src/Sequencer.ts"
+  ],
+  "exclude": [
+      "node_modules",
+      "**/*.spec.ts"
+  ]
+}
