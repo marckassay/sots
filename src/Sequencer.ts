@@ -1,7 +1,6 @@
 import { Observable, Subject } from 'rxjs/Rx';
 import { ArrayObservable } from 'rxjs/observable/ArrayObservable';
 
-
 export interface TimeConfig {
     period: number;
 }
@@ -17,7 +16,7 @@ export interface SegmentInterface {
 
 export class Sequencer implements SegmentInterface {
     pauser: Subject<boolean>;
-    publication: Observable<any>;
+    publication: Observable<number>;
     source: Observable<number>;
     
     constructor (public config: TimeConfig) {
@@ -36,11 +35,12 @@ export class Sequencer implements SegmentInterface {
 
             this.pauser = new Subject<boolean>();
             this.pauser.next(true);
-            this.publication = this.pauser.switchMap( (paused) => (paused == true) ? Observable.never() : this.source );
-            const subscribe = this.publication.subscribe(val => console.log(val));
+            this.publication = this.pauser.switchMap( (paused: boolean) => (paused == true) ? Observable.never() : this.source );
+            const subscribe = this.publication.subscribe( (value: number)  => console.log(value));
         }
     }
 }
+export default Sequencer;
 
 export class SegmentCollection {
     private static instance: SegmentCollection;
@@ -50,7 +50,7 @@ export class SegmentCollection {
 
     private constructor() {
         this.segments = new Array();
-        this.observables = new Array();
+        this.observables = new Array(); 
         
     }
 
@@ -84,8 +84,8 @@ export class TimeSegment implements SegmentInterface {
     
     initializeObservable() {
         this.source = Observable.timer(0, this.config.period)
-                                .map((value,index)=>{ return index })
-                                .takeWhile((index) => { return index < this.config.period } );
+                                .map((value: number,index: number)=>{ return index })
+                                .takeWhile((index: number) => { return index < this.config.period } );
     }
 
     add<T extends TimeSegment>(ctor: SegmentType<T>, config: TimeConfig): T {

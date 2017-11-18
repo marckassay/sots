@@ -2,9 +2,9 @@
   "name": "sots",
   "version": "1.0.0",
   "description": "Sequence of Time Segments",
-  "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "webpack",
+    "watch": "webpack --watch"
   },
   "keywords": [
     "timer",
@@ -19,7 +19,11 @@
   "author": "Marc Kassay",
   "license": "ISC",
   "devDependencies": {
-    "rxjs": "^5.5.2",
-    "typescript": "^2.6.1"
+    "ts-loader": "^3.1.1",
+    "typescript": "^2.6.1",
+    "webpack": "^3.8.1"
+  },
+  "dependencies": {
+    "rxjs": "^5.5.2"
   }
 }
