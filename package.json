@@ -2,10 +2,6 @@
   "name": "sots",
   "version": "1.0.0",
   "description": "Sequence of Time Segments",
-  "scripts": {
-    "build": "webpack",
-    "watch": "webpack --watch"
-  },
   "keywords": [
     "timer",
     "weaver",
@@ -19,11 +15,7 @@
   "author": "Marc Kassay",
   "license": "ISC",
   "devDependencies": {
-    "ts-loader": "^3.1.1",
-    "typescript": "^2.6.1",
-    "webpack": "^3.8.1"
+    "typescript": "^2.6.1"
   },
-  "dependencies": {
-    "rxjs": "^5.5.2"
-  }
+  "dependencies": {}
 }

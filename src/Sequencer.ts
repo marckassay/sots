@@ -30,6 +30,7 @@ export class Sequencer implements SegmentInterface {
     }
 
     start() {
+        console.log("Sequencer.start() called")
         if(!this.source) {
             this.source = ArrayObservable.create( SegmentCollection.getInstance().getObservables() ).concatAll();
 
@@ -40,7 +41,6 @@ export class Sequencer implements SegmentInterface {
         }
     }
 }
-export default Sequencer;
 
 export class SegmentCollection {
     private static instance: SegmentCollection;
@@ -110,3 +110,5 @@ sequencer.add(CountdownSegment, {period: 3000})
          .add(CountupSegment, {period: 2000});
 
 sequencer.start();
+
+export default Sequencer;
