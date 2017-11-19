@@ -1,5 +1,5 @@
 import { Observable, Subject } from 'rxjs/Rx';
-import { ArrayObservable } from 'rxjs/observable/ArrayObservable';
+import { Subscription } from 'rxjs/Subscription';
 
 export interface TimeConfig {
     period: number;
@@ -16,8 +16,9 @@ export interface SegmentInterface {
 
 export class Sequencer implements SegmentInterface {
     pauser: Subject<boolean>;
-    publication: Observable<number>;
-    source: Observable<number>;
+    publication: any;
+    source: Observable<any>;
+    subscribe: Subscription;
     
     constructor (public config: TimeConfig) {
 
@@ -30,15 +31,21 @@ export class Sequencer implements SegmentInterface {
     }
 
     start() {
-        console.log("Sequencer.start() called")
-        if(!this.source) {
-            this.source = ArrayObservable.create( SegmentCollection.getInstance().getObservables() ).concatAll();
+        console.log("Sequencer.start() called");
 
+        if(!this.source) {
+            this.source = SegmentCollection.getInstance().toSequencedObservable();
+            
             this.pauser = new Subject<boolean>();
             this.pauser.next(true);
             this.publication = this.pauser.switchMap( (paused: boolean) => (paused == true) ? Observable.never() : this.source );
-            const subscribe = this.publication.subscribe( (value: number)  => console.log(value));
         }
+    
+        this.subscribe = this.publication.subscribe( (value: number) => {
+                console.log("--> "+value);
+        });
+
+        this.pauser.next(false);
     }
 }
 
@@ -46,12 +53,11 @@ export class SegmentCollection {
     private static instance: SegmentCollection;
 
     segments: Array<TimeSegment>;
-    observables: Array<Observable<number>>;
+    observables: any;
 
     private constructor() {
         this.segments = new Array();
         this.observables = new Array(); 
-        
     }
 
     static getInstance() {
@@ -61,8 +67,19 @@ export class SegmentCollection {
         return SegmentCollection.instance;
     }
 
-    getObservables(): Array<Observable<number>> {
-        return this.observables;
+    toSequencedObservable(): Observable<any> {
+        const len: number = this.observables.length;
+        let source: Observable<any>;
+
+        if(len >= 1) {
+            source = this.observables[0];
+
+            for (let index = 1; index <= len-1; index++) {
+                source = source.concat(this.observables[index]);
+            }
+        }
+
+        return source;
     }
 
     push(segment:TimeSegment) {
@@ -83,9 +100,10 @@ export class TimeSegment implements SegmentInterface {
     }
     
     initializeObservable() {
-        this.source = Observable.timer(0, this.config.period)
-                                .map((value: number,index: number)=>{ return index })
-                                .takeWhile((index: number) => { return index < this.config.period } );
+        this.source = Observable.timer(0, 1000);
+        this.source = this.source.map((value: number,index: number)=>{ 
+            return index 
+        }).takeWhile((index: number) => { return index < this.config.period/1000 } );
     }
 
     add<T extends TimeSegment>(ctor: SegmentType<T>, config: TimeConfig): T {
