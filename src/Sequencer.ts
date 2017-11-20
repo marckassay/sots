@@ -1,63 +1,7 @@
 import { Observable, Subject } from 'rxjs/Rx';
 import { Subscription } from 'rxjs/Subscription';
-
-export interface TimeConfig {
-    period: number;
-}
-
-// static-side interface
-export interface SegmentType<T extends TimeSegment> {
-    new (config: TimeConfig): T;
-}
-
-export interface SegmentInterface {
-    add<T extends TimeSegment>(ctor: SegmentType<T>, config: TimeConfig): T;
-    group(intervals: number, ...segments: GroupParameter[]): TimeSegment;
-}
-
-export interface GroupParameter {
-    // TODO: need to figure this typing out
-    //ctor: SegmentType<T extends TimeSegment>;
-    ctor: SegmentType<CountdownSegment|CountupSegment>;
-    config: TimeConfig;
-}
-
-export class Sequencer implements SegmentInterface {
-    pauser: Subject<boolean>;
-    publication: any;
-    source: Observable<any>;
-    subscribe: Subscription;
-    
-    constructor (public config: TimeConfig) {
-
-    }
-
-    add<T extends TimeSegment>(ctor: SegmentType<T>, config: TimeConfig): T {
-         const segment:T = new ctor(config);
-         SegmentCollection.getInstance().push(segment);
-         return segment;
-    }
-
-    group(intervals: number, ...segments: GroupParameter[]): TimeSegment {
-        throw new Error("Method not implemented.");
-    }
-
-    start() {
-        if(!this.source) {
-            this.source = SegmentCollection.getInstance().toSequencedObservable();
-            
-            this.pauser = new Subject<boolean>();
-            this.pauser.next(true);
-            this.publication = this.pauser.switchMap( (paused: boolean) => (paused == true) ? Observable.never() : this.source );
-        }
-    
-        this.subscribe = this.publication.subscribe( (value: number) => {
-                console.log("--> "+value);
-        });
-
-        this.pauser.next(false);
-    }
-}
+import { TimeSegment } from './Segments';
+import { SegmentInterface, TimeConfig, SegmentType, GroupParameter } from './Interfaces';
 
 export class SegmentCollection {
     private static instance: SegmentCollection;
@@ -98,62 +42,39 @@ export class SegmentCollection {
     }
 }
 
-// simply a pass-thru function to group function...
-export function add<T extends TimeSegment>(ctor: SegmentType<T>, config: TimeConfig): GroupParameter {
-    return {ctor, config};
-} 
-
-export class TimeSegment implements SegmentInterface {
-
-    source: Observable<number>;
-
-    constructor (public config: TimeConfig) {
-        this.initializeObservable();
-    }
+export class Sequencer implements SegmentInterface {
+    pauser: Subject<boolean>;
+    publication: any;
+    source: Observable<any>;
+    subscribe: Subscription;
     
-    initializeObservable() {
-        this.source = Observable.timer(0, 1000);
-        this.source = this.source.map((value: number,index: number)=>{ 
-            return index 
-        }).takeWhile((index: number) => { return index < this.config.period/1000 } );
+    constructor (public config: TimeConfig) {
+
     }
 
     add<T extends TimeSegment>(ctor: SegmentType<T>, config: TimeConfig): T {
-        const segment:T = new ctor(config);
-        SegmentCollection.getInstance().push(segment);
-        return segment;
+         const segment:T = new ctor(config);
+         SegmentCollection.getInstance().push(segment);
+         return segment;
     }
 
     group(intervals: number, ...segments: GroupParameter[]): TimeSegment {
-        let segment: TimeSegment;
+        throw new Error("Method not implemented.");
+    }
 
-        for (let index = 0; index < intervals; index++) {
-            for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
-                const segType: GroupParameter = segments[segmentIndex];
-                segment = new segType.ctor(segType.config);
-                SegmentCollection.getInstance().push(segment);
-            }
+    start(): void {
+        if(!this.source) {
+            this.source = SegmentCollection.getInstance().toSequencedObservable();
+            
+            this.pauser = new Subject<boolean>();
+            this.pauser.next(true);
+            this.publication = this.pauser.switchMap( (paused: boolean) => (paused == true) ? Observable.never() : this.source );
         }
+    
+        this.subscribe = this.publication.subscribe( (value: number) => {
+                console.log("--> "+value);
+        });
 
-        return segment;
+        this.pauser.next(false);
     }
 }
-export class CountdownSegment extends TimeSegment {
-    constructor (public config: TimeConfig) {
-        super(config);
-    }
-}
-export class CountupSegment extends TimeSegment {
-    constructor (public config: TimeConfig) {
-        super(config);
-    }
-}
-
-const sequencer: Sequencer = new Sequencer({period: 1000});
-sequencer.add(CountdownSegment, {period: 5000})
-         .group(3, add(CountdownSegment, {period: 1000}), add(CountdownSegment, {period: 2000}))
-         .add(CountupSegment, {period: 5000});
-
-sequencer.start();
-
-export default Sequencer;
