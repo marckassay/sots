@@ -11,10 +11,9 @@ export interface TimeEmission {
     time: number;
 }
 
-
 // static-side interface
 export interface SegmentType<T extends TimeSegment> {
-    new (config: TimeConfig): T;
+    new(config: TimeConfig): T;
 }
 
 export interface SegmentInterface {
@@ -25,6 +24,6 @@ export interface SegmentInterface {
 export interface GroupParameter {
     // TODO: need to figure this typing out
     //ctor: SegmentType<T extends TimeSegment>;
-    ctor: SegmentType<CountdownSegment|CountupSegment>;
+    ctor: SegmentType<CountdownSegment | CountupSegment>;
     config: TimeConfig;
 }

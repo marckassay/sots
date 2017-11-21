@@ -11,7 +11,7 @@ export class SegmentCollection {
 
     private constructor() {
         this.segments = new Array();
-        this.observables = new Array(); 
+        this.observables = new Array();
     }
 
     static getInstance() {
@@ -25,10 +25,10 @@ export class SegmentCollection {
         const len: number = this.observables.length;
         let source: Observable<any>;
 
-        if(len >= 1) {
+        if (len >= 1) {
             source = this.observables[0];
 
-            for (let index = 1; index <= len-1; index++) {
+            for (let index = 1; index <= len - 1; index++) {
                 source = source.concat(this.observables[index]);
             }
         }
@@ -36,7 +36,7 @@ export class SegmentCollection {
         return source;
     }
 
-    push(segment:TimeSegment) {
+    push(segment: TimeSegment) {
         this.segments.push(segment);
         this.observables.push(segment.source);
     }
@@ -47,15 +47,15 @@ export class Sequencer implements SegmentInterface {
     publication: Observable<TimeEmission>;
     source: Observable<TimeEmission>;
     subscribe: Subscription;
-    
-    constructor (public config: TimeConfig) {
+
+    constructor(public config: TimeConfig) {
 
     }
 
     add<T extends TimeSegment>(ctor: SegmentType<T>, config: TimeConfig): T {
-         const segment:T = new ctor(config);
-         SegmentCollection.getInstance().push(segment);
-         return segment;
+        const segment: T = new ctor(config);
+        SegmentCollection.getInstance().push(segment);
+        return segment;
     }
 
     group(intervals: number, ...segments: GroupParameter[]): TimeSegment {
@@ -63,16 +63,16 @@ export class Sequencer implements SegmentInterface {
     }
 
     start(): void {
-        if(!this.source) {
+        if (!this.source) {
             this.source = SegmentCollection.getInstance().toSequencedObservable();
-            
+
             this.pauser = new Subject<boolean>();
             this.pauser.next(true);
-            this.publication = this.pauser.switchMap( (paused: boolean) => (paused == true) ? Observable.never() : this.source );
+            this.publication = this.pauser.switchMap((paused: boolean) => (paused == true) ? Observable.never() : this.source);
         }
-    
-        this.subscribe = this.publication.subscribe( (value: TimeEmission) => {
-                console.log("time: "+value.time, "state: "+value.state);
+
+        this.subscribe = this.publication.subscribe((value: TimeEmission) => {
+            console.log("time: " + value.time, "state: " + value.state);
         });
 
         this.pauser.next(false);
