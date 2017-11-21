@@ -1,6 +1,6 @@
 import { Observable, Subject } from 'rxjs/Rx';
 import { Subscription } from 'rxjs/Subscription';
-import { SegmentType, TimeConfig, GroupParameter, SegmentInterface } from './Interfaces';
+import { SegmentType, TimeConfig, GroupParameter, SegmentInterface, TimeEmission } from './Interfaces';
 import { SegmentCollection } from './Sequencer';
 
 // simply a pass-thru top-level function to call the group function...
@@ -9,17 +9,53 @@ export function add<T extends TimeSegment>(ctor: SegmentType<T>, config: TimeCon
 } 
 
 export class TimeSegment implements SegmentInterface {
-    source: Observable<number>;
+    source: Observable<TimeEmission>;
 
     constructor (public config: TimeConfig) {
         this.initializeObservable();
     }
     
     initializeObservable() {
-        this.source = Observable.timer(0, 1000);
-        this.source = this.source.map((value: number,index: number)=>{ 
-            return index 
-        }).takeWhile((index: number) => { return index < this.config.duration/1000 } );
+        const time_expression: RegExp = /[^T==\s*\(*\|*\)*]|(\d+)/g;
+        const state_expression: RegExp = /[^S=\s*\'*\"*]\w+/;
+        const split_on_comma: RegExp = /\s*,\s*/;
+        let statetime:Array<string>;
+        let stateseg: string;
+        let timeseg:Array<number>;
+
+        if(this.config.states) {
+            try {
+                statetime = this.config.states[0].split(split_on_comma);
+                stateseg = statetime[0].match(state_expression)[0];
+            } catch (error) {
+                throw "An error occurred when trying to parse this expression: "+this.config.states;
+            }
+
+            try {
+                timeseg = statetime[1].match(time_expression).map((value: string) => {
+                    try {
+                        return Number(value);
+                    } catch (error) {
+                        throw "There is an error in this segment of a state expression: "+statetime[1];
+                    }
+                });
+            } catch (error) {
+                throw "An error occurred when trying to find a time segment for this expression: "+this.config.states[0];
+            }
+        }
+
+
+        this.source = Observable.timer(0, 1000)
+                                .map((value: number,index: number): TimeEmission => { 
+            let states: string = '';
+            if(this.config.states && timeseg.indexOf(index) != -1) {
+                states += stateseg;
+            }
+
+            return {time: index, state: states};
+        }).takeWhile((value: TimeEmission) => { 
+            return value.time < this.config.duration/1000;
+        });
     }
 
     add<T extends TimeSegment>(ctor: SegmentType<T>, config: TimeConfig): T {

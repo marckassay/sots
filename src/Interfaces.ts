@@ -3,7 +3,14 @@ import { TimeSegment, CountdownSegment, CountupSegment } from "./Segments";
 export interface TimeConfig {
     period?: number;
     duration?: number;
+    states?: Array<string>;
 }
+
+export interface TimeEmission {
+    state: string;
+    time: number;
+}
+
 
 // static-side interface
 export interface SegmentType<T extends TimeSegment> {

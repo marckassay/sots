@@ -1,7 +1,7 @@
 import { Observable, Subject } from 'rxjs/Rx';
 import { Subscription } from 'rxjs/Subscription';
 import { TimeSegment } from './Segments';
-import { SegmentInterface, TimeConfig, SegmentType, GroupParameter } from './Interfaces';
+import { SegmentInterface, TimeConfig, SegmentType, GroupParameter, TimeEmission } from './Interfaces';
 
 export class SegmentCollection {
     private static instance: SegmentCollection;
@@ -44,8 +44,8 @@ export class SegmentCollection {
 
 export class Sequencer implements SegmentInterface {
     pauser: Subject<boolean>;
-    publication: any;
-    source: Observable<any>;
+    publication: Observable<TimeEmission>;
+    source: Observable<TimeEmission>;
     subscribe: Subscription;
     
     constructor (public config: TimeConfig) {
@@ -71,8 +71,8 @@ export class Sequencer implements SegmentInterface {
             this.publication = this.pauser.switchMap( (paused: boolean) => (paused == true) ? Observable.never() : this.source );
         }
     
-        this.subscribe = this.publication.subscribe( (value: number) => {
-                console.log("--> "+value);
+        this.subscribe = this.publication.subscribe( (value: TimeEmission) => {
+                console.log("time: "+value.time, "state: "+value.state);
         });
 
         this.pauser.next(false);
