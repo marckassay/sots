@@ -1,6 +1,6 @@
 import { Observable, Subject } from 'rxjs/Rx';
 import { Subscription } from 'rxjs/Subscription';
-import { SegmentType, TimeConfig, GroupParameter, SegmentInterface, TimeEmission } from './Interfaces';
+import { SegmentType, TimeConfig, GroupParameter, SegmentInterface, TimeEmission, IntervalEmission } from './Interfaces';
 import { SegmentCollection } from './Sequencer';
 
 // simply a pass-thru top-level function to call the group function...
@@ -12,6 +12,7 @@ export class TimeSegment implements SegmentInterface {
     source: Observable<TimeEmission>;
     stateexp: StateExpression;
     countingUp: boolean;
+    interval: IntervalEmission;
 
     constructor(public config: TimeConfig, countingUp?:boolean) {
         this.countingUp = countingUp;
@@ -24,15 +25,14 @@ export class TimeSegment implements SegmentInterface {
     initializeObservable() {
         this.source = Observable.timer(0, 1000)
             .map((value: number, index: number): TimeEmission => {
-                let nuindex: number;
+                let nuindex: number = index;
                 if(!this.countingUp) {
                     nuindex = (this.config.duration / 1000) - index;
-                } else {
-                    nuindex = index;
                 }
-                let states: string = this.stateexp.evaluate(nuindex);
 
-                return { time: nuindex, state: states };
+                let states: string = this.stateexp.evaluate(nuindex);
+                
+                return { time: nuindex, state: states, interval: this.interval };
             }).takeWhile((value: TimeEmission) => {
                 if(!this.countingUp) {
                     return value.time > 0;
@@ -55,6 +55,7 @@ export class TimeSegment implements SegmentInterface {
             for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
                 const segType: GroupParameter = segments[segmentIndex];
                 segment = new segType.ctor(segType.config);
+                segment.interval = {current: index+1, total: intervals};
                 SegmentCollection.getInstance().push(segment);
             }
         }

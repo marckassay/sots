@@ -46,10 +46,9 @@ export class Sequencer implements SegmentInterface {
     pauser: Subject<boolean>;
     publication: Observable<TimeEmission>;
     source: Observable<TimeEmission>;
-    subscribe: Subscription;
 
     constructor(public config: TimeConfig) {
-
+        
     }
 
     add<T extends TimeSegment>(ctor: SegmentType<T>, config: TimeConfig): T {
@@ -63,18 +62,21 @@ export class Sequencer implements SegmentInterface {
     }
 
     start(): void {
+        this.pauser.next(false);
+    }
+
+    pause(): void {
+        this.pauser.next(true);
+    }
+
+    publish(): Observable<TimeEmission> {
         if (!this.source) {
             this.source = SegmentCollection.getInstance().toSequencedObservable();
-
             this.pauser = new Subject<boolean>();
             this.pauser.next(true);
             this.publication = this.pauser.switchMap((paused: boolean) => (paused == true) ? Observable.never() : this.source);
         }
 
-        this.subscribe = this.publication.subscribe((value: TimeEmission) => {
-            console.log("time: " + value.time, "state: " + value.state);
-        });
-
-        this.pauser.next(false);
+        return this.publication;
     }
 }

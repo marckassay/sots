@@ -9,6 +9,12 @@ export interface TimeConfig {
 export interface TimeEmission {
     state: string;
     time: number;
+    interval?: IntervalEmission;
+}
+
+export interface IntervalEmission {
+    current:number;
+    total:number;
 }
 
 // static-side interface
