@@ -1,7 +1,7 @@
 import { Observable, Subject } from 'rxjs/Rx';
 import { Subscription } from 'rxjs/Subscription';
 import { SegmentType, TimeConfig, GroupParameter, SegmentInterface, TimeEmission, IntervalEmission } from './Interfaces';
-import { SegmentCollection } from './Sequencer';
+import { SegmentCollection, Sequencer } from './Sequencer';
 
 // simply a pass-thru top-level function to call the group function...
 export function add<T extends TimeSegment>(ctor: SegmentType<T>, config: TimeConfig): GroupParameter {
@@ -9,12 +9,14 @@ export function add<T extends TimeSegment>(ctor: SegmentType<T>, config: TimeCon
 }
 
 export class TimeSegment implements SegmentInterface {
+    config: TimeConfig;
     source: Observable<TimeEmission>;
     stateexp: StateExpression;
     countingUp: boolean;
     interval: IntervalEmission;
 
-    constructor(public config: TimeConfig, countingUp?:boolean) {
+    constructor(config: TimeConfig, countingUp?:boolean) {
+        this.config = config;
         this.countingUp = countingUp;
 
         this.stateexp = new StateExpression(config);
@@ -23,21 +25,24 @@ export class TimeSegment implements SegmentInterface {
     }
 
     initializeObservable() {
-        this.source = Observable.timer(0, 1000)
+        this.source = Observable.timer(0, Sequencer.period)
             .map((value: number, index: number): TimeEmission => {
-                let nuindex: number = index;
+                let nuindex: number;
                 if(!this.countingUp) {
-                    nuindex = (this.config.duration / 1000) - index;
+                    nuindex = (this.config.duration - (Sequencer.period * index)) * .001;
+                } else {
+                    nuindex = (Sequencer.period * index) * .001;
                 }
-
+                //nuindex = Math.round(nuindex);
+                
                 let states: string = this.stateexp.evaluate(nuindex);
                 
                 return { time: nuindex, state: states, interval: this.interval };
             }).takeWhile((value: TimeEmission) => {
                 if(!this.countingUp) {
-                    return value.time > 0;
+                    return value.time >= 0;
                 } else {
-                    return value.time < this.config.duration / 1000;
+                    return value.time <= (this.config.duration * .001);
                 }
             });
     }

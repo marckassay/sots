@@ -43,12 +43,13 @@ export class SegmentCollection {
 }
 
 export class Sequencer implements SegmentInterface {
+    static period: number;
     pauser: Subject<boolean>;
     publication: Observable<TimeEmission>;
     source: Observable<TimeEmission>;
 
     constructor(public config: TimeConfig) {
-        
+        Sequencer.period = this.config.period;
     }
 
     add<T extends TimeSegment>(ctor: SegmentType<T>, config: TimeConfig): T {
