@@ -1,21 +1,21 @@
 import { Observable, Subject } from 'rxjs/Rx';
 import { Subscription } from 'rxjs/Subscription';
-import { SegmentType, TimeConfig, GroupParameter, SegmentInterface, TimeEmission, IntervalEmission } from './Interfaces';
+import { SegmentType, SegmentConfig, GroupParameter, SegmentInterface, TimeEmission, IntervalEmission } from './Interfaces';
 import { SegmentCollection, Sequencer } from './Sequencer';
 
 // simply a pass-thru top-level function to call the group function...
-export function add<T extends TimeSegment>(ctor: SegmentType<T>, config: TimeConfig): GroupParameter {
+export function add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfig): GroupParameter {
     return { ctor, config };
 }
 
 export class TimeSegment implements SegmentInterface {
-    config: TimeConfig;
+    config: SegmentConfig;
     source: Observable<TimeEmission>;
     stateexp: StateExpression;
     countingUp: boolean;
     interval: IntervalEmission;
 
-    constructor(config: TimeConfig, countingUp?:boolean) {
+    constructor(config: SegmentConfig, countingUp?:boolean) {
         this.config = config;
         this.countingUp = countingUp;
 
@@ -49,7 +49,7 @@ export class TimeSegment implements SegmentInterface {
             });
     }
 
-    add<T extends TimeSegment>(ctor: SegmentType<T>, config: TimeConfig): T {
+    add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfig): T {
         const segment: T = new ctor(config);
         SegmentCollection.getInstance().push(segment);
         return segment;
@@ -71,12 +71,12 @@ export class TimeSegment implements SegmentInterface {
     }
 }
 export class CountdownSegment extends TimeSegment {
-    constructor(public config: TimeConfig) {
+    constructor(public config: SegmentConfig) {
         super(config, false);
     }
 }
 export class CountupSegment extends TimeSegment {
-    constructor(public config: TimeConfig) {
+    constructor(public config: SegmentConfig) {
         super(config, true);
     }
 }
@@ -85,11 +85,11 @@ class StateExpression {
     stateseg: string;
     timeseg: Array<number>;
 
-    constructor(config: TimeConfig) {
+    constructor(config: SegmentConfig) {
         this.parse(config);
     }
 
-    parse(config: TimeConfig): void {
+    parse(config: SegmentConfig): void {
         const time_expression: RegExp = /[^T==\s*\(*\|*\)*]|(\d+)/g;
         const state_expression: RegExp = /[^S=\s*\'*\"*]\w+/;
         const split_on_comma: RegExp = /\s*,\s*/;

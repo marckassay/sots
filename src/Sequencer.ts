@@ -1,7 +1,7 @@
 import { Observable, Subject } from 'rxjs/Rx';
 import { Subscription } from 'rxjs/Subscription';
 import { TimeSegment } from './Segments';
-import { SegmentInterface, TimeConfig, SegmentType, GroupParameter, TimeEmission } from './Interfaces';
+import { SegmentInterface, SegmentConfig, SegmentType, GroupParameter, TimeEmission } from './Interfaces';
 
 export class SegmentCollection {
     private static instance: SegmentCollection;
@@ -48,11 +48,11 @@ export class Sequencer implements SegmentInterface {
     publication: Observable<TimeEmission>;
     source: Observable<TimeEmission>;
 
-    constructor(public config: TimeConfig) {
+    constructor(public config: SegmentConfig) {
         Sequencer.period = this.config.period;
     }
 
-    add<T extends TimeSegment>(ctor: SegmentType<T>, config: TimeConfig): T {
+    add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfig): T {
         const segment: T = new ctor(config);
         SegmentCollection.getInstance().push(segment);
         return segment;

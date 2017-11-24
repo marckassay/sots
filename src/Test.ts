@@ -1,13 +1,16 @@
 //import {CountdownSegment, CountupSegment, add, Sequencer} from "./Sots";
 import { CountdownSegment, CountupSegment, add } from "./Segments";
 import { Sequencer } from "./Sequencer";
-import { TimeEmission } from "./Interfaces";
+import { TimeEmission, StateConfig } from "./Interfaces";
 
-// "S='warning' T<=3 && T>=0"
 const sequencer: Sequencer = new Sequencer({ period: 100 });
-sequencer.add(CountdownSegment, { duration: 5000, states: ["S='beep', T==(3|2|1)"] })
-    .group(3, add(CountdownSegment, { duration: 1000 }), add(CountdownSegment, { duration: 2000 }))
-    .add(CountupSegment, { duration: 5000 });
+sequencer.add(CountdownSegment, { duration: 5000, 
+                                  states: [{state: 'beep', timeAt: "2,1,0"},
+                                           {state: 'warning', timeLessThanOrEqualTo: "5"}] })
+         .group(3, add(CountdownSegment, { duration: 1000 }), add(CountdownSegment, { duration: 2000 }))
+         .add(CountupSegment, { duration: 5000, 
+                                states: [{state: 'beep', timeAt: "3,4,5"},
+                                        {state: 'warning', timeGreaterThanOrEqualTo: "3"}] })
 
 sequencer.publish().subscribe((value: TimeEmission) => {
     let output: string;
