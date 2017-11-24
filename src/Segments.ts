@@ -33,7 +33,9 @@ export class TimeSegment implements SegmentInterface {
                 } else {
                     nuindex = (Sequencer.period * index) * .001;
                 }
-                //nuindex = Math.round(nuindex);
+                // taking advantage of JS type-checking by reducing precision 1 thou
+                // into a string and allowing it to be assigned to nuindex (which is a number)
+                nuindex = nuindex.toFixed(3) as any;
                 
                 let states: string = this.stateexp.evaluate(nuindex);
                 
