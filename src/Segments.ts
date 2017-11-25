@@ -1,6 +1,6 @@
 import { Observable, Subject } from 'rxjs/Rx';
 import { Subscription } from 'rxjs/Subscription';
-import { SegmentType, SegmentConfig, GroupParameter, SegmentInterface, TimeEmission, IntervalEmission } from './Interfaces';
+import { SegmentType, SegmentConfig, GroupParameter, SegmentInterface, TimeEmission, IntervalEmission, TimeSlot, Slot } from './Interfaces';
 import { StateConfig1, StateConfig2, StateConfig3, StateConfig4, StateConfig5 } from './Interfaces';
 import { SegmentCollection, Sequencer } from './Sequencer';
 
@@ -15,6 +15,7 @@ export class TimeSegment implements SegmentInterface {
     stateexp: StateExpression;
     countingUp: boolean;
     interval: IntervalEmission;
+    previousspread: string[];
 
     constructor(config: SegmentConfig, countingUp?: boolean) {
         this.config = config;
@@ -34,11 +35,17 @@ export class TimeSegment implements SegmentInterface {
                 } else {
                     nuindex = (Sequencer.period * index) * .001;
                 }
-                // taking advantage of JS type-checking by reducing precision 1 thou
-                // into a string and allowing it to be assigned to nuindex (which is a number)
-                nuindex = (nuindex.toFixed(3) as any) * 1;
 
-                let states: string = this.stateexp.evaluate(nuindex);
+                nuindex = Number(nuindex.toFixed(3));
+
+                let states: Slot = this.stateexp.evaluate(nuindex);
+                if (this.previousspread && states) {
+                    states.spread = states.spread.concat(this.previousspread);
+                } else if(this.previousspread && !states) {
+                    states = {instant: [], spread: this.previousspread};
+                } else if (states) {
+                    this.previousspread = states.spread;
+                }
 
                 return { time: nuindex, state: states, interval: this.interval };
             }).takeWhile((value: TimeEmission) => {
@@ -83,57 +90,93 @@ export class CountupSegment extends TimeSegment {
 }
 
 class StateExpression {
-    stateseg: string;
-    timemap: { [key: number]: string; } = {};
+    static spread_on: string = "::ON";
+    static spread_off: string = "::OFF";
+    static spread_regex: RegExp = /(\w+)(?:\:{2})/g;
+
+    timemap: TimeSlot<Slot> = {};
 
     constructor(config: SegmentConfig) {
         this.parse(config);
     }
 
     parse(config: SegmentConfig): void {
-        
-        if(config.states) {
+
+        if (config.states) {
             let statetime: Array<StateConfig1 | StateConfig2 | StateConfig3 | StateConfig4 | StateConfig5> = config.states;
             const len: number = statetime.length;
-            
+
             for (let index = 0; index < len; index++) {
                 for (let property in statetime[index]) {
-                    const state: string = statetime[index].state;
-                    switch(property) {
+                    let state: string = statetime[index].state;
+                    switch (property) {
                         case "timeAt":
-                        this.pushTimesToMap( (statetime[index] as StateConfig1).timeAt, state );
-                        break;
+                            this.setInstantStates((statetime[index] as StateConfig1).timeAt, state);
+                            break;
+
                         case "timeLessThan":
+                            let time2: number = Number((statetime[index] as StateConfig2).timeLessThan) - Sequencer.period;
+                            this.setSpreadState("lessThan", time2, state);
+                            break;
 
-                        break;
                         case "timeLessThanOrEqualTo":
+                        let time3: number = Number((statetime[index] as StateConfig3).timeLessThanOrEqualTo);
+                            this.setSpreadState("lessThan", time3, state);
+                            break;
 
-                        break;
                         case "timeGreaterThan":
+                        let time4: number = Number((statetime[index] as StateConfig4).timeGreaterThan) + Sequencer.period;
+                            this.setSpreadState("greaterThan", time4, state);
+                            break;
 
-                        break;
                         case "timeGreaterThanOrEqualTo":
-
-                        break;
+                        let time5: number = Number((statetime[index] as StateConfig5).timeGreaterThanOrEqualTo);
+                            this.setSpreadState("greaterThan", time5, state);
+                            break;
                     }
-                 }
+                }
             }
         }
     }
 
-    pushTimesToMap(times: string, state: string ): void {
+    setInstantStates(times: string, state: string): void {
         const time_expression: RegExp = /(\d+)/g;
-        
         try {
             times.match(time_expression).map((value: string) => {
-                this.timemap[Number(value)] = state;
+                let timeslot: Slot = this.timemap[Number(value)];
+                if (!timeslot) {
+                    this.timemap[Number(value)] = {instant: [state], spread: []};
+                } else {
+                    timeslot.instant.push(state);
+                    this.timemap[Number(value)] = timeslot;
+                }
             });
         } catch (error) {
-            throw "There is an error in this time expression: " + times;
+            throw "There is an error in this timeAt expression: " + times;
         }
     }
 
-    evaluate(time: number): string | undefined {
+    setSpreadState(operation: 'lessThan' | 'greaterThan', time: number, state: string): void {
+        let timeslot: Slot = this.timemap[time];
+        if (!timeslot) {
+            this.timemap[time] = {instant: [], spread: [state]};
+        } else {
+            timeslot.spread.push(state);
+            this.timemap[time] = timeslot;
+        }
+
+        // TODO: StateExpression.spread_off isnt being searched for at any moment.
+        /*
+        const polarend: number = (operation == 'lessThan') ? 0 : Number.MAX_VALUE;
+        if (!this.timemap[polarend]) {
+            this.timemap[polarend] = state + StateExpression.spread_off;
+        } else {
+            this.timemap[polarend] += "," + state + StateExpression.spread_off;
+        }
+        */
+    }
+
+    evaluate(time: number): Slot | undefined {
         return this.timemap[time];
     }
 }

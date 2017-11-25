@@ -16,7 +16,14 @@ sequencer.publish().subscribe((value: TimeEmission) => {
     let output: string;
 
     output = "time: " + value.time;
-    output += " state: " + value.state;
+    if(value.state){
+        if(value.state.instant) {
+            output += " state.instant: " + value.state.instant.toString();
+        }
+        if(value.state.spread) {
+            output += " state.spread: " + value.state.spread.toString();
+        }
+    }
 
     if (value.interval) {
         output += " interval.current: " + value.interval.current;

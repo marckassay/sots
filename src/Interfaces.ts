@@ -1,5 +1,13 @@
 import { TimeSegment, CountdownSegment, CountupSegment } from "./Segments";
 
+export interface TimeSlot<T> {
+    [key: number]: T;
+}
+export interface Slot {
+    instant?: string[],
+    spread?: string[]
+}
+
 type StateConfig<T> = {
     [P in keyof T]: T[P];
 }
@@ -35,7 +43,7 @@ export interface SegmentConfig {
 }
 
 export interface TimeEmission {
-    state: string;
+    state: Slot;
     time: number;
     interval?: IntervalEmission;
 }
