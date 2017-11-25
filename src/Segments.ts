@@ -1,6 +1,7 @@
 import { Observable, Subject } from 'rxjs/Rx';
 import { Subscription } from 'rxjs/Subscription';
 import { SegmentType, SegmentConfig, GroupParameter, SegmentInterface, TimeEmission, IntervalEmission } from './Interfaces';
+import { StateConfig1, StateConfig2, StateConfig3, StateConfig4, StateConfig5 } from './Interfaces';
 import { SegmentCollection, Sequencer } from './Sequencer';
 
 // simply a pass-thru top-level function to call the group function...
@@ -15,7 +16,7 @@ export class TimeSegment implements SegmentInterface {
     countingUp: boolean;
     interval: IntervalEmission;
 
-    constructor(config: SegmentConfig, countingUp?:boolean) {
+    constructor(config: SegmentConfig, countingUp?: boolean) {
         this.config = config;
         this.countingUp = countingUp;
 
@@ -28,20 +29,20 @@ export class TimeSegment implements SegmentInterface {
         this.source = Observable.timer(0, Sequencer.period)
             .map((value: number, index: number): TimeEmission => {
                 let nuindex: number;
-                if(!this.countingUp) {
+                if (!this.countingUp) {
                     nuindex = (this.config.duration - (Sequencer.period * index)) * .001;
                 } else {
                     nuindex = (Sequencer.period * index) * .001;
                 }
                 // taking advantage of JS type-checking by reducing precision 1 thou
                 // into a string and allowing it to be assigned to nuindex (which is a number)
-                nuindex = nuindex.toFixed(3) as any;
-                
+                nuindex = (nuindex.toFixed(3) as any) * 1;
+
                 let states: string = this.stateexp.evaluate(nuindex);
-                
+
                 return { time: nuindex, state: states, interval: this.interval };
             }).takeWhile((value: TimeEmission) => {
-                if(!this.countingUp) {
+                if (!this.countingUp) {
                     return value.time >= 0;
                 } else {
                     return value.time <= (this.config.duration * .001);
@@ -62,7 +63,7 @@ export class TimeSegment implements SegmentInterface {
             for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
                 const segType: GroupParameter = segments[segmentIndex];
                 segment = new segType.ctor(segType.config);
-                segment.interval = {current: index+1, total: intervals};
+                segment.interval = { current: index + 1, total: intervals };
                 SegmentCollection.getInstance().push(segment);
             }
         }
@@ -83,46 +84,56 @@ export class CountupSegment extends TimeSegment {
 
 class StateExpression {
     stateseg: string;
-    timeseg: Array<number>;
+    timemap: { [key: number]: string; } = {};
 
     constructor(config: SegmentConfig) {
         this.parse(config);
     }
 
     parse(config: SegmentConfig): void {
-        const time_expression: RegExp = /[^T==\s*\(*\|*\)*]|(\d+)/g;
-        const state_expression: RegExp = /[^S=\s*\'*\"*]\w+/;
-        const split_on_comma: RegExp = /\s*,\s*/;
+        
+        if(config.states) {
+            let statetime: Array<StateConfig1 | StateConfig2 | StateConfig3 | StateConfig4 | StateConfig5> = config.states;
+            const len: number = statetime.length;
+            
+            for (let index = 0; index < len; index++) {
+                for (let property in statetime[index]) {
+                    const state: string = statetime[index].state;
+                    switch(property) {
+                        case "timeAt":
+                        this.pushTimesToMap( (statetime[index] as StateConfig1).timeAt, state );
+                        break;
+                        case "timeLessThan":
 
-        let statetime: Array<string>;
+                        break;
+                        case "timeLessThanOrEqualTo":
 
-        if (config.states) {
-            try {
-                statetime = config.states[0].split(split_on_comma);
-                this.stateseg = statetime[0].match(state_expression)[0];
-            } catch (error) {
-                throw "An error occurred when trying to parse this expression: " + config.states;
-            }
+                        break;
+                        case "timeGreaterThan":
 
-            try {
-                this.timeseg = statetime[1].match(time_expression).map((value: string) => {
-                    try {
-                        return Number(value);
-                    } catch (error) {
-                        throw "There is an error in this segment of a state expression: " + statetime[1];
+                        break;
+                        case "timeGreaterThanOrEqualTo":
+
+                        break;
                     }
-                });
-            } catch (error) {
-                throw "An error occurred when trying to find a time segment for this expression: " + config.states[0];
+                 }
             }
         }
     }
 
-    evaluate(time: number): string {
-        if (this.timeseg && this.timeseg.indexOf(time) != -1) {
-            return this.stateseg;
-        } else {
-            return undefined;
+    pushTimesToMap(times: string, state: string ): void {
+        const time_expression: RegExp = /(\d+)/g;
+        
+        try {
+            times.match(time_expression).map((value: string) => {
+                this.timemap[Number(value)] = state;
+            });
+        } catch (error) {
+            throw "There is an error in this time expression: " + times;
         }
+    }
+
+    evaluate(time: number): string | undefined {
+        return this.timemap[time];
     }
 }

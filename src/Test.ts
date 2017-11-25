@@ -1,7 +1,7 @@
 //import {CountdownSegment, CountupSegment, add, Sequencer} from "./Sots";
 import { CountdownSegment, CountupSegment, add } from "./Segments";
 import { Sequencer } from "./Sequencer";
-import { TimeEmission, StateConfig } from "./Interfaces";
+import { TimeEmission } from "./Interfaces";
 
 const sequencer: Sequencer = new Sequencer({ period: 100 });
 sequencer.add(CountdownSegment, { duration: 5000, 

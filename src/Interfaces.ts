@@ -1,6 +1,5 @@
 import { TimeSegment, CountdownSegment, CountupSegment } from "./Segments";
 
-
 type StateConfig<T> = {
     [P in keyof T]: T[P];
 }
