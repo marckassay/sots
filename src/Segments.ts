@@ -69,12 +69,14 @@ export class TimeSegment implements SegmentInterface {
         for (let index = 0; index < intervals; index++) {
             for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
                 const segType: GroupParameter = segments[segmentIndex];
-                segment = new segType.ctor(segType.config);
-                segment.interval = { current: index + 1, total: intervals };
-                SegmentCollection.getInstance().push(segment);
+                if((index != 0) || (!segType.config.negate1st)) {
+                    segment = new segType.ctor(segType.config);
+                    segment.interval = { current: index + 1, total: intervals };
+                    SegmentCollection.getInstance().push(segment);
+                }
             }
         }
-
+        // return the last instance, so that this group invocation can be chained if needed...
         return segment;
     }
 }

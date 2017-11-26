@@ -48,8 +48,8 @@ export class Sequencer implements SegmentInterface {
     publication: Observable<TimeEmission>;
     source: Observable<TimeEmission>;
 
-    constructor(public config: SegmentConfig) {
-        Sequencer.period = this.config.period;
+    constructor(config: { period: number }) {
+        Sequencer.period = config.period;
     }
 
     add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfig): T {
@@ -58,8 +58,23 @@ export class Sequencer implements SegmentInterface {
         return segment;
     }
 
+    // TODO: this method is complete boilder-plate code.  I need to consider Sequencer
+    // as a subclass (or composite) of TimeSegment.
     group(intervals: number, ...segments: GroupParameter[]): TimeSegment {
-        throw new Error("Method not implemented.");
+        let segment: TimeSegment;
+
+        for (let index = 0; index < intervals; index++) {
+            for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
+                const segType: GroupParameter = segments[segmentIndex];
+                if ((index != 0) || (!segType.config.negate1st)) {
+                    segment = new segType.ctor(segType.config);
+                    segment.interval = { current: index + 1, total: intervals };
+                    SegmentCollection.getInstance().push(segment);
+                }
+            }
+        }
+        // return the last instance, so that this group invocation can be chained if needed...
+        return segment;
     }
 
     start(): void {
