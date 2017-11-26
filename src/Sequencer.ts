@@ -66,7 +66,7 @@ export class Sequencer implements SegmentInterface {
         for (let index = 0; index < intervals; index++) {
             for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
                 const segType: GroupParameter = segments[segmentIndex];
-                if ((index != 0) || (!segType.config.negate1st)) {
+                if ((index != 0) || (!segType.config.omitFirst)) {
                     segment = new segType.ctor(segType.config);
                     segment.interval = { current: index + 1, total: intervals };
                     SegmentCollection.getInstance().push(segment);

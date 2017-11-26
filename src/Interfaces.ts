@@ -38,7 +38,7 @@ export type StateConfig5 = StateConfig<TimeGreaterThanOrEqualTo>;
 
 export interface SegmentConfig {
     duration: number;
-    negate1st?: boolean;
+    omitFirst?: boolean;
     states?: Array<StateConfig1 | StateConfig2 | StateConfig3 | StateConfig4 | StateConfig5>;
 }
 
