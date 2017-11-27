@@ -1,23 +1,24 @@
 import { Observable, Subject } from 'rxjs/Rx';
 import { Subscription } from 'rxjs/Subscription';
-import { SegmentType, SegmentConfig, GroupParameter, SegmentInterface, TimeEmission, IntervalEmission, TimeSlot, Slot } from './Interfaces';
-import { StateConfig1, StateConfig2, StateConfig3, StateConfig4, StateConfig5 } from './Interfaces';
+import { TimeEmission, IntervalEmissionShape, SlotEmissionShape, TimeSlot} from './api/Emission.api';
+import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface } from './api/Segment.api';
+import { StateConfig1, StateConfig2, StateConfig3, StateConfig4, StateConfig5 } from './api/StateConfigs.api';
 import { SegmentCollection, Sequencer } from './Sequencer';
 
 // simply a pass-thru top-level function to call the group function...
-export function add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfig): GroupParameter {
+export function add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): GroupParameter<T> {
     return { ctor, config };
 }
 
 export class TimeSegment implements SegmentInterface {
-    config: SegmentConfig;
+    config: SegmentConfigShape;
     source: Observable<TimeEmission>;
     stateexp: StateExpression;
     countingUp: boolean;
-    interval: IntervalEmission;
+    interval: IntervalEmissionShape;
     previousspread: string[];
 
-    constructor(config: SegmentConfig, countingUp?: boolean) {
+    constructor(config: SegmentConfigShape, countingUp?: boolean) {
         this.config = config;
         this.countingUp = countingUp;
 
@@ -38,7 +39,7 @@ export class TimeSegment implements SegmentInterface {
 
                 nuindex = Number(nuindex.toFixed(3));
 
-                let states: Slot = this.stateexp.evaluate(nuindex);
+                let states: SlotEmissionShape = this.stateexp.evaluate(nuindex);
                 if (this.previousspread && states) {
                     states.spread = states.spread.concat(this.previousspread);
                 } else if(this.previousspread && !states) {
@@ -57,18 +58,18 @@ export class TimeSegment implements SegmentInterface {
             });
     }
 
-    add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfig): T {
+    add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T {
         const segment: T = new ctor(config);
         SegmentCollection.getInstance().push(segment);
         return segment;
     }
 
-    group(intervals: number, ...segments: GroupParameter[]): TimeSegment {
+    group<T extends TimeSegment>(intervals: number, ...segments: GroupParameter<T>[]): T {
         let segment: TimeSegment;
 
         for (let index = 0; index < intervals; index++) {
             for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
-                const segType: GroupParameter = segments[segmentIndex];
+                const segType: GroupParameter<T> = segments[segmentIndex];
                 if((index != 0) || (!segType.config.omitFirst)) {
                     segment = new segType.ctor(segType.config);
                     segment.interval = { current: index + 1, total: intervals };
@@ -77,16 +78,16 @@ export class TimeSegment implements SegmentInterface {
             }
         }
         // return the last instance, so that this group invocation can be chained if needed...
-        return segment;
+        return segment as T;
     }
 }
 export class CountdownSegment extends TimeSegment {
-    constructor(public config: SegmentConfig) {
+    constructor(public config: SegmentConfigShape) {
         super(config, false);
     }
 }
 export class CountupSegment extends TimeSegment {
-    constructor(public config: SegmentConfig) {
+    constructor(public config: SegmentConfigShape) {
         super(config, true);
     }
 }
@@ -96,13 +97,13 @@ class StateExpression {
     static spread_off: string = "::OFF";
     static spread_regex: RegExp = /(\w+)(?:\:{2})/g;
 
-    timemap: TimeSlot<Slot> = {};
+    timemap: TimeSlot<SlotEmissionShape> = {};
 
-    constructor(config: SegmentConfig) {
+    constructor(config: SegmentConfigShape) {
         this.parse(config);
     }
 
-    parse(config: SegmentConfig): void {
+    parse(config: SegmentConfigShape): void {
 
         if (config.states) {
             let statetime: Array<StateConfig1 | StateConfig2 | StateConfig3 | StateConfig4 | StateConfig5> = config.states;
@@ -145,7 +146,7 @@ class StateExpression {
         const time_expression: RegExp = /(\d+)/g;
         try {
             times.match(time_expression).map((value: string) => {
-                let timeslot: Slot = this.timemap[Number(value)];
+                let timeslot: SlotEmissionShape = this.timemap[Number(value)];
                 if (!timeslot) {
                     this.timemap[Number(value)] = {instant: [state], spread: []};
                 } else {
@@ -159,7 +160,7 @@ class StateExpression {
     }
 
     setSpreadState(operation: 'lessThan' | 'greaterThan', time: number, state: string): void {
-        let timeslot: Slot = this.timemap[time];
+        let timeslot: SlotEmissionShape = this.timemap[time];
         if (!timeslot) {
             this.timemap[time] = {instant: [], spread: [state]};
         } else {
@@ -178,7 +179,7 @@ class StateExpression {
         */
     }
 
-    evaluate(time: number): Slot | undefined {
+    evaluate(time: number): SlotEmissionShape | undefined {
         return this.timemap[time];
     }
 }

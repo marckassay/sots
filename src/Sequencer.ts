@@ -1,7 +1,8 @@
 import { Observable, Subject } from 'rxjs/Rx';
 import { Subscription } from 'rxjs/Subscription';
+import { TimeEmission, IntervalEmissionShape, SlotEmissionShape, TimeSlot} from './api/Emission.api';
+import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface } from './api/Segment.api';
 import { TimeSegment } from './Segments';
-import { SegmentInterface, SegmentConfig, SegmentType, GroupParameter, TimeEmission } from './Interfaces';
 
 export class SegmentCollection {
     private static instance: SegmentCollection;
@@ -51,8 +52,7 @@ export class Sequencer implements SegmentInterface {
     constructor(config: { period: number }) {
         Sequencer.period = config.period;
     }
-
-    add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfig): T {
+    add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T {
         const segment: T = new ctor(config);
         SegmentCollection.getInstance().push(segment);
         return segment;
@@ -60,21 +60,21 @@ export class Sequencer implements SegmentInterface {
 
     // TODO: this method is complete boilder-plate code.  I need to consider Sequencer
     // as a subclass (or composite) of TimeSegment.
-    group(intervals: number, ...segments: GroupParameter[]): TimeSegment {
+    group<T extends TimeSegment>(intervals: number, ...segments: GroupParameter<T>[]): T {
         let segment: TimeSegment;
 
         for (let index = 0; index < intervals; index++) {
             for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
-                const segType: GroupParameter = segments[segmentIndex];
+                const segType: GroupParameter<T> = segments[segmentIndex];
                 if ((index != 0) || (!segType.config.omitFirst)) {
-                    segment = new segType.ctor(segType.config);
+                    segment = new segType.ctor(segType.config) as TimeSegment;
                     segment.interval = { current: index + 1, total: intervals };
                     SegmentCollection.getInstance().push(segment);
                 }
             }
         }
         // return the last instance, so that this group invocation can be chained if needed...
-        return segment;
+        return segment as T;
     }
 
     start(): void {

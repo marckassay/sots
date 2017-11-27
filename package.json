@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "Sequence of Time Segments",
   "keywords": [
+    "time",
     "timer",
-    "weaver",
-    "sequencer",
+    "sequence",
     "interval"
   ],
   "repository": {
@@ -19,5 +19,7 @@
   },
   "dependencies": {
     "rxjs": "^5.5.2"
-  }
+  },
+  "main": "./src/Sequencer.js",
+  "types": "./src/Sots.d.ts"
 }

@@ -1,20 +1,36 @@
 import { TimeSegment, add } from "./Segments";
-import { SegmentType, SegmentConfig, GroupParameter, SegmentInterface, TimeEmission } from "./Interfaces";
-import { Sequencer } from "./Sequencer";
-import { Subscription } from "rxjs";
 import { Observable } from "rxjs/Observable";
-export { CountupSegment, CountdownSegment } from "./Segments";
-export { Sequencer };
-export { add };
+import { TimeEmission, SlotEmissionShape, IntervalEmissionShape } from "./api/Emission.api";
+import { SegmentType, GroupParameter, SegmentConfigShape } from "./api/Segment.api";
 
-export declare namespace Sots {
-    class Sequencer implements SegmentInterface {
-        constructor(config: SegmentConfig);
-        add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfig): T;
-        group(intervals: number, ...segments: GroupParameter[]): TimeSegment;
+declare module Sots {
+    class Sequencer {
+        constructor(config: { period: number }) ;
+        add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T ;
+        group<T extends TimeSegment>(intervals: number, ...segments: GroupParameter<T>[]): T;
         start(): void;
+        pause(): void;
         publish(): Observable<TimeEmission>;
     }
+    
+    interface TimeEmission {
+        state: SlotEmissionShape;
+        time: number;
+        interval?: IntervalEmissionShape;
+    }
 
-    function add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfig): GroupParameter;
+    function add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): GroupParameter<T>;
+
+    class CountdownSegment extends TimeSegment {
+        constructor(config: SegmentConfigShape);
+    }
+    class CountupSegment extends TimeSegment {
+        constructor(config: SegmentConfigShape);
+    }
+
+    
+}
+
+declare module "sots" {
+	export = Sots;
 }
