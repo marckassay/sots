@@ -1,7 +1,6 @@
 import { Observable, Subject } from 'rxjs/Rx';
-import { Subscription } from 'rxjs/Subscription';
-import { TimeEmission, IntervalEmissionShape, SlotEmissionShape, TimeSlot} from './api/Emission.api';
-import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface } from './api/Segment.api';
+import { TimeEmission } from './api/Emission';
+import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface } from './api/Segment';
 import { TimeSegment } from './Segments';
 
 export class SegmentCollection {
@@ -9,6 +8,7 @@ export class SegmentCollection {
 
     segments: Array<TimeSegment>;
     observables: any;
+    lastTimeSegment: TimeSegment;
 
     private constructor() {
         this.segments = new Array();
@@ -22,24 +22,28 @@ export class SegmentCollection {
         return SegmentCollection.instance;
     }
 
-    toSequencedObservable(): Observable<any> {
+    toSequencedObservable(): Observable<TimeEmission> {
         const len: number = this.observables.length;
-        let source: Observable<any>;
 
         if (len >= 1) {
-            source = this.observables[0];
-
-            for (let index = 1; index <= len - 1; index++) {
+            let source: Observable<TimeEmission> = this.observables[0];
+            for (let index = 0; index <= len - 1; index++) {
                 source = source.concat(this.observables[index]);
             }
+            return source;
+        } else {
+            throw new Error("There are no observables to sequence.  Check your configuration.");
         }
-
-        return source;
     }
 
-    push(segment: TimeSegment) {
+    push(segment: TimeSegment): void {
         this.segments.push(segment);
         this.observables.push(segment.source);
+        this.lastTimeSegment = segment;
+    }
+
+    getLastSegment(): TimeSegment {
+        return this.lastTimeSegment;
     }
 }
 
@@ -63,18 +67,18 @@ export class Sequencer implements SegmentInterface {
     group<T extends TimeSegment>(intervals: number, ...segments: GroupParameter<T>[]): T {
         let segment: TimeSegment;
 
-        for (let index = 0; index < intervals; index++) {
-            for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
-                const segType: GroupParameter<T> = segments[segmentIndex];
-                if ((index != 0) || (!segType.config.omitFirst)) {
-                    segment = new segType.ctor(segType.config) as TimeSegment;
+        for (let index = 0; index < intervals; index++) 
+        {
+            segments.forEach( (value:GroupParameter<T>) => {
+                if ((index != 0) || (!value.config.omitFirst)) {
+                    segment = new value.ctor(value.config) as TimeSegment;
                     segment.interval = { current: index + 1, total: intervals };
                     SegmentCollection.getInstance().push(segment);
                 }
-            }
+            });
         }
         // return the last instance, so that this group invocation can be chained if needed...
-        return segment as T;
+        return SegmentCollection.getInstance().getLastSegment() as T;
     }
 
     start(): void {

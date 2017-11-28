@@ -1,23 +1,36 @@
 {
-  "compileOnSave": true,
   "compilerOptions": {
-    "moduleResolution":"node",
-    "module": "commonjs",
-    "lib": [
-      "es2015",
-      "dom"
-    ],
-    "noImplicitAny": true,
-    "removeComments": true,
-    "preserveConstEnums": true,
-    "outDir": "dist/",
-    "sourceMap": true
-  },
-  "include": [
-    "src/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "**/*.spec.ts"
-  ]
+      "module": "commonjs",
+      "moduleResolution": "node",
+      "target": "es5",
+      "lib": [
+          "dom",
+          "es2015"
+      ],
+      "noImplicitAny": true,
+      "strictNullChecks": true,
+      "noFallthroughCasesInSwitch": true,
+      "noImplicitReturns": true,
+      "noImplicitThis": true,
+      "noUnusedLocals": true,
+      "noUnusedParameters": true,
+      "experimentalDecorators": true,
+      "forceConsistentCasingInFileNames": true,
+      "stripInternal": true,
+      "skipDefaultLibCheck": true,
+      "skipLibCheck": false,
+      "sourceMap": true,
+      "declaration": true,
+      "listFiles": false,
+      "newLine": "LF",
+      "noEmitOnError": true,
+      "inlineSources": true,
+      "listEmittedFiles": false,
+      "traceResolution": true,
+      "outDir": "./dist"
+    },
+      "include": [
+        "lib/**/*.ts",
+        "test/**/*.ts"
+    ]
 }

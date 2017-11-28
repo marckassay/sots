@@ -1,5 +1,5 @@
 export interface TimeEmission {
-    state: SlotEmissionShape;
+    state?: SlotEmissionShape;
     time: number;
     interval?: IntervalEmissionShape;
 }

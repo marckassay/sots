@@ -1,4 +1,4 @@
-import * as state from "./StateConfigs.api";
+import * as state from "./StateConfigs";
 import { TimeSegment } from "../Segments";
 
 export interface SegmentConfigShape {

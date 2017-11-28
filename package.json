@@ -20,6 +20,11 @@
   "dependencies": {
     "rxjs": "^5.5.2"
   },
-  "main": "./src/Sequencer.js",
-  "types": "./src/Sots.d.ts"
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "prepublish": "npm run build",
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
 }
