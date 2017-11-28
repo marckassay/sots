@@ -16,7 +16,7 @@ var SegmentCollection = /** @class */ (function () {
         var len = this.observables.length;
         if (len >= 1) {
             var source = this.observables[0];
-            for (var index = 0; index <= len - 1; index++) {
+            for (var index = 1; index <= len - 1; index++) {
                 source = source.concat(this.observables[index]);
             }
             return source;
