@@ -2,6 +2,11 @@ sots (Sequence of Time Segments) is a JS module that allows you to structure com
 
 When compiled this module's JS files weighs-in around 16kbs, excluding RxJS from this estimate.
 
+To install with npm:
+```bash
+npm install sots
+```
+See npm link here: [npmjs.com/package/sots](https://www.npmjs.com/package/sots)
 ## Definitions
 * instant (state): These states are momentary, as they are emitted only at a specific instant in time.
 * spread (state): These states are non-momentary, as they "spread" over time until termination of its time segment.
@@ -39,7 +44,7 @@ seq.subscribe((value:TimeEmission)=>{
 });
 seq.start();
 ```
-See this demo here: https://runkit.com/embed/XXXXX
+See this demo here: https://runkit.com/marckassay/sots-demo-1
 
 ## Examples
 The following are links to examples using sots.
@@ -48,7 +53,7 @@ The following are links to examples using sots.
 This example contains: 
 * add() call of descending time, with instant state and spread state.
 
-See this example here: https://runkit.com/embed/XXXXX
+See this example here: https://raw.githubusercontent.com/marckassay/sots/master/example/example-1.ts
 
 ### Example 2
 This example contains: 
@@ -56,4 +61,4 @@ This example contains:
 * group() call that creates intervals of its add() calls.  Followed by,
 * add() call of ascending time, with instant state and spread state.
 
-See this example here: https://runkit.com/embed/XXXXX
+See this example here: https://raw.githubusercontent.com/marckassay/sots/master/example/example-2.ts
