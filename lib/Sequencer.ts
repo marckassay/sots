@@ -2,13 +2,14 @@ import { Observable, Subject } from 'rxjs/Rx';
 import { TimeEmission } from './api/Emission';
 import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface } from './api/Segment';
 import { TimeSegment } from './Segments';
+import { Subscription } from 'rxjs/Subscription';
 
 export class SegmentCollection {
     private static instance: SegmentCollection;
 
-    segments: Array<TimeSegment>;
-    observables: any;
-    lastTimeSegment: TimeSegment;
+    private segments: Array<TimeSegment>;
+    private observables: any;
+    private lastTimeSegment: TimeSegment;
 
     private constructor() {
         this.segments = new Array();
@@ -22,6 +23,9 @@ export class SegmentCollection {
         return SegmentCollection.instance;
     }
 
+    /**
+     * internal method
+     */
     toSequencedObservable(): Observable<TimeEmission> {
         const len: number = this.observables.length;
 
@@ -36,26 +40,45 @@ export class SegmentCollection {
         }
     }
 
+    /**
+     * internal method
+     */
     push(segment: TimeSegment): void {
         this.segments.push(segment);
-        this.observables.push(segment.source);
+        this.observables.push(segment.getObservable());
         this.lastTimeSegment = segment;
     }
-
+    
+    /**
+     * internal method
+     */
     getLastSegment(): TimeSegment {
         return this.lastTimeSegment;
     }
 }
 
+/**
+ * Initiates a sequence with time period being defined in its constructor.
+ * @param constructor   Sequencer must be instantiated with a value for period that is read in milliseconds.  This value becomes static and global to its segments.
+ * @returns   an instance.
+ */
 export class Sequencer implements SegmentInterface {
     static period: number;
-    pauser: Subject<boolean>;
-    publication: Observable<TimeEmission>;
-    source: Observable<TimeEmission>;
+    private pauser: Subject<boolean>;
+    private publication: Observable<TimeEmission>;
+    private source: Observable<TimeEmission>;
 
     constructor(config: { period: number }) {
         Sequencer.period = config.period;
     }
+
+    /**
+     * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
+     * @param ctor    A type being subclass of TimeSegment,  Specifically CountupSegment or CountdownSegment.
+     * @param config  Config file specifiying duration (required) and states (optional).  When used inside a group
+     * function, the omitFirst can be used to omit this segment when its assigned to the first interval.
+     * @returns       An instance of T type, which is a subclass of TimeSegment.
+     */
     add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T {
         const segment: T = new ctor(config);
         SegmentCollection.getInstance().push(segment);
@@ -64,6 +87,13 @@ export class Sequencer implements SegmentInterface {
 
     // TODO: this method is complete boilder-plate code.  I need to consider Sequencer
     // as a subclass (or composite) of TimeSegment.
+    // TODO: consider if intervals is '0'.
+    /**
+     * Multiply its combined add() invocations and returns a TimeSegment.
+     * @param intervals The number intervals or cycles to be added of segments.
+     * @param segments  Consists of add() invocations.
+     * @returns         An instance of T type, which is a subclass of TimeSegment.
+     */
     group<T extends TimeSegment>(intervals: number, ...segments: GroupParameter<T>[]): T {
         let segment: TimeSegment;
 
@@ -81,14 +111,27 @@ export class Sequencer implements SegmentInterface {
         return SegmentCollection.getInstance().getLastSegment() as T;
     }
 
+    /**
+     * Starts internal Observable to start emitting.  This must be called after the 'subscribe()' is called.
+     * @returns void.
+     */
     start(): void {
         this.pauser.next(false);
     }
 
+    /**
+     * Pauses internal Observable to start emitting.  This must be called after the 'subscribe()' is called.
+     * @returns void.
+     */
     pause(): void {
         this.pauser.next(true);
     }
 
+    /**
+     * Returns an Observable<TimeEmission> versus, subscribe() which returns a Subscription.  Typically subscribe()
+     * is used.
+     * @returns Observable<TimeEmission>.
+     */
     publish(): Observable<TimeEmission> {
         if (!this.source) {
             this.source = SegmentCollection.getInstance().toSequencedObservable();
@@ -98,5 +141,15 @@ export class Sequencer implements SegmentInterface {
         }
 
         return this.publication;
+    }
+
+    /**
+     * Pass in callback functions to "subscribe" to an Observable emitting.  This is the only means of making an 
+     * observation of emission.
+     * 
+     * @returns Subscription.
+     */
+    subscribe(next?: (value: TimeEmission) => void, error?: (error: any) => void, complete?: () => void): Subscription {
+        return this.publish().subscribe(next, error, complete);
     }
 }

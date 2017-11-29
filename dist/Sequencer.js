@@ -12,6 +12,9 @@ var SegmentCollection = /** @class */ (function () {
         }
         return SegmentCollection.instance;
     };
+    /**
+     * internal method
+     */
     SegmentCollection.prototype.toSequencedObservable = function () {
         var len = this.observables.length;
         if (len >= 1) {
@@ -25,21 +28,39 @@ var SegmentCollection = /** @class */ (function () {
             throw new Error("There are no observables to sequence.  Check your configuration.");
         }
     };
+    /**
+     * internal method
+     */
     SegmentCollection.prototype.push = function (segment) {
         this.segments.push(segment);
-        this.observables.push(segment.source);
+        this.observables.push(segment.getObservable());
         this.lastTimeSegment = segment;
     };
+    /**
+     * internal method
+     */
     SegmentCollection.prototype.getLastSegment = function () {
         return this.lastTimeSegment;
     };
     return SegmentCollection;
 }());
 exports.SegmentCollection = SegmentCollection;
+/**
+ * Initiates a sequence with time period being defined in its constructor.
+ * @param constructor   Sequencer must be instantiated with a value for period that is read in milliseconds.  This value becomes static and global to its segments.
+ * @returns   an instance.
+ */
 var Sequencer = /** @class */ (function () {
     function Sequencer(config) {
         Sequencer.period = config.period;
     }
+    /**
+     * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
+     * @param ctor    A type being subclass of TimeSegment,  Specifically CountupSegment or CountdownSegment.
+     * @param config  Config file specifiying duration (required) and states (optional).  When used inside a group
+     * function, the omitFirst can be used to omit this segment when its assigned to the first interval.
+     * @returns       An instance of T type, which is a subclass of TimeSegment.
+     */
     Sequencer.prototype.add = function (ctor, config) {
         var segment = new ctor(config);
         SegmentCollection.getInstance().push(segment);
@@ -47,6 +68,13 @@ var Sequencer = /** @class */ (function () {
     };
     // TODO: this method is complete boilder-plate code.  I need to consider Sequencer
     // as a subclass (or composite) of TimeSegment.
+    // TODO: consider if intervals is '0'.
+    /**
+     * Multiply its combined add() invocations and returns a TimeSegment.
+     * @param intervals The number intervals or cycles to be added of segments.
+     * @param segments  Consists of add() invocations.
+     * @returns         An instance of T type, which is a subclass of TimeSegment.
+     */
     Sequencer.prototype.group = function (intervals) {
         var segments = [];
         for (var _i = 1; _i < arguments.length; _i++) {
@@ -68,12 +96,25 @@ var Sequencer = /** @class */ (function () {
         // return the last instance, so that this group invocation can be chained if needed...
         return SegmentCollection.getInstance().getLastSegment();
     };
+    /**
+     * Starts internal Observable to start emitting.  This must be called after the 'subscribe()' is called.
+     * @returns void.
+     */
     Sequencer.prototype.start = function () {
         this.pauser.next(false);
     };
+    /**
+     * Pauses internal Observable to start emitting.  This must be called after the 'subscribe()' is called.
+     * @returns void.
+     */
     Sequencer.prototype.pause = function () {
         this.pauser.next(true);
     };
+    /**
+     * Returns an Observable<TimeEmission> versus, subscribe() which returns a Subscription.  Typically subscribe()
+     * is used.
+     * @returns Observable<TimeEmission>.
+     */
     Sequencer.prototype.publish = function () {
         var _this = this;
         if (!this.source) {
@@ -83,6 +124,15 @@ var Sequencer = /** @class */ (function () {
             this.publication = this.pauser.switchMap(function (paused) { return (paused == true) ? Rx_1.Observable.never() : _this.source; });
         }
         return this.publication;
+    };
+    /**
+     * Pass in callback functions to "subscribe" to an Observable emitting.  This is the only means of making an
+     * observation of emission.
+     *
+     * @returns Subscription.
+     */
+    Sequencer.prototype.subscribe = function (next, error, complete) {
+        return this.publish().subscribe(next, error, complete);
     };
     return Sequencer;
 }());

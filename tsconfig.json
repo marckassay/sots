@@ -29,8 +29,7 @@
       "traceResolution": false,
       "outDir": "./dist"
     },
-      "include": [
-        "lib/**/*.ts",
-        "test/**/*.ts"
+    "files": [
+        "lib/index.ts"
     ]
 }

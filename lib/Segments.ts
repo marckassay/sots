@@ -4,18 +4,26 @@ import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface } fro
 import { StateConfig1, StateConfig2, StateConfig3, StateConfig4, StateConfig5 } from './api/StateConfigs';
 import { SegmentCollection, Sequencer } from './Sequencer';
 
-// simply a pass-thru top-level function to call the group function...
+/**
+ * Simply a pass-thru function to be used in the group function.
+ * 
+ * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
+ * @param ctor    A type being subclass of TimeSegment, specifically CountupSegment or CountdownSegment.
+ * @param config  Config file specifiying duration (required) and states (optional).  When used inside a group
+ * function, the omitFirst can be used to omit this segment when its assigned to the first interval.
+ * @returns       An instance of T type, which is a subclass of TimeSegment.
+ */
 export function add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): GroupParameter<T> {
     return { ctor, config };
 }
 
 export class TimeSegment implements SegmentInterface {
-    config: SegmentConfigShape;
-    source: Observable<TimeEmission>;
-    stateexp: StateExpression;
-    countingUp: boolean;
+    protected config: SegmentConfigShape;
     interval: IntervalEmissionShape;
-    previousspread: string[];
+    private source: Observable<TimeEmission>;
+    private stateexp: StateExpression;
+    private countingUp: boolean;
+    private previousspread: string[];
 
     constructor(config: SegmentConfigShape, countingUp: boolean = false) {
         this.config = config;
@@ -26,7 +34,7 @@ export class TimeSegment implements SegmentInterface {
         this.initializeObservable();
     }
 
-    initializeObservable() {
+    private initializeObservable() {
         this.source = Observable.timer(0, Sequencer.period)
             .map((index: number): TimeEmission => {
                 let nuindex: number;
@@ -56,13 +64,26 @@ export class TimeSegment implements SegmentInterface {
                 }
             });
     }
-
+    
+    /**
+     * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
+     * @param ctor    A type being subclass of TimeSegment,  Specifically CountupSegment or CountdownSegment.
+     * @param config  Config file specifiying duration (required) and states (optional).  When used inside a group
+     * function, the omitFirst can be used to omit this segment when its assigned to the first interval.
+     * @returns       An instance of T type, which is a subclass of TimeSegment.
+     */
     add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T {
         const segment: T = new ctor(config);
         SegmentCollection.getInstance().push(segment);
         return segment;
     }
 
+    /**
+     * Multiply its combined add() invocations and returns a TimeSegment.
+     * @param intervals The number intervals or cycles to be added of segments.
+     * @param segments  Consists of add() invocations.
+     * @returns         An instance of T type, which is a subclass of TimeSegment.
+     */
     group<T extends TimeSegment>(intervals: number, ...segments: GroupParameter<T>[]): T {
         let segment: TimeSegment;
 
@@ -79,12 +100,27 @@ export class TimeSegment implements SegmentInterface {
         // return the last instance, so that this group invocation can be chained if needed...
         return SegmentCollection.getInstance().getLastSegment() as T;
     }
+
+    /**
+     * internal method
+     */
+    getObservable(): Observable<TimeEmission> {
+        return this.source;
+    }
 }
+
+/**
+ * Counts down in time.  In otherwords, its descending time.
+ */
 export class CountdownSegment extends TimeSegment {
     constructor(public config: SegmentConfigShape) {
         super(config, false);
     }
 }
+
+/**
+ * Counts up in time.  In otherwords, its ascending time.
+ */
 export class CountupSegment extends TimeSegment {
     constructor(public config: SegmentConfigShape) {
         super(config, true);
@@ -96,13 +132,13 @@ export class StateExpression {
     static spread_off: string = "::OFF";
     static spread_regex: RegExp = /(\w+)(?:\:{2})/g;
 
-    timemap: TimeSlot<SlotEmissionShape> = {};
+    private timemap: TimeSlot<SlotEmissionShape> = {};
 
     constructor(config: SegmentConfigShape) {
         this.parse(config);
     }
 
-    parse(config: SegmentConfigShape): void {
+    private parse(config: SegmentConfigShape): void {
 
         if (config.states) {
             let statetime: Array<StateConfig1 | StateConfig2 | StateConfig3 | StateConfig4 | StateConfig5> = config.states;
@@ -141,7 +177,7 @@ export class StateExpression {
         }
     }
 
-    setInstantStates(times: string, state: string): void {
+    private setInstantStates(times: string, state: string): void {
         const time_expression: RegExp = /(\d+)/g;
 
         let results: RegExpMatchArray | null = times.match(time_expression);
@@ -158,7 +194,7 @@ export class StateExpression {
         }
     }
 
-    setSpreadState(operation: "lessThan" | "greaterThan", time: number, state: string): void {
+    private setSpreadState(operation: "lessThan" | "greaterThan", time: number, state: string): void {
         const timeslot: SlotEmissionShape = this.timemap[time];
         if (!timeslot) {
             this.timemap[time] = { instant: [], spread: [state] };
@@ -176,6 +212,10 @@ export class StateExpression {
         }
     }
 
+    /**
+     * internal method
+     * @param time The time for this segment.  This is not global time of a sequence.
+     */
     evaluate(time: number): SlotEmissionShape | undefined {
         return this.timemap[time];
     }
