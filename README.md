@@ -53,7 +53,7 @@ The following are links to examples using sots.
 This example contains: 
 * add() call of descending time, with instant state and spread state.
 
-See this example here: https://raw.githubusercontent.com/marckassay/sots/master/example/example-1.ts
+See this example here: https://github.com/marckassay/sots/blob/master/example/example-1.ts
 
 ### Example 2
 This example contains: 
@@ -61,4 +61,4 @@ This example contains:
 * group() call that creates intervals of its add() calls.  Followed by,
 * add() call of ascending time, with instant state and spread state.
 
-See this example here: https://raw.githubusercontent.com/marckassay/sots/master/example/example-2.ts
+See this example here: https://github.com/marckassay/sots/blob/master/example/example-2.ts
