@@ -5,7 +5,7 @@ import { TimeSegment } from './Segments';
 import { Subscription } from 'rxjs/Subscription';
 
 export class SegmentCollection {
-    private static instance: SegmentCollection;
+    private static instance: SegmentCollection | undefined;
 
     private segments: Array<TimeSegment>;
     private observables: any;
@@ -55,6 +55,13 @@ export class SegmentCollection {
     getLastSegment(): TimeSegment {
         return this.lastTimeSegment;
     }
+
+    marauder(clear:boolean):{segments: Array<TimeSegment>, observables: any} {
+        if(clear) {
+            SegmentCollection.instance = undefined;
+        }
+        return {segments: this.segments, observables: this.observables};
+    }
 }
 
 /**
@@ -90,11 +97,11 @@ export class Sequencer implements SegmentInterface {
     // TODO: consider if intervals is '0'.
     /**
      * Multiply its combined add() invocations and returns a TimeSegment.
-     * @param intervals The number intervals or cycles to be added of segments.
+     * @param intervals The number intervals or cycles to be added of segments.  Must be 1 or greater in value.
      * @param segments  Consists of add() invocations.
      * @returns         An instance of T type, which is a subclass of TimeSegment.
      */
-    group<T extends TimeSegment>(intervals: number, ...segments: GroupParameter<T>[]): T {
+    group<T extends TimeSegment>(intervals: number = 1, ...segments: GroupParameter<T>[]): T {
         let segment: TimeSegment;
 
         for (let index = 0; index < intervals; index++) {
@@ -158,5 +165,9 @@ export class Sequencer implements SegmentInterface {
      */
     subscribe(next?: (value: TimeEmission) => void, error?: (error: any) => void, complete?: () => void): Subscription {
         return this.publish().subscribe(next, error, complete);
+    }
+
+    marauder():{pauser: Subject<boolean>} {
+        return {pauser: this.pauser};
     }
 }

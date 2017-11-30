@@ -1,17 +1,113 @@
-import { Sequencer } from "./index";
+import { Sequencer, SegmentCollection } from "./Sequencer";
+import * as sinon from "sinon";
+import { CountdownSegment, add, CountupSegment } from "./Segments";
 
 var assert = require('assert');
-describe('Sequencer', function() {
-  describe('#start()', function() {
-    it('should throw error from no prior subscribe() invocation', function() {
-        let seq:Sequencer = new Sequencer({period: 1000});
-        assert.throws(seq.start, "A call to subscribe() needs to be made prior to start() or pause() invocation.");
+describe('Sequencer', function () {
+
+  describe('#start()', function () {
+
+    let seq: Sequencer;
+
+    beforeEach(function () {
+      seq = new Sequencer({ period: 1000 });
+    });
+
+    afterEach(function () {
+      seq = new Sequencer({ period: 1000 });;
+    });
+
+    it('should throw error from no prior subscribe() invocation', function (this) {
+      assert.throws(seq.start, "A call to subscribe() needs to be made prior to start() or pause() invocation.");
+    });
+
+    it('should of called pauser.next(false) once', function (this) {
+      seq.add(CountdownSegment, { duration: 3000 });
+      seq.subscribe(() => {
+      });
+      let marauder = seq.marauder();
+      var next = sinon.spy(marauder.pauser, 'next');
+
+      seq.start();
+
+      next.restore();
+      sinon.assert.calledWith(next, false);
     });
   });
-  describe('#pause()', function() {
-    it('should throw error from no prior subscribe() invocation', function() {
-        let seq:Sequencer = new Sequencer({period: 1000});
-        assert.throws(seq.start, "A call to subscribe() needs to be made prior to start() or pause() invocation.");
+
+  describe('#pause()', function () {
+
+    let seq: Sequencer;
+
+    beforeEach(function () {
+      seq = new Sequencer({ period: 1000 });
+    });
+
+    afterEach(function () {
+      seq = new Sequencer({ period: 1000 });;
+    });
+
+    it('should throw error from no prior subscribe() invocation', function (this) {
+      assert.throws(seq.pause, "A call to subscribe() needs to be made prior to start() or pause() invocation.");
+    });
+
+    it('should of called pauser.next(true) once', function (this) {
+      seq.add(CountdownSegment, { duration: 3000 });
+      seq.subscribe(() => {
+      });
+      let marauder = seq.marauder();
+      var next = sinon.spy(marauder.pauser, 'next');
+
+      seq.pause();
+
+      next.restore();
+      sinon.assert.calledWith(next, true);
+    });
+  });
+
+  describe('#group()', function () {
+
+    let seq: Sequencer;
+
+    beforeEach(function () {
+      seq = new Sequencer({ period: 1000 });
+      SegmentCollection.getInstance().marauder(true);
+    });
+
+    afterEach(function () {
+      seq = new Sequencer({ period: 1000 });
+    });
+
+    it('SegmentCollection should have 1 segments.', function (this) {
+      seq.group(1, add(CountdownSegment, { duration: 3000 }));
+      seq.subscribe(() => {
+      });
+
+      assert(1, SegmentCollection.getInstance().marauder(false).segments.length);
+    });
+
+    it('SegmentCollection should have 2 segments.', function (this) {
+      seq.group(1, add(CountdownSegment, { duration: 3000 }),add(CountupSegment, { duration: 3000 }));
+      seq.subscribe(() => {
+      });
+
+      assert(2, SegmentCollection.getInstance().marauder(false).segments.length);
+    });
+
+    it('SegmentCollection should have 2 segments.', function (this) {
+      seq.group(2, add(CountdownSegment, { duration: 3000 }));
+      seq.subscribe(() => {
+      });
+
+      assert(2, SegmentCollection.getInstance().marauder(false).segments.length);
+    });
+
+    it('SegmentCollection should have 4 segments.', function (this) {
+      seq.group(2, add(CountdownSegment, { duration: 3000 }),add(CountupSegment, { duration: 3000 }));
+      seq.subscribe(() => {
+      });
+
+      assert(4, SegmentCollection.getInstance().marauder(false).segments.length);
     });
   });
 });
