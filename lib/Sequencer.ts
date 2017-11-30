@@ -31,7 +31,7 @@ export class SegmentCollection {
 
         if (len >= 1) {
             let source: Observable<TimeEmission> = this.observables[0];
-            for (let index = 1; index <= len-1; index++) {
+            for (let index = 1; index <= len - 1; index++) {
                 source = source.concat(this.observables[index]);
             }
             return source;
@@ -48,7 +48,7 @@ export class SegmentCollection {
         this.observables.push(segment.getObservable());
         this.lastTimeSegment = segment;
     }
-    
+
     /**
      * internal method
      */
@@ -97,9 +97,8 @@ export class Sequencer implements SegmentInterface {
     group<T extends TimeSegment>(intervals: number, ...segments: GroupParameter<T>[]): T {
         let segment: TimeSegment;
 
-        for (let index = 0; index < intervals; index++) 
-        {
-            segments.forEach( (value:GroupParameter<T>) => {
+        for (let index = 0; index < intervals; index++) {
+            segments.forEach((value: GroupParameter<T>) => {
                 if ((index != 0) || (!value.config.omitFirst)) {
                     segment = new value.ctor(value.config) as TimeSegment;
                     segment.interval = { current: index + 1, total: intervals };
@@ -116,7 +115,11 @@ export class Sequencer implements SegmentInterface {
      * @returns void.
      */
     start(): void {
-        this.pauser.next(false);
+        if (this.pauser) {
+            this.pauser.next(false);
+        } else {
+            throw "A call to subscribe() needs to be made prior to start() or pause() invocation.";
+        }
     }
 
     /**
@@ -124,7 +127,11 @@ export class Sequencer implements SegmentInterface {
      * @returns void.
      */
     pause(): void {
-        this.pauser.next(true);
+        if (this.pauser) {
+            this.pauser.next(true);
+        } else {
+            throw "A call to subscribe() needs to be made prior to start() or pause().";
+        }
     }
 
     /**
@@ -134,8 +141,8 @@ export class Sequencer implements SegmentInterface {
      */
     publish(): Observable<TimeEmission> {
         if (!this.source) {
-            this.source = SegmentCollection.getInstance().toSequencedObservable();
             this.pauser = new Subject<boolean>();
+            this.source = SegmentCollection.getInstance().toSequencedObservable();
             this.pauser.next(true);
             this.publication = this.pauser.switchMap((paused: boolean) => (paused == true) ? Observable.never() : this.source);
         }
