@@ -17,12 +17,10 @@ export class TimeSegment implements SegmentInterface {
     constructor(config: SegmentConfigShape, countingUp: boolean = false) {
         this.config = config;
         this.countingUp = countingUp;
-        this.stateexp = new StateExpression(config, this.period);
-
-        this.initializeObservable();
     }
-
-    private initializeObservable() {
+    
+    public initializeObservable() {
+        this.stateexp = new StateExpression(this.config, this.period);
         this.source = Observable.timer(0, this.period)
             .map((index: number): TimeEmission => {
                 let nuindex: number;

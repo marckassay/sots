@@ -15,7 +15,8 @@ function add(ctor, config) {
 }
 exports.add = add;
 var SegmentCollection = /** @class */ (function () {
-    function SegmentCollection() {
+    function SegmentCollection(period) {
+        this.period = period;
         this.segments = new Array();
         this.observables = new Array();
     }
@@ -35,18 +36,11 @@ var SegmentCollection = /** @class */ (function () {
     SegmentCollection.prototype.add = function (ctor, config) {
         var segment = new ctor(config);
         segment.collection = this;
+        segment.period = this.period;
+        segment.initializeObservable();
         this.push(segment);
         return segment;
     };
-    // TODO: this method is complete boilder-plate code.  I need to consider Sequencer
-    // as a subclass (or composite) of TimeSegment.
-    // TODO: consider if intervals is '0'.
-    /**
-     * Multiply its combined add() invocations and returns a TimeSegment.
-     * @param intervals The number intervals or cycles to be added of segments.  Must be 1 or greater in value.
-     * @param segments  Consists of add() invocations.
-     * @returns         An instance of T type, which is a subclass of TimeSegment.
-     */
     SegmentCollection.prototype.group = function (intervals) {
         var _this = this;
         if (intervals === void 0) { intervals = 1; }
@@ -58,10 +52,8 @@ var SegmentCollection = /** @class */ (function () {
         var _loop_1 = function (index) {
             segments.forEach(function (value) {
                 if ((index != 0) || (!value.config.omitFirst)) {
-                    segment = new value.ctor(value.config);
-                    segment.collection = _this;
+                    segment = _this.add(value.ctor, value.config);
                     segment.interval = { current: index + 1, total: intervals };
-                    _this.push(segment);
                 }
             });
         };
@@ -69,15 +61,11 @@ var SegmentCollection = /** @class */ (function () {
             _loop_1(index);
         }
         // return the last instance, so that this group invocation can be chained if needed...
-        return this.getLastSegment();
+        return segment;
     };
     SegmentCollection.prototype.push = function (segment) {
         this.segments.push(segment);
         this.observables.push(segment.getObservable());
-        this.lastTimeSegment = segment;
-    };
-    SegmentCollection.prototype.getLastSegment = function () {
-        return this.lastTimeSegment;
     };
     /** @internal */
     SegmentCollection.prototype.marauder = function () {
@@ -94,7 +82,7 @@ exports.SegmentCollection = SegmentCollection;
 var Sequencer = /** @class */ (function () {
     function Sequencer(config) {
         this.period = config.period;
-        this.collection = new SegmentCollection();
+        this.collection = new SegmentCollection(this.period);
     }
     /**
      * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.

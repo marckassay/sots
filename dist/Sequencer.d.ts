@@ -14,21 +14,14 @@ import { Subscription } from 'rxjs/Subscription';
  */
 export declare function add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): GroupParameter<T>;
 export declare class SegmentCollection {
+    period: number;
     private segments;
     private observables;
-    private lastTimeSegment;
-    constructor();
+    constructor(period: number);
     toSequencedObservable(): Observable<TimeEmission>;
     add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T;
-    /**
-     * Multiply its combined add() invocations and returns a TimeSegment.
-     * @param intervals The number intervals or cycles to be added of segments.  Must be 1 or greater in value.
-     * @param segments  Consists of add() invocations.
-     * @returns         An instance of T type, which is a subclass of TimeSegment.
-     */
     group<T extends TimeSegment>(intervals?: number, ...segments: GroupParameter<T>[]): T;
     push(segment: TimeSegment): void;
-    getLastSegment(): TimeSegment;
 }
 /**
  * Initiates a sequence with time period being defined in its constructor.

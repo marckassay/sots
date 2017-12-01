@@ -16,11 +16,10 @@ var TimeSegment = /** @class */ (function () {
         if (countingUp === void 0) { countingUp = false; }
         this.config = config;
         this.countingUp = countingUp;
-        this.stateexp = new StateExpression(config, this.period);
-        this.initializeObservable();
     }
     TimeSegment.prototype.initializeObservable = function () {
         var _this = this;
+        this.stateexp = new StateExpression(this.config, this.period);
         this.source = Rx_1.Observable.timer(0, this.period)
             .map(function (index) {
             var nuindex;

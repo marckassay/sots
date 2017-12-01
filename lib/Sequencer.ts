@@ -20,13 +20,42 @@ export function add<T extends TimeSegment>(ctor: SegmentType<T>, config: Segment
 export class SegmentCollection {
     private segments: Array<TimeSegment>;
     private observables: any;
-    private lastTimeSegment: TimeSegment;
 
-    constructor() {
+    constructor(public period: number) {
         this.segments = new Array();
         this.observables = new Array();
     }
 
+    add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T {
+        const segment: T = new ctor(config);
+        segment.collection = this;
+        segment.period = this.period;
+        segment.initializeObservable();
+        this.push(segment);
+        return segment;
+    }
+
+    group<T extends TimeSegment>(intervals: number = 1, ...segments: GroupParameter<T>[]): T {
+        let segment: TimeSegment | any;
+        
+        for (let index = 0; index < intervals; index++) {
+            segments.forEach((value: GroupParameter<T>) => {
+                if ((index != 0) || (!value.config.omitFirst)) {
+                    segment = this.add(value.ctor, value.config) as TimeSegment;
+                    (segment as TimeSegment).interval = { current: index + 1, total: intervals };
+                }
+            });
+        }
+
+        // return the last instance, so that this group invocation can be chained if needed...
+        return segment as T;
+    }
+
+    push(segment: TimeSegment): void {
+        this.segments.push(segment);
+        this.observables.push(segment.getObservable());
+    }
+    
     toSequencedObservable(): Observable<TimeEmission> {
         const len: number = this.observables.length;
 
@@ -39,49 +68,6 @@ export class SegmentCollection {
         } else {
             throw new Error("There are no observables to sequence.  Check your configuration.");
         }
-    }
-
-    add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T {
-        const segment: T = new ctor(config);
-        segment.collection = this;
-        this.push(segment);
-        return segment;
-    }
-
-    // TODO: this method is complete boilder-plate code.  I need to consider Sequencer
-    // as a subclass (or composite) of TimeSegment.
-    // TODO: consider if intervals is '0'.
-    /**
-     * Multiply its combined add() invocations and returns a TimeSegment.
-     * @param intervals The number intervals or cycles to be added of segments.  Must be 1 or greater in value.
-     * @param segments  Consists of add() invocations.
-     * @returns         An instance of T type, which is a subclass of TimeSegment.
-     */
-    group<T extends TimeSegment>(intervals: number = 1, ...segments: GroupParameter<T>[]): T {
-        let segment: TimeSegment;
-               
-        for (let index = 0; index < intervals; index++) {
-            segments.forEach((value: GroupParameter<T>) => {
-                if ((index != 0) || (!value.config.omitFirst)) {
-                    segment = new value.ctor(value.config) as TimeSegment;
-                    segment.collection = this;
-                    segment.interval = { current: index + 1, total: intervals };
-                    this.push(segment);
-                }
-            });
-        }
-        // return the last instance, so that this group invocation can be chained if needed...
-        return this.getLastSegment() as T;
-    }
-
-    push(segment: TimeSegment): void {
-        this.segments.push(segment);
-        this.observables.push(segment.getObservable());
-        this.lastTimeSegment = segment;
-    }
-
-    getLastSegment(): TimeSegment {
-        return this.lastTimeSegment;
     }
     
     /** @internal */
@@ -104,7 +90,7 @@ export class Sequencer implements SegmentInterface {
 
     constructor(config: { period: number }) {
         this.period = config.period;
-        this.collection = new SegmentCollection();
+        this.collection = new SegmentCollection(this.period);
     }
 
     /**
