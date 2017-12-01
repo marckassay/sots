@@ -3,24 +3,31 @@ import { TimeEmission } from './api/Emission';
 import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface } from './api/Segment';
 import { TimeSegment } from './Segments';
 import { Subscription } from 'rxjs/Subscription';
+/**
+ * Simply a pass-thru function to be used in the group function.
+ *
+ * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
+ * @param ctor    A type being subclass of TimeSegment, specifically CountupSegment or CountdownSegment.
+ * @param config  Config file specifiying duration (required) and states (optional).  When used inside a group
+ * function, the omitFirst can be used to omit this segment when its assigned to the first interval.
+ * @returns       An instance of T type, which is a subclass of TimeSegment.
+ */
+export declare function add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): GroupParameter<T>;
 export declare class SegmentCollection {
-    private static instance;
     private segments;
     private observables;
     private lastTimeSegment;
-    private constructor();
-    static getInstance(): SegmentCollection;
-    /**
-     * internal method
-     */
+    constructor();
     toSequencedObservable(): Observable<TimeEmission>;
+    add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T;
     /**
-     * internal method
+     * Multiply its combined add() invocations and returns a TimeSegment.
+     * @param intervals The number intervals or cycles to be added of segments.  Must be 1 or greater in value.
+     * @param segments  Consists of add() invocations.
+     * @returns         An instance of T type, which is a subclass of TimeSegment.
      */
+    group<T extends TimeSegment>(intervals?: number, ...segments: GroupParameter<T>[]): T;
     push(segment: TimeSegment): void;
-    /**
-     * internal method
-     */
     getLastSegment(): TimeSegment;
 }
 /**
@@ -29,7 +36,8 @@ export declare class SegmentCollection {
  * @returns   an instance.
  */
 export declare class Sequencer implements SegmentInterface {
-    static period: number;
+    period: number;
+    collection: SegmentCollection;
     private pauser;
     private publication;
     private source;
@@ -46,11 +54,11 @@ export declare class Sequencer implements SegmentInterface {
     add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T;
     /**
      * Multiply its combined add() invocations and returns a TimeSegment.
-     * @param intervals The number intervals or cycles to be added of segments.
+     * @param intervals The number intervals or cycles to be added of segments.  Must be 1 or greater in value.
      * @param segments  Consists of add() invocations.
      * @returns         An instance of T type, which is a subclass of TimeSegment.
      */
-    group<T extends TimeSegment>(intervals: number, ...segments: GroupParameter<T>[]): T;
+    group<T extends TimeSegment>(intervals?: number, ...segments: GroupParameter<T>[]): T;
     /**
      * Starts internal Observable to start emitting.  This must be called after the 'subscribe()' is called.
      * @returns void.

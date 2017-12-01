@@ -1,20 +1,24 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Rx_1 = require("rxjs/Rx");
+/**
+ * Simply a pass-thru function to be used in the group function.
+ *
+ * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
+ * @param ctor    A type being subclass of TimeSegment, specifically CountupSegment or CountdownSegment.
+ * @param config  Config file specifiying duration (required) and states (optional).  When used inside a group
+ * function, the omitFirst can be used to omit this segment when its assigned to the first interval.
+ * @returns       An instance of T type, which is a subclass of TimeSegment.
+ */
+function add(ctor, config) {
+    return { ctor: ctor, config: config };
+}
+exports.add = add;
 var SegmentCollection = /** @class */ (function () {
     function SegmentCollection() {
         this.segments = new Array();
         this.observables = new Array();
     }
-    SegmentCollection.getInstance = function () {
-        if (!SegmentCollection.instance) {
-            SegmentCollection.instance = new SegmentCollection();
-        }
-        return SegmentCollection.instance;
-    };
-    /**
-     * internal method
-     */
     SegmentCollection.prototype.toSequencedObservable = function () {
         var len = this.observables.length;
         if (len >= 1) {
@@ -28,19 +32,56 @@ var SegmentCollection = /** @class */ (function () {
             throw new Error("There are no observables to sequence.  Check your configuration.");
         }
     };
+    SegmentCollection.prototype.add = function (ctor, config) {
+        var segment = new ctor(config);
+        segment.collection = this;
+        this.push(segment);
+        return segment;
+    };
+    // TODO: this method is complete boilder-plate code.  I need to consider Sequencer
+    // as a subclass (or composite) of TimeSegment.
+    // TODO: consider if intervals is '0'.
     /**
-     * internal method
+     * Multiply its combined add() invocations and returns a TimeSegment.
+     * @param intervals The number intervals or cycles to be added of segments.  Must be 1 or greater in value.
+     * @param segments  Consists of add() invocations.
+     * @returns         An instance of T type, which is a subclass of TimeSegment.
      */
+    SegmentCollection.prototype.group = function (intervals) {
+        var _this = this;
+        if (intervals === void 0) { intervals = 1; }
+        var segments = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            segments[_i - 1] = arguments[_i];
+        }
+        var segment;
+        var _loop_1 = function (index) {
+            segments.forEach(function (value) {
+                if ((index != 0) || (!value.config.omitFirst)) {
+                    segment = new value.ctor(value.config);
+                    segment.collection = _this;
+                    segment.interval = { current: index + 1, total: intervals };
+                    _this.push(segment);
+                }
+            });
+        };
+        for (var index = 0; index < intervals; index++) {
+            _loop_1(index);
+        }
+        // return the last instance, so that this group invocation can be chained if needed...
+        return this.getLastSegment();
+    };
     SegmentCollection.prototype.push = function (segment) {
         this.segments.push(segment);
         this.observables.push(segment.getObservable());
         this.lastTimeSegment = segment;
     };
-    /**
-     * internal method
-     */
     SegmentCollection.prototype.getLastSegment = function () {
         return this.lastTimeSegment;
+    };
+    /** @internal */
+    SegmentCollection.prototype.marauder = function () {
+        return { segments: this.segments, observables: this.observables };
     };
     return SegmentCollection;
 }());
@@ -52,7 +93,8 @@ exports.SegmentCollection = SegmentCollection;
  */
 var Sequencer = /** @class */ (function () {
     function Sequencer(config) {
-        Sequencer.period = config.period;
+        this.period = config.period;
+        this.collection = new SegmentCollection();
     }
     /**
      * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
@@ -62,53 +104,46 @@ var Sequencer = /** @class */ (function () {
      * @returns       An instance of T type, which is a subclass of TimeSegment.
      */
     Sequencer.prototype.add = function (ctor, config) {
-        var segment = new ctor(config);
-        SegmentCollection.getInstance().push(segment);
-        return segment;
+        return this.collection.add(ctor, config);
     };
-    // TODO: this method is complete boilder-plate code.  I need to consider Sequencer
-    // as a subclass (or composite) of TimeSegment.
-    // TODO: consider if intervals is '0'.
     /**
      * Multiply its combined add() invocations and returns a TimeSegment.
-     * @param intervals The number intervals or cycles to be added of segments.
+     * @param intervals The number intervals or cycles to be added of segments.  Must be 1 or greater in value.
      * @param segments  Consists of add() invocations.
      * @returns         An instance of T type, which is a subclass of TimeSegment.
      */
     Sequencer.prototype.group = function (intervals) {
+        if (intervals === void 0) { intervals = 1; }
         var segments = [];
         for (var _i = 1; _i < arguments.length; _i++) {
             segments[_i - 1] = arguments[_i];
         }
-        var segment;
-        var _loop_1 = function (index) {
-            segments.forEach(function (value) {
-                if ((index != 0) || (!value.config.omitFirst)) {
-                    segment = new value.ctor(value.config);
-                    segment.interval = { current: index + 1, total: intervals };
-                    SegmentCollection.getInstance().push(segment);
-                }
-            });
-        };
-        for (var index = 0; index < intervals; index++) {
-            _loop_1(index);
-        }
-        // return the last instance, so that this group invocation can be chained if needed...
-        return SegmentCollection.getInstance().getLastSegment();
+        return (_a = this.collection).group.apply(_a, [intervals].concat(segments));
+        var _a;
     };
     /**
      * Starts internal Observable to start emitting.  This must be called after the 'subscribe()' is called.
      * @returns void.
      */
     Sequencer.prototype.start = function () {
-        this.pauser.next(false);
+        if (this.pauser) {
+            this.pauser.next(false);
+        }
+        else {
+            throw "A call to subscribe() needs to be made prior to start() or pause() invocation.";
+        }
     };
     /**
      * Pauses internal Observable to start emitting.  This must be called after the 'subscribe()' is called.
      * @returns void.
      */
     Sequencer.prototype.pause = function () {
-        this.pauser.next(true);
+        if (this.pauser) {
+            this.pauser.next(true);
+        }
+        else {
+            throw "A call to subscribe() needs to be made prior to start() or pause().";
+        }
     };
     /**
      * Returns an Observable<TimeEmission> versus, subscribe() which returns a Subscription.  Typically subscribe()
@@ -118,8 +153,8 @@ var Sequencer = /** @class */ (function () {
     Sequencer.prototype.publish = function () {
         var _this = this;
         if (!this.source) {
-            this.source = SegmentCollection.getInstance().toSequencedObservable();
             this.pauser = new Rx_1.Subject();
+            this.source = this.collection.toSequencedObservable();
             this.pauser.next(true);
             this.publication = this.pauser.switchMap(function (paused) { return (paused == true) ? Rx_1.Observable.never() : _this.source; });
         }
@@ -133,6 +168,10 @@ var Sequencer = /** @class */ (function () {
      */
     Sequencer.prototype.subscribe = function (next, error, complete) {
         return this.publish().subscribe(next, error, complete);
+    };
+    /** @internal */
+    Sequencer.prototype.marauder = function () {
+        return { pauser: this.pauser };
     };
     return Sequencer;
 }());

@@ -1,6 +1,6 @@
-import { Sequencer, SegmentCollection } from "./Sequencer";
+import { Sequencer, add } from "./Sequencer";
 import * as sinon from "sinon";
-import { CountdownSegment, add, CountupSegment } from "./Segments";
+import { CountdownSegment, CountupSegment } from "./Segments";
 
 var assert = require('assert');
 describe('Sequencer', function () {
@@ -14,7 +14,7 @@ describe('Sequencer', function () {
     });
 
     afterEach(function () {
-      seq = new Sequencer({ period: 1000 });;
+      seq = new Sequencer({ period: 1000 });
     });
 
     it('should throw error from no prior subscribe() invocation', function (this) {
@@ -44,7 +44,7 @@ describe('Sequencer', function () {
     });
 
     afterEach(function () {
-      seq = new Sequencer({ period: 1000 });;
+      seq = new Sequencer({ period: 1000 });
     });
 
     it('should throw error from no prior subscribe() invocation', function (this) {
@@ -71,43 +71,42 @@ describe('Sequencer', function () {
 
     beforeEach(function () {
       seq = new Sequencer({ period: 1000 });
-      SegmentCollection.getInstance().marauder(true);
     });
 
     afterEach(function () {
       seq = new Sequencer({ period: 1000 });
     });
 
-    it('SegmentCollection should have 1 segments.', function (this) {
+    it('collection property should have 1 segments.', function (this) {
       seq.group(1, add(CountdownSegment, { duration: 3000 }));
       seq.subscribe(() => {
       });
 
-      assert(1, SegmentCollection.getInstance().marauder(false).segments.length);
+      assert(1, seq.collection.marauder().segments.length);
     });
 
-    it('SegmentCollection should have 2 segments.', function (this) {
+    it('collection property should have 2 segments.', function (this) {
       seq.group(1, add(CountdownSegment, { duration: 3000 }),add(CountupSegment, { duration: 3000 }));
       seq.subscribe(() => {
       });
 
-      assert(2, SegmentCollection.getInstance().marauder(false).segments.length);
+      assert(2, seq.collection.marauder().segments.length);
     });
 
-    it('SegmentCollection should have 2 segments.', function (this) {
+    it('collection property should have 2 segments.', function (this) {
       seq.group(2, add(CountdownSegment, { duration: 3000 }));
       seq.subscribe(() => {
       });
 
-      assert(2, SegmentCollection.getInstance().marauder(false).segments.length);
+      assert(2, seq.collection.marauder().segments.length);
     });
 
-    it('SegmentCollection should have 4 segments.', function (this) {
+    it('collection property should have 4 segments.', function (this) {
       seq.group(2, add(CountdownSegment, { duration: 3000 }),add(CountupSegment, { duration: 3000 }));
       seq.subscribe(() => {
       });
 
-      assert(4, SegmentCollection.getInstance().marauder(false).segments.length);
+      assert(4, seq.collection.marauder().segments.length);
     });
   });
 });

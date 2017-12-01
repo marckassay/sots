@@ -1,4 +1,4 @@
-import {Sequencer, CountdownSegment, TimeEmission, add} from 'sots';
+import {Sequencer, CountdownSegment, TimeEmission, add} from '../lib/index';
 
 let sequencer: Sequencer = new Sequencer({ period: 1000 });
 sequencer.add(CountdownSegment, { duration: 5000, states: [{ state: 'warning', timeLessThanOrEqualTo: "3"},

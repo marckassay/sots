@@ -1,4 +1,4 @@
-import {Sequencer, CountdownSegment, CountupSegment, TimeEmission, add} from 'sots';
+import {Sequencer, CountdownSegment, CountupSegment, TimeEmission, add} from '../lib';
 
 const sequencer: Sequencer = new Sequencer({ period: 100 });
 sequencer.add(CountdownSegment, { duration: 10000, 

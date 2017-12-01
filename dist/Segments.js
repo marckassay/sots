@@ -11,38 +11,24 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var Rx_1 = require("rxjs/Rx");
-var Sequencer_1 = require("./Sequencer");
-/**
- * Simply a pass-thru function to be used in the group function.
- *
- * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
- * @param ctor    A type being subclass of TimeSegment, specifically CountupSegment or CountdownSegment.
- * @param config  Config file specifiying duration (required) and states (optional).  When used inside a group
- * function, the omitFirst can be used to omit this segment when its assigned to the first interval.
- * @returns       An instance of T type, which is a subclass of TimeSegment.
- */
-function add(ctor, config) {
-    return { ctor: ctor, config: config };
-}
-exports.add = add;
 var TimeSegment = /** @class */ (function () {
     function TimeSegment(config, countingUp) {
         if (countingUp === void 0) { countingUp = false; }
         this.config = config;
         this.countingUp = countingUp;
-        this.stateexp = new StateExpression(config);
+        this.stateexp = new StateExpression(config, this.period);
         this.initializeObservable();
     }
     TimeSegment.prototype.initializeObservable = function () {
         var _this = this;
-        this.source = Rx_1.Observable.timer(0, Sequencer_1.Sequencer.period)
+        this.source = Rx_1.Observable.timer(0, this.period)
             .map(function (index) {
             var nuindex;
             if (!_this.countingUp) {
-                nuindex = (_this.config.duration - (Sequencer_1.Sequencer.period * index)) * .001;
+                nuindex = (_this.config.duration - (_this.period * index)) * .001;
             }
             else {
-                nuindex = (Sequencer_1.Sequencer.period * index) * .001;
+                nuindex = (_this.period * index) * .001;
             }
             nuindex = Number(nuindex.toFixed(3));
             var states = _this.stateexp.evaluate(nuindex);
@@ -73,13 +59,11 @@ var TimeSegment = /** @class */ (function () {
      * @returns       An instance of T type, which is a subclass of TimeSegment.
      */
     TimeSegment.prototype.add = function (ctor, config) {
-        var segment = new ctor(config);
-        Sequencer_1.SegmentCollection.getInstance().push(segment);
-        return segment;
+        return this.collection.add(ctor, config);
     };
     /**
      * Multiply its combined add() invocations and returns a TimeSegment.
-     * @param intervals The number intervals or cycles to be added of segments.
+     * @param intervals The number intervals or cycles to be added of segments.  Must be 1 or greater in value.
      * @param segments  Consists of add() invocations.
      * @returns         An instance of T type, which is a subclass of TimeSegment.
      */
@@ -88,25 +72,9 @@ var TimeSegment = /** @class */ (function () {
         for (var _i = 1; _i < arguments.length; _i++) {
             segments[_i - 1] = arguments[_i];
         }
-        var segment;
-        var _loop_1 = function (index) {
-            segments.forEach(function (value) {
-                if ((index != 0) || (!value.config.omitFirst)) {
-                    segment = new value.ctor(value.config);
-                    segment.interval = { current: index + 1, total: intervals };
-                    Sequencer_1.SegmentCollection.getInstance().push(segment);
-                }
-            });
-        };
-        for (var index = 0; index < intervals; index++) {
-            _loop_1(index);
-        }
-        // return the last instance, so that this group invocation can be chained if needed...
-        return Sequencer_1.SegmentCollection.getInstance().getLastSegment();
+        return (_a = this.collection).group.apply(_a, [intervals].concat(segments));
+        var _a;
     };
-    /**
-     * internal method
-     */
     TimeSegment.prototype.getObservable = function () {
         return this.source;
     };
@@ -140,7 +108,8 @@ var CountupSegment = /** @class */ (function (_super) {
 }(TimeSegment));
 exports.CountupSegment = CountupSegment;
 var StateExpression = /** @class */ (function () {
-    function StateExpression(config) {
+    function StateExpression(config, period) {
+        this.period = period;
         this.timemap = {};
         this.parse(config);
     }
@@ -156,7 +125,7 @@ var StateExpression = /** @class */ (function () {
                             this.setInstantStates(statetime[index].timeAt, state);
                             break;
                         case "timeLessThan":
-                            var time2 = Number(statetime[index].timeLessThan) - Sequencer_1.Sequencer.period;
+                            var time2 = Number(statetime[index].timeLessThan) - this.period;
                             this.setSpreadState("lessThan", time2, state);
                             break;
                         case "timeLessThanOrEqualTo":
@@ -164,7 +133,7 @@ var StateExpression = /** @class */ (function () {
                             this.setSpreadState("lessThan", time3, state);
                             break;
                         case "timeGreaterThan":
-                            var time4 = Number(statetime[index].timeGreaterThan) + Sequencer_1.Sequencer.period;
+                            var time4 = Number(statetime[index].timeGreaterThan) + this.period;
                             this.setSpreadState("greaterThan", time4, state);
                             break;
                         case "timeGreaterThanOrEqualTo":
@@ -212,7 +181,6 @@ var StateExpression = /** @class */ (function () {
         }
     };
     /**
-     * internal method
      * @param time The time for this segment.  This is not global time of a sequence.
      */
     StateExpression.prototype.evaluate = function (time) {

@@ -2,24 +2,13 @@ import { Observable } from 'rxjs/Rx';
 import { TimeEmission, IntervalEmissionShape, SlotEmissionShape, TimeSlot } from './api/Emission';
 import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface } from './api/Segment';
 import { StateConfig1, StateConfig2, StateConfig3, StateConfig4, StateConfig5 } from './api/StateConfigs';
-import { SegmentCollection, Sequencer } from './Sequencer';
-
-/**
- * Simply a pass-thru function to be used in the group function.
- * 
- * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
- * @param ctor    A type being subclass of TimeSegment, specifically CountupSegment or CountdownSegment.
- * @param config  Config file specifiying duration (required) and states (optional).  When used inside a group
- * function, the omitFirst can be used to omit this segment when its assigned to the first interval.
- * @returns       An instance of T type, which is a subclass of TimeSegment.
- */
-export function add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): GroupParameter<T> {
-    return { ctor, config };
-}
+import { SegmentCollection } from './Sequencer';
 
 export class TimeSegment implements SegmentInterface {
-    protected config: SegmentConfigShape;
+    period: number;
     interval: IntervalEmissionShape;
+    collection: SegmentCollection;
+    protected config: SegmentConfigShape;
     private source: Observable<TimeEmission>;
     private stateexp: StateExpression;
     private countingUp: boolean;
@@ -28,20 +17,19 @@ export class TimeSegment implements SegmentInterface {
     constructor(config: SegmentConfigShape, countingUp: boolean = false) {
         this.config = config;
         this.countingUp = countingUp;
-
-        this.stateexp = new StateExpression(config);
+        this.stateexp = new StateExpression(config, this.period);
 
         this.initializeObservable();
     }
 
     private initializeObservable() {
-        this.source = Observable.timer(0, Sequencer.period)
+        this.source = Observable.timer(0, this.period)
             .map((index: number): TimeEmission => {
                 let nuindex: number;
                 if (!this.countingUp) {
-                    nuindex = (this.config.duration - (Sequencer.period * index)) * .001;
+                    nuindex = (this.config.duration - (this.period * index)) * .001;
                 } else {
-                    nuindex = (Sequencer.period * index) * .001;
+                    nuindex = (this.period * index) * .001;
                 }
 
                 nuindex = Number(nuindex.toFixed(3));
@@ -64,7 +52,7 @@ export class TimeSegment implements SegmentInterface {
                 }
             });
     }
-    
+
     /**
      * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
      * @param ctor    A type being subclass of TimeSegment,  Specifically CountupSegment or CountdownSegment.
@@ -73,37 +61,19 @@ export class TimeSegment implements SegmentInterface {
      * @returns       An instance of T type, which is a subclass of TimeSegment.
      */
     add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T {
-        const segment: T = new ctor(config);
-        SegmentCollection.getInstance().push(segment);
-        return segment;
+        return this.collection.add(ctor, config);
     }
 
     /**
      * Multiply its combined add() invocations and returns a TimeSegment.
-     * @param intervals The number intervals or cycles to be added of segments.
+     * @param intervals The number intervals or cycles to be added of segments.  Must be 1 or greater in value.
      * @param segments  Consists of add() invocations.
      * @returns         An instance of T type, which is a subclass of TimeSegment.
      */
     group<T extends TimeSegment>(intervals: number, ...segments: GroupParameter<T>[]): T {
-        let segment: TimeSegment;
-
-        for (let index = 0; index < intervals; index++) 
-        {
-            segments.forEach( (value:GroupParameter<T>) => {
-                if ((index != 0) || (!value.config.omitFirst)) {
-                    segment = new value.ctor(value.config) as TimeSegment;
-                    segment.interval = { current: index + 1, total: intervals };
-                    SegmentCollection.getInstance().push(segment);
-                }
-            });
-        }
-        // return the last instance, so that this group invocation can be chained if needed...
-        return SegmentCollection.getInstance().getLastSegment() as T;
+        return this.collection.group(intervals, ...segments);
     }
 
-    /**
-     * internal method
-     */
     getObservable(): Observable<TimeEmission> {
         return this.source;
     }
@@ -134,7 +104,7 @@ export class StateExpression {
 
     private timemap: TimeSlot<SlotEmissionShape> = {};
 
-    constructor(config: SegmentConfigShape) {
+    constructor(config: SegmentConfigShape, public period: number) {
         this.parse(config);
     }
 
@@ -153,7 +123,7 @@ export class StateExpression {
                             break;
 
                         case "timeLessThan":
-                            let time2: number = Number((statetime[index] as StateConfig2).timeLessThan) - Sequencer.period;
+                            let time2: number = Number((statetime[index] as StateConfig2).timeLessThan) - this.period;
                             this.setSpreadState("lessThan", time2, state);
                             break;
 
@@ -163,7 +133,7 @@ export class StateExpression {
                             break;
 
                         case "timeGreaterThan":
-                            let time4: number = Number((statetime[index] as StateConfig4).timeGreaterThan) + Sequencer.period;
+                            let time4: number = Number((statetime[index] as StateConfig4).timeGreaterThan) + this.period;
                             this.setSpreadState("greaterThan", time4, state);
                             break;
 
@@ -213,7 +183,6 @@ export class StateExpression {
     }
 
     /**
-     * internal method
      * @param time The time for this segment.  This is not global time of a sequence.
      */
     evaluate(time: number): SlotEmissionShape | undefined {

@@ -27,12 +27,12 @@ First, create an instance of Sequencer.  Here it is given a period of 1 second:
 let seq:Sequencer = new Sequencer({period:1000});
 ```
 
-When building your sequence, the only two "build" methods are: `add()` and `group()`.  And the only two types of segments are `CountdownSegment` and `CountupSegment`.  Here `CountdownSegment` is passed with a span of 5 seconds:
+When building your sequence, the only two "build" methods are: `add` and `group`.  And the only two types of segments are `CountdownSegment` and `CountupSegment`.  Here `CountdownSegment` is passed into `add` method with a span of 5 seconds:
 ```typescript
 seq.add(CountdownSegment, {duration:5000});
 ```
 
-Now we can subscribe and call the `start()`:
+Now we can subscribe and perform a `start` call:
 ```typescript
 seq.subscribe((value:TimeEmission)=>{
     console.log(value);
@@ -58,15 +58,15 @@ The following are links to examples using sots.
 
 ### Example 1
 This example contains: 
-* `add()` call of descending time, with instant state and spread state.
+* `add` call with descending time having an instant state and spread state.
 
 See this example here: https://github.com/marckassay/sots/blob/master/example/example-1.ts
 
 ### Example 2
 This example contains: 
-* `add()` call of descending time, with instant state and spread state.  Followed by,
-* `group()` call that creates intervals of its `add()` calls.  Followed by,
-* `add()` call of ascending time, with instant state and spread state.
+* `add` call with descending time having an instant state and spread state.  Followed by,
+* `group` call that creates intervals of its `add` methods being passed into it.  Followed by,
+* `add` call with ascending time having an instant state and spread state.
 
 See this example here: https://github.com/marckassay/sots/blob/master/example/example-2.ts
 

@@ -4,28 +4,29 @@ import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface } fro
 import { TimeSegment } from './Segments';
 import { Subscription } from 'rxjs/Subscription';
 
-export class SegmentCollection {
-    private static instance: SegmentCollection | undefined;
+/**
+ * Simply a pass-thru function to be used in the group function.
+ * 
+ * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
+ * @param ctor    A type being subclass of TimeSegment, specifically CountupSegment or CountdownSegment.
+ * @param config  Config file specifiying duration (required) and states (optional).  When used inside a group
+ * function, the omitFirst can be used to omit this segment when its assigned to the first interval.
+ * @returns       An instance of T type, which is a subclass of TimeSegment.
+ */
+export function add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): GroupParameter<T> {
+    return { ctor, config };
+}
 
+export class SegmentCollection {
     private segments: Array<TimeSegment>;
     private observables: any;
     private lastTimeSegment: TimeSegment;
 
-    private constructor() {
+    constructor() {
         this.segments = new Array();
         this.observables = new Array();
     }
 
-    static getInstance() {
-        if (!SegmentCollection.instance) {
-            SegmentCollection.instance = new SegmentCollection();
-        }
-        return SegmentCollection.instance;
-    }
-
-    /**
-     * internal method
-     */
     toSequencedObservable(): Observable<TimeEmission> {
         const len: number = this.observables.length;
 
@@ -40,55 +41,10 @@ export class SegmentCollection {
         }
     }
 
-    /**
-     * internal method
-     */
-    push(segment: TimeSegment): void {
-        this.segments.push(segment);
-        this.observables.push(segment.getObservable());
-        this.lastTimeSegment = segment;
-    }
-
-    /**
-     * internal method
-     */
-    getLastSegment(): TimeSegment {
-        return this.lastTimeSegment;
-    }
-
-    marauder(clear:boolean):{segments: Array<TimeSegment>, observables: any} {
-        if(clear) {
-            SegmentCollection.instance = undefined;
-        }
-        return {segments: this.segments, observables: this.observables};
-    }
-}
-
-/**
- * Initiates a sequence with time period being defined in its constructor.
- * @param constructor   Sequencer must be instantiated with a value for period that is read in milliseconds.  This value becomes static and global to its segments.
- * @returns   an instance.
- */
-export class Sequencer implements SegmentInterface {
-    static period: number;
-    private pauser: Subject<boolean>;
-    private publication: Observable<TimeEmission>;
-    private source: Observable<TimeEmission>;
-
-    constructor(config: { period: number }) {
-        Sequencer.period = config.period;
-    }
-
-    /**
-     * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
-     * @param ctor    A type being subclass of TimeSegment,  Specifically CountupSegment or CountdownSegment.
-     * @param config  Config file specifiying duration (required) and states (optional).  When used inside a group
-     * function, the omitFirst can be used to omit this segment when its assigned to the first interval.
-     * @returns       An instance of T type, which is a subclass of TimeSegment.
-     */
     add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T {
         const segment: T = new ctor(config);
-        SegmentCollection.getInstance().push(segment);
+        segment.collection = this;
+        this.push(segment);
         return segment;
     }
 
@@ -103,18 +59,73 @@ export class Sequencer implements SegmentInterface {
      */
     group<T extends TimeSegment>(intervals: number = 1, ...segments: GroupParameter<T>[]): T {
         let segment: TimeSegment;
-
+               
         for (let index = 0; index < intervals; index++) {
             segments.forEach((value: GroupParameter<T>) => {
                 if ((index != 0) || (!value.config.omitFirst)) {
                     segment = new value.ctor(value.config) as TimeSegment;
+                    segment.collection = this;
                     segment.interval = { current: index + 1, total: intervals };
-                    SegmentCollection.getInstance().push(segment);
+                    this.push(segment);
                 }
             });
         }
         // return the last instance, so that this group invocation can be chained if needed...
-        return SegmentCollection.getInstance().getLastSegment() as T;
+        return this.getLastSegment() as T;
+    }
+
+    push(segment: TimeSegment): void {
+        this.segments.push(segment);
+        this.observables.push(segment.getObservable());
+        this.lastTimeSegment = segment;
+    }
+
+    getLastSegment(): TimeSegment {
+        return this.lastTimeSegment;
+    }
+    
+    /** @internal */
+    marauder():{segments: Array<TimeSegment>, observables: any} {
+        return {segments: this.segments, observables: this.observables};
+    }
+}
+
+/**
+ * Initiates a sequence with time period being defined in its constructor.
+ * @param constructor   Sequencer must be instantiated with a value for period that is read in milliseconds.  This value becomes static and global to its segments.
+ * @returns   an instance.
+ */
+export class Sequencer implements SegmentInterface {
+    period: number;
+    collection: SegmentCollection;
+    private pauser: Subject<boolean>;
+    private publication: Observable<TimeEmission>;
+    private source: Observable<TimeEmission>;
+
+    constructor(config: { period: number }) {
+        this.period = config.period;
+        this.collection = new SegmentCollection();
+    }
+
+    /**
+     * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
+     * @param ctor    A type being subclass of TimeSegment,  Specifically CountupSegment or CountdownSegment.
+     * @param config  Config file specifiying duration (required) and states (optional).  When used inside a group
+     * function, the omitFirst can be used to omit this segment when its assigned to the first interval.
+     * @returns       An instance of T type, which is a subclass of TimeSegment.
+     */
+    add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T {
+        return this.collection.add(ctor, config);
+    }
+
+    /**
+     * Multiply its combined add() invocations and returns a TimeSegment.
+     * @param intervals The number intervals or cycles to be added of segments.  Must be 1 or greater in value.
+     * @param segments  Consists of add() invocations.
+     * @returns         An instance of T type, which is a subclass of TimeSegment.
+     */
+    group<T extends TimeSegment>(intervals: number = 1, ...segments: GroupParameter<T>[]): T {
+        return this.collection.group(intervals, ...segments);
     }
 
     /**
@@ -149,7 +160,7 @@ export class Sequencer implements SegmentInterface {
     publish(): Observable<TimeEmission> {
         if (!this.source) {
             this.pauser = new Subject<boolean>();
-            this.source = SegmentCollection.getInstance().toSequencedObservable();
+            this.source = this.collection.toSequencedObservable();
             this.pauser.next(true);
             this.publication = this.pauser.switchMap((paused: boolean) => (paused == true) ? Observable.never() : this.source);
         }
@@ -167,6 +178,7 @@ export class Sequencer implements SegmentInterface {
         return this.publish().subscribe(next, error, complete);
     }
 
+    /** @internal */
     marauder():{pauser: Subject<boolean>} {
         return {pauser: this.pauser};
     }
