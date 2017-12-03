@@ -17,7 +17,9 @@
   "license": "ISC",
   "devDependencies": {
     "@types/sinon": "^4.0.0",
+    "rxjs-marbles": "^2.2.0",
     "sinon": "^4.1.2",
+    "sinon-test": "^2.1.2",
     "ts-node": "^3.3.0",
     "typescript": "^2.6.1"
   },
@@ -29,6 +31,6 @@
   "scripts": {
     "prepublish": "npm run build",
     "build": "tsc",
-    "test": "mocha -r ts-node/register lib/**/*.spec.ts"
+    "test": "mocha -r ts-node/register lib/spec/**/*.spec.ts"
   }
 }

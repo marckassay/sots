@@ -71,7 +71,7 @@ export class SegmentCollection {
     }
     
     /** @internal */
-    marauder():{segments: Array<TimeSegment>, observables: any} {
+    __marauder():{segments: Array<TimeSegment>, observables: any} {
         return {segments: this.segments, observables: this.observables};
     }
 }
@@ -165,7 +165,7 @@ export class Sequencer implements SegmentInterface {
     }
 
     /** @internal */
-    marauder():{pauser: Subject<boolean>} {
-        return {pauser: this.pauser};
+    __marauder():{pauser: Subject<boolean>, source: Observable<TimeEmission>} {
+        return {pauser: this.pauser, source: this.source};
     }
 }
