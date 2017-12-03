@@ -9,7 +9,6 @@ export class TimeSegment implements SegmentInterface {
     interval: IntervalEmissionShape;
     collection: SegmentCollection;
     protected config: SegmentConfigShape;
-    private source: Observable<TimeEmission>;
     private stateexp: StateExpression;
     private countingUp: boolean;
     private previousspread: string[];
@@ -19,9 +18,9 @@ export class TimeSegment implements SegmentInterface {
         this.countingUp = countingUp;
     }
     
-    public initializeObservable() {
+    public initializeObservable(lastElement: boolean = false) {
         this.stateexp = new StateExpression(this.config, this.period);
-        this.source = Observable.timer(0, this.period)
+        let source: Observable<TimeEmission> = Observable.timer(0, this.period)
             .map((index: number): TimeEmission => {
                 let nuindex: number;
                 if (!this.countingUp) {
@@ -29,7 +28,7 @@ export class TimeSegment implements SegmentInterface {
                 } else {
                     nuindex = (this.period * index) * .001;
                 }
-
+                
                 nuindex = Number(nuindex.toFixed(3));
 
                 let states: SlotEmissionShape | undefined = this.stateexp.evaluate(nuindex);
@@ -43,12 +42,22 @@ export class TimeSegment implements SegmentInterface {
 
                 return { time: nuindex, state: states, interval: this.interval };
             }).takeWhile((value: TimeEmission) => {
-                if (!this.countingUp) {
-                    return value.time >= 0;
+                if(lastElement == false) {
+                    if (!this.countingUp) {
+                        return value.time > 0;
+                    } else {
+                        return value.time < (this.config.duration * .001);
+                    }
                 } else {
-                    return value.time <= (this.config.duration * .001);
+                    if (!this.countingUp) {
+                        return !(value.time === 0);
+                    } else {
+                        return !(value.time === (this.config.duration * .001));
+                    }
                 }
             });
+
+        return source;
     }
 
     /**
@@ -70,10 +79,6 @@ export class TimeSegment implements SegmentInterface {
      */
     group<T extends TimeSegment>(intervals: number, ...segments: GroupParameter<T>[]): T {
         return this.collection.group(intervals, ...segments);
-    }
-
-    getObservable(): Observable<TimeEmission> {
-        return this.source;
     }
 }
 

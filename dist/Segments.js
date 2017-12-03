@@ -17,10 +17,11 @@ var TimeSegment = /** @class */ (function () {
         this.config = config;
         this.countingUp = countingUp;
     }
-    TimeSegment.prototype.initializeObservable = function () {
+    TimeSegment.prototype.initializeObservable = function (lastElement) {
         var _this = this;
+        if (lastElement === void 0) { lastElement = false; }
         this.stateexp = new StateExpression(this.config, this.period);
-        this.source = Rx_1.Observable.timer(0, this.period)
+        var source = Rx_1.Observable.timer(0, this.period)
             .map(function (index) {
             var nuindex;
             if (!_this.countingUp) {
@@ -42,13 +43,24 @@ var TimeSegment = /** @class */ (function () {
             }
             return { time: nuindex, state: states, interval: _this.interval };
         }).takeWhile(function (value) {
-            if (!_this.countingUp) {
-                return value.time >= 0;
+            if (lastElement == false) {
+                if (!_this.countingUp) {
+                    return value.time > 0;
+                }
+                else {
+                    return value.time < (_this.config.duration * .001);
+                }
             }
             else {
-                return value.time <= (_this.config.duration * .001);
+                if (!_this.countingUp) {
+                    return !(value.time === 0);
+                }
+                else {
+                    return !(value.time === (_this.config.duration * .001));
+                }
             }
         });
+        return source;
     };
     /**
      * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
@@ -73,9 +85,6 @@ var TimeSegment = /** @class */ (function () {
         }
         return (_a = this.collection).group.apply(_a, [intervals].concat(segments));
         var _a;
-    };
-    TimeSegment.prototype.getObservable = function () {
-        return this.source;
     };
     return TimeSegment;
 }());

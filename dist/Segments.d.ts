@@ -7,12 +7,11 @@ export declare class TimeSegment implements SegmentInterface {
     interval: IntervalEmissionShape;
     collection: SegmentCollection;
     protected config: SegmentConfigShape;
-    private source;
     private stateexp;
     private countingUp;
     private previousspread;
     constructor(config: SegmentConfigShape, countingUp?: boolean);
-    initializeObservable(): void;
+    initializeObservable(lastElement?: boolean): Observable<TimeEmission>;
     /**
      * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
      * @param ctor    A type being subclass of TimeSegment,  Specifically CountupSegment or CountdownSegment.
@@ -28,7 +27,6 @@ export declare class TimeSegment implements SegmentInterface {
      * @returns         An instance of T type, which is a subclass of TimeSegment.
      */
     group<T extends TimeSegment>(intervals: number, ...segments: GroupParameter<T>[]): T;
-    getObservable(): Observable<TimeEmission>;
 }
 /**
  * Counts down in time.  In otherwords, its descending time.

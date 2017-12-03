@@ -19,7 +19,7 @@ export function add<T extends TimeSegment>(ctor: SegmentType<T>, config: Segment
 
 export class SegmentCollection {
     private segments: Array<TimeSegment>;
-    private observables: any;
+    private observables: Array<Observable<TimeEmission>>;
 
     constructor(public period: number) {
         this.segments = new Array();
@@ -30,14 +30,14 @@ export class SegmentCollection {
         const segment: T = new ctor(config);
         segment.collection = this;
         segment.period = this.period;
-        segment.initializeObservable();
         this.push(segment);
+
         return segment;
     }
 
     group<T extends TimeSegment>(intervals: number = 1, ...segments: GroupParameter<T>[]): T {
         let segment: TimeSegment | any;
-        
+
         for (let index = 0; index < intervals; index++) {
             segments.forEach((value: GroupParameter<T>) => {
                 if ((index != 0) || (!value.config.omitFirst)) {
@@ -53,26 +53,42 @@ export class SegmentCollection {
 
     push(segment: TimeSegment): void {
         this.segments.push(segment);
-        this.observables.push(segment.getObservable());
     }
-    
+
+    initializeObservales(): void {
+        this.segments.forEach((value:TimeSegment, index:number) => {
+            let observable: Observable<TimeEmission>;
+
+            if(index === this.segments.length-1) {
+                observable = value.initializeObservable(true);
+            } else {
+                observable = value.initializeObservable();
+            }
+
+            this.observables.push(observable!);
+        });
+    }
+
     toSequencedObservable(): Observable<TimeEmission> {
+        this.initializeObservales();
+
         const len: number = this.observables.length;
 
         if (len >= 1) {
             let source: Observable<TimeEmission> = this.observables[0];
             for (let index = 1; index <= len - 1; index++) {
-                source = source.concat(this.observables[index]);
+                source = source.concatMap(() => this.observables[index]);
             }
             return source;
+
         } else {
             throw new Error("There are no observables to sequence.  Check your configuration.");
         }
     }
-    
+
     /** @internal */
-    __marauder():{segments: Array<TimeSegment>, observables: any} {
-        return {segments: this.segments, observables: this.observables};
+    __marauder(): { segments: Array<TimeSegment>, observables: any } {
+        return { segments: this.segments, observables: this.observables };
     }
 }
 
@@ -148,7 +164,9 @@ export class Sequencer implements SegmentInterface {
             this.pauser = new Subject<boolean>();
             this.source = this.collection.toSequencedObservable();
             this.pauser.next(true);
-            this.publication = this.pauser.switchMap((paused: boolean) => (paused == true) ? Observable.never() : this.source);
+            this.publication = this.pauser.switchMap((paused: boolean) => {
+                return (paused == true) ? Observable.never<TimeEmission>().materialize() : this.source.materialize();
+            }).dematerialize();
         }
 
         return this.publication;
@@ -165,7 +183,7 @@ export class Sequencer implements SegmentInterface {
     }
 
     /** @internal */
-    __marauder():{pauser: Subject<boolean>, source: Observable<TimeEmission>} {
-        return {pauser: this.pauser, source: this.source};
+    __marauder(): { pauser: Subject<boolean>, source: Observable<TimeEmission> } {
+        return { pauser: this.pauser, source: this.source };
     }
 }

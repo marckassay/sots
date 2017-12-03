@@ -20,24 +20,10 @@ var SegmentCollection = /** @class */ (function () {
         this.segments = new Array();
         this.observables = new Array();
     }
-    SegmentCollection.prototype.toSequencedObservable = function () {
-        var len = this.observables.length;
-        if (len >= 1) {
-            var source = this.observables[0];
-            for (var index = 1; index <= len - 1; index++) {
-                source = source.concat(this.observables[index]);
-            }
-            return source;
-        }
-        else {
-            throw new Error("There are no observables to sequence.  Check your configuration.");
-        }
-    };
     SegmentCollection.prototype.add = function (ctor, config) {
         var segment = new ctor(config);
         segment.collection = this;
         segment.period = this.period;
-        segment.initializeObservable();
         this.push(segment);
         return segment;
     };
@@ -65,10 +51,40 @@ var SegmentCollection = /** @class */ (function () {
     };
     SegmentCollection.prototype.push = function (segment) {
         this.segments.push(segment);
-        this.observables.push(segment.getObservable());
+    };
+    SegmentCollection.prototype.initializeObservales = function () {
+        var _this = this;
+        this.segments.forEach(function (value, index) {
+            var observable;
+            if (index === _this.segments.length - 1) {
+                observable = value.initializeObservable(true);
+            }
+            else {
+                observable = value.initializeObservable();
+            }
+            _this.observables.push(observable);
+        });
+    };
+    SegmentCollection.prototype.toSequencedObservable = function () {
+        var _this = this;
+        this.initializeObservales();
+        var len = this.observables.length;
+        if (len >= 1) {
+            var source = this.observables[0];
+            var _loop_2 = function (index) {
+                source = source.concatMap(function () { return _this.observables[index]; });
+            };
+            for (var index = 1; index <= len - 1; index++) {
+                _loop_2(index);
+            }
+            return source;
+        }
+        else {
+            throw new Error("There are no observables to sequence.  Check your configuration.");
+        }
     };
     /** @internal */
-    SegmentCollection.prototype.marauder = function () {
+    SegmentCollection.prototype.__marauder = function () {
         return { segments: this.segments, observables: this.observables };
     };
     return SegmentCollection;
@@ -144,7 +160,9 @@ var Sequencer = /** @class */ (function () {
             this.pauser = new Rx_1.Subject();
             this.source = this.collection.toSequencedObservable();
             this.pauser.next(true);
-            this.publication = this.pauser.switchMap(function (paused) { return (paused == true) ? Rx_1.Observable.never() : _this.source; });
+            this.publication = this.pauser.switchMap(function (paused) {
+                return (paused == true) ? Rx_1.Observable.never().materialize() : _this.source.materialize();
+            }).dematerialize();
         }
         return this.publication;
     };
@@ -158,8 +176,8 @@ var Sequencer = /** @class */ (function () {
         return this.publish().subscribe(next, error, complete);
     };
     /** @internal */
-    Sequencer.prototype.marauder = function () {
-        return { pauser: this.pauser };
+    Sequencer.prototype.__marauder = function () {
+        return { pauser: this.pauser, source: this.source };
     };
     return Sequencer;
 }());

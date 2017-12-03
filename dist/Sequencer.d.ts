@@ -18,10 +18,11 @@ export declare class SegmentCollection {
     private segments;
     private observables;
     constructor(period: number);
-    toSequencedObservable(): Observable<TimeEmission>;
     add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T;
     group<T extends TimeSegment>(intervals?: number, ...segments: GroupParameter<T>[]): T;
     push(segment: TimeSegment): void;
+    initializeObservales(): void;
+    toSequencedObservable(): Observable<TimeEmission>;
 }
 /**
  * Initiates a sequence with time period being defined in its constructor.
