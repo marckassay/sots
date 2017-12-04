@@ -36,7 +36,7 @@ export class SegmentCollection {
     }
 
     group<T extends TimeSegment>(intervals: number = 1, ...segments: GroupParameter<T>[]): T {
-        let segment: TimeSegment | any;
+        let segment: TimeSegment;
 
         for (let index = 0; index < intervals; index++) {
             segments.forEach((value: GroupParameter<T>) => {
@@ -48,7 +48,7 @@ export class SegmentCollection {
         }
 
         // return the last instance, so that this group invocation can be chained if needed...
-        return segment as T;
+        return segment! as T;
     }
 
     push(segment: TimeSegment): void {

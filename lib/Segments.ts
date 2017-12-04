@@ -36,7 +36,7 @@ export class TimeSegment implements SegmentInterface {
                     states.spread = states.spread.concat(this.previousspread);
                 } else if (this.previousspread && !states) {
                     states = { instant: [], spread: this.previousspread };
-                } else if (states && states.spread) {
+                } else if (states && states.spread.length > 0) {
                     this.previousspread = states.spread;
                 }
 
