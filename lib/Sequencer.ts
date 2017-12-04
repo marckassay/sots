@@ -77,7 +77,7 @@ export class SegmentCollection {
         if (len >= 1) {
             let source: Observable<TimeEmission> = this.observables[0];
             for (let index = 1; index <= len - 1; index++) {
-                source = source.concatMap(() => this.observables[index]);
+                source = source.concat(this.observables[index]);
             }
             return source;
 

@@ -38,7 +38,7 @@ var TimeSegment = /** @class */ (function () {
             else if (_this.previousspread && !states) {
                 states = { instant: [], spread: _this.previousspread };
             }
-            else if (states && states.spread) {
+            else if (states && states.spread.length > 0) {
                 _this.previousspread = states.spread;
             }
             return { time: nuindex, state: states, interval: _this.interval };

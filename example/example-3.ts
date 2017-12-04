@@ -1,14 +1,20 @@
-import { Sequencer, CountdownSegment, TimeEmission, add } from '../lib';
+import { Sequencer, CountdownSegment, CountupSegment, TimeEmission, add } from '../lib';
 
-let sequencer: Sequencer = new Sequencer({ period: 1000 });
+const sequencer: Sequencer = new Sequencer({ period: 100 });
 sequencer.add(CountdownSegment, {
-    duration: 5000,
+    duration: 10000,
     states: [
-        { state: 'warning', timeLessThanOrEqualTo: "3" },
-        { state: 'beep', timeAt: "2,1," }
+        { state: 'beep', timeAt: "10,2,1" },
+        { state: 'warning', timeLessThanOrEqualTo: "5" }
     ]
-});
-
+    })
+    .group(3, add(CountdownSegment, { duration: 1000 * 2, omitFirst: true }), add(CountdownSegment, { duration: 1000 * 2 }))
+    .add(CountupSegment, {
+        duration: 5000,
+        states: [{ state: 'beep', timeAt: "3,4" },
+        { state: 'warning', timeGreaterThanOrEqualTo: "3" }]
+    });
+    
 sequencer.subscribe((value: TimeEmission) => {
     let output: string;
 

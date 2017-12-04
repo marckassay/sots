@@ -1,6 +1,6 @@
-sots (Sequence of Time Segments) is a JS module that allows you to structure complex sequences of time segments with just a small amount of code.  It's capable of being stateful relative to indivdual time segments and a state can be momentary or non-momentary. 
+sots (Sequence of Time Segments) is a JS module that allows you to structure complex sequences of time segments with just a small amount of code.  It's capable of being stateful relative to indivdual time segments, which states can be momentary or non-momentary. 
 
-When compiled, this module's JS files weighs-in around 16kBs, excluding RxJS from this estimate.
+When compiled, this module's JS files weighs-in around 20kBs, excluding RxJS from this estimate.
 
 ## Install
 ### npm
@@ -40,7 +40,7 @@ seq.subscribe((value:TimeEmission)=>{
 seq.start();
 ```
 
-The following is the coalesced code:
+This example's coalesced code:
 ```typescript
 import {Sequencer, CountdownSegment, TimeEmission, add} from 'sots';
 
@@ -64,11 +64,18 @@ See this example here: https://github.com/marckassay/sots/blob/master/example/ex
 
 ### Example 2
 This example contains: 
+* `add` call with descending time having an instant state and spread state.
+* output from console.log() calls.
+
+See this example here: https://github.com/marckassay/sots/blob/master/example/example-2.ts
+
+### Example 3
+This example contains: 
 * `add` call with descending time having an instant state and spread state.  Followed by,
 * `group` call that creates intervals of its `add` methods being passed into it.  Followed by,
 * `add` call with ascending time having an instant state and spread state.
 
-See this example here: https://github.com/marckassay/sots/blob/master/example/example-2.ts
+See this example here: https://github.com/marckassay/sots/blob/master/example/example-3.ts
 
 ## Issues
  Please add any feedback, concerns, requests and/or bugs in the 'Issues' section of this repository.
