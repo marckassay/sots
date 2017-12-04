@@ -51,7 +51,6 @@ seq.subscribe((value:TimeEmission)=>{
 });
 seq.start();
 ```
-See this demo in JS here: https://runkit.com/marckassay/sots-demo-1
 
 ## Examples
 The following are links to examples using sots.
