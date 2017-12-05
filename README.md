@@ -76,5 +76,18 @@ This example contains:
 
 See this example here: https://github.com/marckassay/sots/blob/master/example/example-3.ts
 
+## Contribute
+If you want to fork sots and give it a go, deploy 'sotsHarness' and 'sots.code-workspace' in the harness folder.
+This will enable multi-root workspace (for VS Code) and provide a test harness. 
+
+In PowerShell, dot-source the following file to move the contents:
+```
+$ . .\Set-MultiRootWorkspace.ps1
+```
+And if you want to move the contents and launch VS Code:
+```
+$ . .\Set-MultiRootWorkspace.ps1 -Launch
+```
+
 ## Issues
  Please add any feedback, concerns, requests and/or bugs in the 'Issues' section of this repository.

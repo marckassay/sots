@@ -56,10 +56,10 @@ export class SegmentCollection {
     }
 
     initializeObservales(): void {
-        this.segments.forEach((value:TimeSegment, index:number) => {
+        this.segments.forEach((value: TimeSegment, index: number) => {
             let observable: Observable<TimeEmission>;
 
-            if(index === this.segments.length-1) {
+            if (index === this.segments.length - 1) {
                 observable = value.initializeObservable(true);
             } else {
                 observable = value.initializeObservable();

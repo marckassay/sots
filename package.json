@@ -30,7 +30,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "prepublish": "npm run build",
-    "build": "tsc",
+    "build": "tsfmt && tsc",
     "test": "mocha -r ts-node/register lib/spec/**/*.spec.ts"
   }
 }

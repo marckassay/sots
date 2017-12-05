@@ -17,7 +17,7 @@ export class TimeSegment implements SegmentInterface {
         this.config = config;
         this.countingUp = countingUp;
     }
-    
+
     public initializeObservable(lastElement: boolean = false) {
         this.stateexp = new StateExpression(this.config, this.period);
         let source: Observable<TimeEmission> = Observable.timer(0, this.period)
@@ -28,7 +28,7 @@ export class TimeSegment implements SegmentInterface {
                 } else {
                     nuindex = (this.period * index) * .001;
                 }
-                
+
                 nuindex = Number(nuindex.toFixed(3));
 
                 let states: SlotEmissionShape | undefined = this.stateexp.evaluate(nuindex);
@@ -42,7 +42,7 @@ export class TimeSegment implements SegmentInterface {
 
                 return { time: nuindex, state: states, interval: this.interval };
             }).takeWhile((value: TimeEmission) => {
-                if(lastElement == false) {
+                if (lastElement == false) {
                     if (!this.countingUp) {
                         return value.time > 0;
                     } else {

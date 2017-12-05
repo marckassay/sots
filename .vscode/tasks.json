@@ -1,0 +1,43 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Lib Unit-Test",
+            "type": "npm",
+            "script": "test",
+            "path": "sots\\package.json",
+            "promptOnClose": true,
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new"
+            },
+            "problemMatcher": [
+                "$tsc"
+            ]
+        },
+        {
+            "label": "Lib Build",
+            "type": "npm",
+            "script": "build",
+            "path": "sots\\package.json",
+            "identifier": "lib_build",
+            "problemMatcher": [
+                "$tsc"
+            ]
+        },
+        {
+            "label": "Lib Watch",
+            "type": "typescript",
+            "identifier": "lib_watch",
+            "tsconfig": "sots\\tsconfig.json",
+            "option": "watch",
+            "problemMatcher": [
+                "$tsc-watch"
+            ]
+        }
+    ]
+}
