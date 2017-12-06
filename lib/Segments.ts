@@ -45,17 +45,46 @@ export class TimeSegment implements SegmentInterface {
                 }
 
                 return {
-                    time: nuindex, inStateOf: (state: string | number): boolean => {
+                    time: nuindex, inStateOf: (state: string | number, forceCompareAsBitwise?: boolean): boolean => {
+                        let compareAsBitwise;
+                        if (forceCompareAsBitwise != undefined) {
+                            compareAsBitwise = forceCompareAsBitwise;
+                        }
+                        else if (this.config.compareAsBitwise != undefined) {
+                            compareAsBitwise = this.config.compareAsBitwise;
+                        }
+                        else {
+                            compareAsBitwise = false;
+                        }
 
                         if (states) {
-                            if (states.instant.indexOf(state) === -1) {
-                                return states.spread.indexOf(state) !== -1;
+                            if (compareAsBitwise === false) {
+                                if (states.instant.indexOf(state) === -1) {
+                                    return states.spread.indexOf(state) !== -1;
+                                } else {
+                                    return true;
+                                }
+                            } else if (typeof state === 'string') {
+                                throw "inStateOf() has been called with a string and flagged to use bitwise comparisons."
                             } else {
-                                return true;
+                                let total: number = 0;
+                                states.instant.forEach((value: string | number) => {
+                                    if (typeof value === 'number') {
+                                        total += value;
+                                    }
+                                }, total);
+
+                                states.spread.forEach((value: string | number) => {
+                                    if (typeof value === 'number') {
+                                        total += value;
+                                    }
+                                }, total);
+
+                                return ((total & state) === state) ? true : false;
                             }
-                        } else {
-                            return false;
                         }
+
+                        return false;
 
                     }, state: states, interval: this.interval
                 };

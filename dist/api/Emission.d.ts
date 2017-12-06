@@ -1,6 +1,6 @@
 export interface TimeEmission {
     time: number;
-    inStateOf: (value: string | number) => boolean;
+    inStateOf: (value: string | number, compareAsBitwise?: boolean) => boolean;
     state?: SlotEmissionShape;
     interval?: IntervalEmissionShape;
 }

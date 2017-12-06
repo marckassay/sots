@@ -46,18 +46,45 @@ var TimeSegment = /** @class */ (function () {
                 _this.previousspread = states.spread;
             }
             return {
-                time: nuindex, inStateOf: function (state) {
-                    if (states) {
-                        if (states.instant.indexOf(state) === -1) {
-                            return states.spread.indexOf(state) !== -1;
-                        }
-                        else {
-                            return true;
-                        }
+                time: nuindex, inStateOf: function (state, forceCompareAsBitwise) {
+                    var compareAsBitwise;
+                    if (forceCompareAsBitwise != undefined) {
+                        compareAsBitwise = forceCompareAsBitwise;
+                    }
+                    else if (_this.config.compareAsBitwise != undefined) {
+                        compareAsBitwise = _this.config.compareAsBitwise;
                     }
                     else {
-                        return false;
+                        compareAsBitwise = false;
                     }
+                    if (states) {
+                        if (compareAsBitwise === false) {
+                            if (states.instant.indexOf(state) === -1) {
+                                return states.spread.indexOf(state) !== -1;
+                            }
+                            else {
+                                return true;
+                            }
+                        }
+                        else if (typeof state === 'string') {
+                            throw "inStateOf() has been called with a string and flagged to use bitwise comparisons.";
+                        }
+                        else {
+                            var total_1 = 0;
+                            states.instant.forEach(function (value) {
+                                if (typeof value === 'number') {
+                                    total_1 += value;
+                                }
+                            }, total_1);
+                            states.spread.forEach(function (value) {
+                                if (typeof value === 'number') {
+                                    total_1 += value;
+                                }
+                            }, total_1);
+                            return ((total_1 & state) === state) ? true : false;
+                        }
+                    }
+                    return false;
                 }, state: states, interval: _this.interval
             };
         }).takeWhile(function (value) {

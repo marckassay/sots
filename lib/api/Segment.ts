@@ -5,6 +5,7 @@ export interface SegmentConfigShape {
     duration: number;
     omitFirst?: boolean;
     states?: Array<state.StateConfig1 | state.StateConfig2 | state.StateConfig3 | state.StateConfig4 | state.StateConfig5>;
+    compareAsBitwise?: boolean;
 }
 
 export interface SegmentInterface {
