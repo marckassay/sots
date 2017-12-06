@@ -44,8 +44,8 @@ export declare class CountupSegment extends TimeSegment {
 }
 export declare class StateExpression {
     period: number;
-    static spread_on: string;
-    static spread_off: string;
+    static applySpread: string;
+    static removeSpread: string;
     static spread_regex: RegExp;
     private timemap;
     constructor(config: SegmentConfigShape, period: number);

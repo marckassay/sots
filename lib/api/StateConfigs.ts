@@ -2,7 +2,7 @@ export type StateConfig<T> = {
     [P in keyof T]: T[P];
 }
 export interface TimeState {
-    state: string
+    state: string | number;
 }
 export interface TimeAt extends TimeState {
     timeAt: string;

@@ -31,8 +31,12 @@ var TimeSegment = /** @class */ (function () {
                 nuindex = (_this.period * index) * .001;
             }
             nuindex = Number(nuindex.toFixed(3));
+            // TODO: currently when spreads are appiled, it will live to the 
+            // end of its segment; notice previousspread never gets cleared.
+            // make modifications to have it apply to a segment of the time
+            // segment.
             var states = _this.stateexp.evaluate(nuindex);
-            if (_this.previousspread && states && states.spread) {
+            if (_this.previousspread && states) {
                 states.spread = states.spread.concat(_this.previousspread);
             }
             else if (_this.previousspread && !states) {
@@ -179,14 +183,16 @@ var StateExpression = /** @class */ (function () {
             timeslot.spread.push(state);
             this.timemap[time] = timeslot;
         }
+        operation;
         // TODO: StateExpression.spread_off isnt being searched for at any moment.
-        var polarend = (operation == 'lessThan') ? 0 : Number.MAX_VALUE;
+        /*
+        const polarend: number = (operation == 'lessThan') ? 0 : Number.MAX_VALUE;
         if (!this.timemap[polarend]) {
             // this.timemap[polarend] = state + StateExpression.spread_off;
-        }
-        else {
+        } else {
             // this.timemap[polarend] += "," + state + StateExpression.spread_off;
         }
+        */
     };
     /**
      * @param time The time for this segment.  This is not global time of a sequence.
@@ -194,8 +200,8 @@ var StateExpression = /** @class */ (function () {
     StateExpression.prototype.evaluate = function (time) {
         return this.timemap[time];
     };
-    StateExpression.spread_on = "::ON";
-    StateExpression.spread_off = "::OFF";
+    StateExpression.applySpread = "::ON";
+    StateExpression.removeSpread = "::OFF";
     StateExpression.spread_regex = /(\w+)(?:\:{2})/g;
     return StateExpression;
 }());
