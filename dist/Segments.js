@@ -45,7 +45,21 @@ var TimeSegment = /** @class */ (function () {
             else if (states && states.spread.length > 0) {
                 _this.previousspread = states.spread;
             }
-            return { time: nuindex, state: states, interval: _this.interval };
+            return {
+                time: nuindex, inStateOf: function (state) {
+                    if (states) {
+                        if (states.instant.indexOf(state) === -1) {
+                            return states.spread.indexOf(state) !== -1;
+                        }
+                        else {
+                            return true;
+                        }
+                    }
+                    else {
+                        return false;
+                    }
+                }, state: states, interval: _this.interval
+            };
         }).takeWhile(function (value) {
             if (lastElement == false) {
                 if (!_this.countingUp) {

@@ -1,5 +1,6 @@
 export interface TimeEmission {
     time: number;
+    inStateOf: (value: string | number) => boolean;
     state?: SlotEmissionShape;
     interval?: IntervalEmissionShape;
 }

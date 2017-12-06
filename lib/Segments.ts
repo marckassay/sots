@@ -44,7 +44,22 @@ export class TimeSegment implements SegmentInterface {
                     this.previousspread = states.spread;
                 }
 
-                return { time: nuindex, state: states, interval: this.interval };
+                return {
+                    time: nuindex, inStateOf: (state: string | number): boolean => {
+
+                        if (states) {
+                            if (states.instant.indexOf(state) === -1) {
+                                return states.spread.indexOf(state) !== -1;
+                            } else {
+                                return true;
+                            }
+                        } else {
+                            return false;
+                        }
+
+                    }, state: states, interval: this.interval
+                };
+
             }).takeWhile((value: TimeEmission) => {
                 if (lastElement == false) {
                     if (!this.countingUp) {
