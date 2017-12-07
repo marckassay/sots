@@ -35,7 +35,7 @@ seq.add(CountdownSegment, {duration:5000});
 Now we can subscribe and perform a `start` call:
 ```typescript
 seq.subscribe((value:TimeEmission)=>{
-   console.log(value);
+  console.log(value);
 });
 seq.start();
 ```
@@ -47,7 +47,7 @@ import {Sequencer, CountdownSegment, TimeEmission} from 'sots';
 let seq:Sequencer = new Sequencer({period:1000});
 seq.add(CountdownSegment, {duration:5000});
 seq.subscribe((value:TimeEmission)=>{
-   console.log(value);
+  console.log(value);
 });
 seq.start();
 ```
@@ -66,8 +66,8 @@ See this example here: https://github.com/marckassay/sots/blob/master/example/ex
 
 ### Example 2
 This example contains:
-* Usage of binary Enum for states by setting the `compareAsBitwise` to true in sequencer config.  You can override sequencer's `compareAsBitwise` by setting `compareAsBitwise` on individual segments if needed.
-* `omitFirst` being used to omit the first segment of the first interval in the group.  This is beneficial when using sots for an interval timer for physical activity.  When joining a descending segment typically used for "counting down" before the activity, a rest segment is typically followed.  It would be awkward to have 2 consecutive counting down segments before activity, thus you can omit it with `omitFirst` set to true.
+* Usage of binary Enum for states by setting the `compareAsBitwise` to `true` in sequencer config.  You can override sequencer's `compareAsBitwise` by setting `compareAsBitwise` on individual segments if needed.
+* `omitFirst` being used to omit the first segment of the first interval in the group.  This is beneficial when using sots for an interval timer for physical activity.  When joining a descending segment typically used for to "count down" before the activity, a rest segment is typically followed.  It would be awkward to have 2 consecutive counting down segments before activity, thus you can omit it with `omitFirst` set to `true`.
 * `add` call with descending time having an instant state and spread state.  Followed by,
 * `group` call that creates intervals of its `add` methods being passed into it.  Followed by,
 * `add` call with ascending time having an instant state and spread state.
@@ -76,8 +76,8 @@ This example contains:
 See this example here: https://github.com/marckassay/sots/blob/master/example/example-2.ts
 
 ## Contribute
-If you want to fork sots and give it a go, deploy 'sotsHarness' and 'sots.code-workspace' from the harness folder.
-This will enable multi-root workspace (for VS Code) and provide a test harness.
+If you want to fork sots and give it a go, deploy 'sotsHarness' and 'sots.code-workspace' from the harness folder into the parent directory of sots.
+This will enable: multi-root workspace (for VS Code) with tasks and launch configurations and, provide a test harness.
 
 In PowerShell, dot-source the following file in harness folder to move the contents for you:
 ```
