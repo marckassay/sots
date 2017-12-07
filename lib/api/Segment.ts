@@ -1,11 +1,16 @@
 import * as state from "./StateConfigs";
 import { TimeSegment } from "../Segments";
 
+export interface SequenceConfigShape {
+    period: number;
+    compareAsBitwise?: boolean;
+}
+
 export interface SegmentConfigShape {
     duration: number;
     omitFirst?: boolean;
-    states?: Array<state.StateConfig1 | state.StateConfig2 | state.StateConfig3 | state.StateConfig4 | state.StateConfig5>;
     compareAsBitwise?: boolean;
+    states?: Array<state.StateConfig1 | state.StateConfig2 | state.StateConfig3 | state.StateConfig4 | state.StateConfig5>;
 }
 
 export interface SegmentInterface {

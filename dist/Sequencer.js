@@ -15,15 +15,15 @@ function add(ctor, config) {
 }
 exports.add = add;
 var SegmentCollection = /** @class */ (function () {
-    function SegmentCollection(period) {
-        this.period = period;
+    function SegmentCollection(config) {
+        this.config = config;
         this.segments = new Array();
         this.observables = new Array();
     }
     SegmentCollection.prototype.add = function (ctor, config) {
         var segment = new ctor(config);
         segment.collection = this;
-        segment.period = this.period;
+        segment.seqConfig = this.config;
         this.push(segment);
         return segment;
     };
@@ -93,8 +93,7 @@ exports.SegmentCollection = SegmentCollection;
  */
 var Sequencer = /** @class */ (function () {
     function Sequencer(config) {
-        this.period = config.period;
-        this.collection = new SegmentCollection(this.period);
+        this.collection = new SegmentCollection(config);
     }
     /**
      * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.

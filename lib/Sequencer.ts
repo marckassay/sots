@@ -1,6 +1,6 @@
 import { Observable, Subject } from 'rxjs/Rx';
 import { TimeEmission } from './api/Emission';
-import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface } from './api/Segment';
+import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
 import { TimeSegment } from './Segments';
 import { Subscription } from 'rxjs/Subscription';
 
@@ -21,7 +21,7 @@ export class SegmentCollection {
     private segments: Array<TimeSegment>;
     private observables: Array<Observable<TimeEmission>>;
 
-    constructor(public period: number) {
+    constructor(public config: SequenceConfigShape) {
         this.segments = new Array();
         this.observables = new Array();
     }
@@ -29,7 +29,7 @@ export class SegmentCollection {
     add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T {
         const segment: T = new ctor(config);
         segment.collection = this;
-        segment.period = this.period;
+        segment.seqConfig = this.config;
         this.push(segment);
 
         return segment;
@@ -98,15 +98,13 @@ export class SegmentCollection {
  * @returns   an instance.
  */
 export class Sequencer implements SegmentInterface {
-    period: number;
     collection: SegmentCollection;
     private pauser: Subject<boolean>;
     private publication: Observable<TimeEmission>;
     private source: Observable<TimeEmission>;
 
-    constructor(config: { period: number }) {
-        this.period = config.period;
-        this.collection = new SegmentCollection(this.period);
+    constructor(config: SequenceConfigShape) {
+        this.collection = new SegmentCollection(config);
     }
 
     /**

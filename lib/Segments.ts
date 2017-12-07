@@ -1,11 +1,12 @@
 import { Observable } from 'rxjs/Rx';
 import { TimeEmission, IntervalEmissionShape, SlotEmissionShape, TimeSlot } from './api/Emission';
-import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface } from './api/Segment';
+import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
 import { StateConfig1, StateConfig2, StateConfig3, StateConfig4, StateConfig5 } from './api/StateConfigs';
 import { SegmentCollection } from './Sequencer';
+import { } from './index';
 
 export class TimeSegment implements SegmentInterface {
-    period: number;
+    seqConfig: SequenceConfigShape;
     interval: IntervalEmissionShape;
     collection: SegmentCollection;
     protected config: SegmentConfigShape;
@@ -19,14 +20,14 @@ export class TimeSegment implements SegmentInterface {
     }
 
     public initializeObservable(lastElement: boolean = false) {
-        this.stateexp = new StateExpression(this.config, this.period);
-        let source: Observable<TimeEmission> = Observable.timer(0, this.period)
+        this.stateexp = new StateExpression(this.config, this.seqConfig.period);
+        let source: Observable<TimeEmission> = Observable.timer(0, this.seqConfig.period)
             .map((index: number): TimeEmission => {
                 let nuindex: number;
                 if (!this.countingUp) {
-                    nuindex = (this.config.duration - (this.period * index)) * .001;
+                    nuindex = (this.config.duration - (this.seqConfig.period * index)) * .001;
                 } else {
-                    nuindex = (this.period * index) * .001;
+                    nuindex = (this.seqConfig.period * index) * .001;
                 }
 
                 nuindex = Number(nuindex.toFixed(3));
@@ -45,20 +46,20 @@ export class TimeSegment implements SegmentInterface {
                 }
 
                 return {
-                    time: nuindex, inStateOf: (state: string | number, forceCompareAsBitwise?: boolean): boolean => {
-                        let compareAsBitwise;
-                        if (forceCompareAsBitwise != undefined) {
-                            compareAsBitwise = forceCompareAsBitwise;
+                    time: nuindex, inStateOf: (state: string | number, compareAsBitwise?: boolean): boolean => {
+                        let useBitwiseCompare;
+                        if (compareAsBitwise != undefined) {
+                            useBitwiseCompare = compareAsBitwise;
                         }
-                        else if (this.config.compareAsBitwise != undefined) {
-                            compareAsBitwise = this.config.compareAsBitwise;
+                        else if (this.seqConfig.compareAsBitwise != undefined) {
+                            useBitwiseCompare = this.seqConfig.compareAsBitwise;
                         }
                         else {
-                            compareAsBitwise = false;
+                            useBitwiseCompare = false;
                         }
 
                         if (states) {
-                            if (compareAsBitwise === false) {
+                            if (useBitwiseCompare === false) {
                                 if (states.instant.indexOf(state) === -1) {
                                     return states.spread.indexOf(state) !== -1;
                                 } else {

@@ -1,27 +1,69 @@
-import { Sequencer, CountdownSegment, CountupSegment, TimeEmission, add } from '../lib';
+import { Sequencer, CountdownSegment, CountupSegment, TimeEmission, add } from '../sots/dist/index';
 
-const sequencer: Sequencer = new Sequencer({ period: 100 });
+enum AppStates {
+    Beep = 2,
+    Warning = 4,
+    Rest = 8,
+    Active = 16,
+    Alert = AppStates.Beep + AppStates.Warning
+}
+
+const sequencer: Sequencer = new Sequencer({ period: 100, compareAsBitwise: true });
 sequencer.add(CountdownSegment, {
     duration: 10000,
     states: [
-        { state: 'beep', timeAt: "10,2,1" },
-        { state: 'warning', timeLessThanOrEqualTo: "5" }
+        { state: AppStates.Beep, timeAt: "10,2,1" },
+        { state: AppStates.Warning, timeLessThanOrEqualTo: "5" }
     ]
-});
+})
+    .group(3,
+    add(CountdownSegment, {
+        duration: 1000 * 2,
+        omitFirst: true,
+        states: [
+            { state: AppStates.Rest, timeLessThanOrEqualTo: "2" },
+            { state: AppStates.Beep, timeAt: "2" }
+        ]
+    }),
+    add(CountdownSegment, {
+        duration: 1000 * 2,
+        states: [
+            { state: AppStates.Active, timeLessThanOrEqualTo: "2" },
+            { state: AppStates.Beep, timeAt: "2" }
+        ]
+    })
+    )
+    .add(CountupSegment, {
+        duration: 5000,
+        states: [
+            { state: AppStates.Beep, timeAt: "0,3,4" },
+            { state: AppStates.Warning, timeGreaterThanOrEqualTo: "3" }]
+    });
 
 sequencer.subscribe((value: TimeEmission) => {
-    let output: string;
+    let output: string = "time: " + value.time;
 
-    output = "time: " + value.time;
-    if (value.state) {
-        output += " state.instant: " + value.state.instant.toString();
-        output += " state.spread: " + value.state.spread.toString();
+    if (value.inStateOf(AppStates.Alert)) {
+        output += " state: 'alert!'";
+    }
+    else if (value.inStateOf(AppStates.Warning)) {
+        output += " state: 'warning'";
+    }
+    else if (value.inStateOf(AppStates.Beep)) {
+        output += " state: 'beep'";
+    }
+    else if (value.inStateOf(AppStates.Rest)) {
+        output += " state: 'rest'";
+    }
+    else if (value.inStateOf(AppStates.Active)) {
+        output += " state: 'active'";
     }
 
     if (value.interval) {
         output += " interval.current: " + value.interval.current;
         output += " interval.total: " + value.interval.total;
     }
+
     console.log(output);
 }, (error) => {
     console.error(error);
@@ -31,9 +73,9 @@ sequencer.subscribe((value: TimeEmission) => {
 
 sequencer.start();
 
-// Output from console.log():
-/**
-time: 10 state.instant: beep state.spread:
+// Output from this example:
+/*
+time: 10 state: 'beep'
 time: 9.9
 time: 9.8
 time: 9.7
@@ -83,55 +125,205 @@ time: 5.4
 time: 5.3
 time: 5.2
 time: 5.1
-time: 5 state.instant:  state.spread: warning
-time: 4.9 state.instant:  state.spread: warning
-time: 4.8 state.instant:  state.spread: warning
-time: 4.7 state.instant:  state.spread: warning
-time: 4.6 state.instant:  state.spread: warning
-time: 4.5 state.instant:  state.spread: warning
-time: 4.4 state.instant:  state.spread: warning
-time: 4.3 state.instant:  state.spread: warning
-time: 4.2 state.instant:  state.spread: warning
-time: 4.1 state.instant:  state.spread: warning
-time: 4 state.instant:  state.spread: warning
-time: 3.9 state.instant:  state.spread: warning
-time: 3.8 state.instant:  state.spread: warning
-time: 3.7 state.instant:  state.spread: warning
-time: 3.6 state.instant:  state.spread: warning
-time: 3.5 state.instant:  state.spread: warning
-time: 3.4 state.instant:  state.spread: warning
-time: 3.3 state.instant:  state.spread: warning
-time: 3.2 state.instant:  state.spread: warning
-time: 3.1 state.instant:  state.spread: warning
-time: 3 state.instant:  state.spread: warning
-time: 2.9 state.instant:  state.spread: warning
-time: 2.8 state.instant:  state.spread: warning
-time: 2.7 state.instant:  state.spread: warning
-time: 2.6 state.instant:  state.spread: warning
-time: 2.5 state.instant:  state.spread: warning
-time: 2.4 state.instant:  state.spread: warning
-time: 2.3 state.instant:  state.spread: warning
-time: 2.2 state.instant:  state.spread: warning
-time: 2.1 state.instant:  state.spread: warning
-time: 2 state.instant: beep state.spread: warning
-time: 1.9 state.instant:  state.spread: warning
-time: 1.8 state.instant:  state.spread: warning
-time: 1.7 state.instant:  state.spread: warning
-time: 1.6 state.instant:  state.spread: warning
-time: 1.5 state.instant:  state.spread: warning
-time: 1.4 state.instant:  state.spread: warning
-time: 1.3 state.instant:  state.spread: warning
-time: 1.2 state.instant:  state.spread: warning
-time: 1.1 state.instant:  state.spread: warning
-time: 1 state.instant: beep state.spread: warning
-time: 0.9 state.instant:  state.spread: warning
-time: 0.8 state.instant:  state.spread: warning
-time: 0.7 state.instant:  state.spread: warning
-time: 0.6 state.instant:  state.spread: warning
-time: 0.5 state.instant:  state.spread: warning
-time: 0.4 state.instant:  state.spread: warning
-time: 0.3 state.instant:  state.spread: warning
-time: 0.2 state.instant:  state.spread: warning
-time: 0.1 state.instant:  state.spread: warning
+time: 5 state: 'warning'
+time: 4.9 state: 'warning'
+time: 4.8 state: 'warning'
+time: 4.7 state: 'warning'
+time: 4.6 state: 'warning'
+time: 4.5 state: 'warning'
+time: 4.4 state: 'warning'
+time: 4.3 state: 'warning'
+time: 4.2 state: 'warning'
+time: 4.1 state: 'warning'
+time: 4 state: 'warning'
+time: 3.9 state: 'warning'
+time: 3.8 state: 'warning'
+time: 3.7 state: 'warning'
+time: 3.6 state: 'warning'
+time: 3.5 state: 'warning'
+time: 3.4 state: 'warning'
+time: 3.3 state: 'warning'
+time: 3.2 state: 'warning'
+time: 3.1 state: 'warning'
+time: 3 state: 'warning'
+time: 2.9 state: 'warning'
+time: 2.8 state: 'warning'
+time: 2.7 state: 'warning'
+time: 2.6 state: 'warning'
+time: 2.5 state: 'warning'
+time: 2.4 state: 'warning'
+time: 2.3 state: 'warning'
+time: 2.2 state: 'warning'
+time: 2.1 state: 'warning'
+time: 2 state: 'alert!'
+time: 1.9 state: 'warning'
+time: 1.8 state: 'warning'
+time: 1.7 state: 'warning'
+time: 1.6 state: 'warning'
+time: 1.5 state: 'warning'
+time: 1.4 state: 'warning'
+time: 1.3 state: 'warning'
+time: 1.2 state: 'warning'
+time: 1.1 state: 'warning'
+time: 1 state: 'alert!'
+time: 0.9 state: 'warning'
+time: 0.8 state: 'warning'
+time: 0.7 state: 'warning'
+time: 0.6 state: 'warning'
+time: 0.5 state: 'warning'
+time: 0.4 state: 'warning'
+time: 0.3 state: 'warning'
+time: 0.2 state: 'warning'
+time: 0.1 state: 'warning'
+time: 2 state: 'beep' interval.current: 1 interval.total: 3
+time: 1.9 state: 'active' interval.current: 1 interval.total: 3
+time: 1.8 state: 'active' interval.current: 1 interval.total: 3
+time: 1.7 state: 'active' interval.current: 1 interval.total: 3
+time: 1.6 state: 'active' interval.current: 1 interval.total: 3
+time: 1.5 state: 'active' interval.current: 1 interval.total: 3
+time: 1.4 state: 'active' interval.current: 1 interval.total: 3
+time: 1.3 state: 'active' interval.current: 1 interval.total: 3
+time: 1.2 state: 'active' interval.current: 1 interval.total: 3
+time: 1.1 state: 'active' interval.current: 1 interval.total: 3
+time: 1 state: 'active' interval.current: 1 interval.total: 3
+time: 0.9 state: 'active' interval.current: 1 interval.total: 3
+time: 0.8 state: 'active' interval.current: 1 interval.total: 3
+time: 0.7 state: 'active' interval.current: 1 interval.total: 3
+time: 0.6 state: 'active' interval.current: 1 interval.total: 3
+time: 0.5 state: 'active' interval.current: 1 interval.total: 3
+time: 0.4 state: 'active' interval.current: 1 interval.total: 3
+time: 0.3 state: 'active' interval.current: 1 interval.total: 3
+time: 0.2 state: 'active' interval.current: 1 interval.total: 3
+time: 0.1 state: 'active' interval.current: 1 interval.total: 3
+time: 2 state: 'beep' interval.current: 2 interval.total: 3
+time: 1.9 state: 'rest' interval.current: 2 interval.total: 3
+time: 1.8 state: 'rest' interval.current: 2 interval.total: 3
+time: 1.7 state: 'rest' interval.current: 2 interval.total: 3
+time: 1.6 state: 'rest' interval.current: 2 interval.total: 3
+time: 1.5 state: 'rest' interval.current: 2 interval.total: 3
+time: 1.4 state: 'rest' interval.current: 2 interval.total: 3
+time: 1.3 state: 'rest' interval.current: 2 interval.total: 3
+time: 1.2 state: 'rest' interval.current: 2 interval.total: 3
+time: 1.1 state: 'rest' interval.current: 2 interval.total: 3
+time: 1 state: 'rest' interval.current: 2 interval.total: 3
+time: 0.9 state: 'rest' interval.current: 2 interval.total: 3
+time: 0.8 state: 'rest' interval.current: 2 interval.total: 3
+time: 0.7 state: 'rest' interval.current: 2 interval.total: 3
+time: 0.6 state: 'rest' interval.current: 2 interval.total: 3
+time: 0.5 state: 'rest' interval.current: 2 interval.total: 3
+time: 0.4 state: 'rest' interval.current: 2 interval.total: 3
+time: 0.3 state: 'rest' interval.current: 2 interval.total: 3
+time: 0.2 state: 'rest' interval.current: 2 interval.total: 3
+time: 0.1 state: 'rest' interval.current: 2 interval.total: 3
+time: 2 state: 'beep' interval.current: 2 interval.total: 3
+time: 1.9 state: 'active' interval.current: 2 interval.total: 3
+time: 1.8 state: 'active' interval.current: 2 interval.total: 3
+time: 1.7 state: 'active' interval.current: 2 interval.total: 3
+time: 1.6 state: 'active' interval.current: 2 interval.total: 3
+time: 1.5 state: 'active' interval.current: 2 interval.total: 3
+time: 1.4 state: 'active' interval.current: 2 interval.total: 3
+time: 1.3 state: 'active' interval.current: 2 interval.total: 3
+time: 1.2 state: 'active' interval.current: 2 interval.total: 3
+time: 1.1 state: 'active' interval.current: 2 interval.total: 3
+time: 1 state: 'active' interval.current: 2 interval.total: 3
+time: 0.9 state: 'active' interval.current: 2 interval.total: 3
+time: 0.8 state: 'active' interval.current: 2 interval.total: 3
+time: 0.7 state: 'active' interval.current: 2 interval.total: 3
+time: 0.6 state: 'active' interval.current: 2 interval.total: 3
+time: 0.5 state: 'active' interval.current: 2 interval.total: 3
+time: 0.4 state: 'active' interval.current: 2 interval.total: 3
+time: 0.3 state: 'active' interval.current: 2 interval.total: 3
+time: 0.2 state: 'active' interval.current: 2 interval.total: 3
+time: 0.1 state: 'active' interval.current: 2 interval.total: 3
+time: 2 state: 'beep' interval.current: 3 interval.total: 3
+time: 1.9 state: 'rest' interval.current: 3 interval.total: 3
+time: 1.8 state: 'rest' interval.current: 3 interval.total: 3
+time: 1.7 state: 'rest' interval.current: 3 interval.total: 3
+time: 1.6 state: 'rest' interval.current: 3 interval.total: 3
+time: 1.5 state: 'rest' interval.current: 3 interval.total: 3
+time: 1.4 state: 'rest' interval.current: 3 interval.total: 3
+time: 1.3 state: 'rest' interval.current: 3 interval.total: 3
+time: 1.2 state: 'rest' interval.current: 3 interval.total: 3
+time: 1.1 state: 'rest' interval.current: 3 interval.total: 3
+time: 1 state: 'rest' interval.current: 3 interval.total: 3
+time: 0.9 state: 'rest' interval.current: 3 interval.total: 3
+time: 0.8 state: 'rest' interval.current: 3 interval.total: 3
+time: 0.7 state: 'rest' interval.current: 3 interval.total: 3
+time: 0.6 state: 'rest' interval.current: 3 interval.total: 3
+time: 0.5 state: 'rest' interval.current: 3 interval.total: 3
+time: 0.4 state: 'rest' interval.current: 3 interval.total: 3
+time: 0.3 state: 'rest' interval.current: 3 interval.total: 3
+time: 0.2 state: 'rest' interval.current: 3 interval.total: 3
+time: 0.1 state: 'rest' interval.current: 3 interval.total: 3
+time: 2 state: 'beep' interval.current: 3 interval.total: 3
+time: 1.9 state: 'active' interval.current: 3 interval.total: 3
+time: 1.8 state: 'active' interval.current: 3 interval.total: 3
+time: 1.7 state: 'active' interval.current: 3 interval.total: 3
+time: 1.6 state: 'active' interval.current: 3 interval.total: 3
+time: 1.5 state: 'active' interval.current: 3 interval.total: 3
+time: 1.4 state: 'active' interval.current: 3 interval.total: 3
+time: 1.3 state: 'active' interval.current: 3 interval.total: 3
+time: 1.2 state: 'active' interval.current: 3 interval.total: 3
+time: 1.1 state: 'active' interval.current: 3 interval.total: 3
+time: 1 state: 'active' interval.current: 3 interval.total: 3
+time: 0.9 state: 'active' interval.current: 3 interval.total: 3
+time: 0.8 state: 'active' interval.current: 3 interval.total: 3
+time: 0.7 state: 'active' interval.current: 3 interval.total: 3
+time: 0.6 state: 'active' interval.current: 3 interval.total: 3
+time: 0.5 state: 'active' interval.current: 3 interval.total: 3
+time: 0.4 state: 'active' interval.current: 3 interval.total: 3
+time: 0.3 state: 'active' interval.current: 3 interval.total: 3
+time: 0.2 state: 'active' interval.current: 3 interval.total: 3
+time: 0.1 state: 'active' interval.current: 3 interval.total: 3
+time: 0 state: 'beep'
+time: 0.1
+time: 0.2
+time: 0.3
+time: 0.4
+time: 0.5
+time: 0.6
+time: 0.7
+time: 0.8
+time: 0.9
+time: 1
+time: 1.1
+time: 1.2
+time: 1.3
+time: 1.4
+time: 1.5
+time: 1.6
+time: 1.7
+time: 1.8
+time: 1.9
+time: 2
+time: 2.1
+time: 2.2
+time: 2.3
+time: 2.4
+time: 2.5
+time: 2.6
+time: 2.7
+time: 2.8
+time: 2.9
+time: 3 state: 'alert!'
+time: 3.1 state: 'warning'
+time: 3.2 state: 'warning'
+time: 3.3 state: 'warning'
+time: 3.4 state: 'warning'
+time: 3.5 state: 'warning'
+time: 3.6 state: 'warning'
+time: 3.7 state: 'warning'
+time: 3.8 state: 'warning'
+time: 3.9 state: 'warning'
+time: 4 state: 'alert!'
+time: 4.1 state: 'warning'
+time: 4.2 state: 'warning'
+time: 4.3 state: 'warning'
+time: 4.4 state: 'warning'
+time: 4.5 state: 'warning'
+time: 4.6 state: 'warning'
+time: 4.7 state: 'warning'
+time: 4.8 state: 'warning'
+time: 4.9 state: 'warning'
 Play final beep!
- */
+*/

@@ -1,32 +1,45 @@
-import { Sequencer, CountdownSegment, TimeEmission, add } from '../lib';
+import { Sequencer, CountdownSegment, CountupSegment, TimeEmission } from '../sots/dist/index';
 
-let sequencer: Sequencer = new Sequencer({ period: 1000 });
+const sequencer: Sequencer = new Sequencer({ period: 1000 });
 sequencer.add(CountdownSegment, {
-    duration: 5000,
+    duration: 3000,
     states: [
-        { state: 'warning', timeLessThanOrEqualTo: "3" },
-        { state: 'beep', timeAt: "2,1," }
+        { state: "Started!", timeAt: "3" }
     ]
-});
+})
+    .add(CountupSegment, {
+        duration: 3000,
+        states: [
+            { state: "Halfway", timeAt: "0" }
+        ]
+    });
 
 sequencer.subscribe((value: TimeEmission) => {
     let output: string;
 
     output = "time: " + value.time;
-    if (value.state) {
-        output += " state.instant: " + value.state.instant.toString();
-        output += " state.spread: " + value.state.spread.toString();
+    if (value.inStateOf("Started!")) {
+        output += "<play audible for start>";
+    }
+    else if (value.inStateOf("Halfway")) {
+        output += "<play audible for halfway point>";
     }
 
-    if (value.interval) {
-        output += " interval.current: " + value.interval.current;
-        output += " interval.total: " + value.interval.total;
-    }
     console.log(output);
 }, (error) => {
     console.error(error);
 }, () => {
-    console.log("Play final beep!");
+    console.log("<play audible for completed>");
 });
 
 sequencer.start();
+
+/*
+time: 3<play audible for start>
+time: 2
+time: 1
+time: 0<play audible for halfway point>
+time: 1
+time: 2
+<play audible for completed>
+*/

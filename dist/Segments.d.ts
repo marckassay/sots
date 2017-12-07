@@ -1,9 +1,9 @@
 import { Observable } from 'rxjs/Rx';
 import { TimeEmission, IntervalEmissionShape, SlotEmissionShape } from './api/Emission';
-import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface } from './api/Segment';
+import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
 import { SegmentCollection } from './Sequencer';
 export declare class TimeSegment implements SegmentInterface {
-    period: number;
+    seqConfig: SequenceConfigShape;
     interval: IntervalEmissionShape;
     collection: SegmentCollection;
     protected config: SegmentConfigShape;

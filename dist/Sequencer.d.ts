@@ -1,6 +1,6 @@
 import { Observable } from 'rxjs/Rx';
 import { TimeEmission } from './api/Emission';
-import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface } from './api/Segment';
+import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
 import { TimeSegment } from './Segments';
 import { Subscription } from 'rxjs/Subscription';
 /**
@@ -14,10 +14,10 @@ import { Subscription } from 'rxjs/Subscription';
  */
 export declare function add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): GroupParameter<T>;
 export declare class SegmentCollection {
-    period: number;
+    config: SequenceConfigShape;
     private segments;
     private observables;
-    constructor(period: number);
+    constructor(config: SequenceConfigShape);
     add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T;
     group<T extends TimeSegment>(intervals?: number, ...segments: GroupParameter<T>[]): T;
     push(segment: TimeSegment): void;
@@ -30,14 +30,11 @@ export declare class SegmentCollection {
  * @returns   an instance.
  */
 export declare class Sequencer implements SegmentInterface {
-    period: number;
     collection: SegmentCollection;
     private pauser;
     private publication;
     private source;
-    constructor(config: {
-        period: number;
-    });
+    constructor(config: SequenceConfigShape);
     /**
      * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
      * @param ctor    A type being subclass of TimeSegment,  Specifically CountupSegment or CountdownSegment.

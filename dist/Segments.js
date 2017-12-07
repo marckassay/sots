@@ -20,15 +20,15 @@ var TimeSegment = /** @class */ (function () {
     TimeSegment.prototype.initializeObservable = function (lastElement) {
         var _this = this;
         if (lastElement === void 0) { lastElement = false; }
-        this.stateexp = new StateExpression(this.config, this.period);
-        var source = Rx_1.Observable.timer(0, this.period)
+        this.stateexp = new StateExpression(this.config, this.seqConfig.period);
+        var source = Rx_1.Observable.timer(0, this.seqConfig.period)
             .map(function (index) {
             var nuindex;
             if (!_this.countingUp) {
-                nuindex = (_this.config.duration - (_this.period * index)) * .001;
+                nuindex = (_this.config.duration - (_this.seqConfig.period * index)) * .001;
             }
             else {
-                nuindex = (_this.period * index) * .001;
+                nuindex = (_this.seqConfig.period * index) * .001;
             }
             nuindex = Number(nuindex.toFixed(3));
             // TODO: currently when spreads are appiled, it will live to the 
@@ -46,19 +46,19 @@ var TimeSegment = /** @class */ (function () {
                 _this.previousspread = states.spread;
             }
             return {
-                time: nuindex, inStateOf: function (state, forceCompareAsBitwise) {
-                    var compareAsBitwise;
-                    if (forceCompareAsBitwise != undefined) {
-                        compareAsBitwise = forceCompareAsBitwise;
+                time: nuindex, inStateOf: function (state, compareAsBitwise) {
+                    var useBitwiseCompare;
+                    if (compareAsBitwise != undefined) {
+                        useBitwiseCompare = compareAsBitwise;
                     }
-                    else if (_this.config.compareAsBitwise != undefined) {
-                        compareAsBitwise = _this.config.compareAsBitwise;
+                    else if (_this.seqConfig.compareAsBitwise != undefined) {
+                        useBitwiseCompare = _this.seqConfig.compareAsBitwise;
                     }
                     else {
-                        compareAsBitwise = false;
+                        useBitwiseCompare = false;
                     }
                     if (states) {
-                        if (compareAsBitwise === false) {
+                        if (useBitwiseCompare === false) {
                             if (states.instant.indexOf(state) === -1) {
                                 return states.spread.indexOf(state) !== -1;
                             }
