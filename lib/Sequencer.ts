@@ -158,16 +158,7 @@ export class Sequencer implements SegmentInterface {
      * @returns Observable<TimeEmission>.
      */
     publish(): Observable<TimeEmission> {
-        if (!this.source) {
-            this.pauser = new Subject<boolean>();
-            this.source = this.collection.toSequencedObservable();
-            this.pauser.next(true);
-            this.publication = this.pauser.switchMap((paused: boolean) => {
-                return (paused == true) ? Observable.never<TimeEmission>().materialize() : this.source.materialize();
-            }).dematerialize();
-        }
 
-        return this.publication;
     }
 
     /**
