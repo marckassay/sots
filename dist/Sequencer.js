@@ -98,6 +98,7 @@ var Sequencer = /** @class */ (function () {
         this.collection = new SegmentCollection(config);
         this.startEvent = new events_1.EventEmitter();
         this.pauseEvent = new events_1.EventEmitter();
+        this.resetEvent = new events_1.EventEmitter();
     }
     /**
      * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
@@ -157,18 +158,18 @@ var Sequencer = /** @class */ (function () {
         var _this = this;
         var sEvent = Rx_1.Observable.fromEvent(this.startEvent, 'start');
         var pEvent = Rx_1.Observable.fromEvent(this.pauseEvent, 'pause');
+        var rEvent = Rx_1.Observable.fromEvent(this.resetEvent, 'reset');
         this.source = this.collection.toSequencedObservable();
-        sEvent.switchMap(function () { return Rx_1.Observable.interval(1000).takeUntil(pEvent); })
-            .scan(function (count, n) { return n === 0 ? 0 : count + n; })
-            .subscribe(function (count) {
-            console.log(count);
-            _this.source.elementAt;
-        }, function (err) {
-            console.log(err);
-        }, function () {
-            console.log("out completed.");
-        });
-        return this.source;
+        this.subscribedObservable = sEvent.switchMap(function () { return Rx_1.Observable.interval(1000).takeUntil(pEvent); })
+            .mergeMap(function (_value, index) {
+            return _this.source
+                .elementAt(index)
+                .catch(function (_err, caught) {
+                _this.resetEvent.emit('reset');
+                return caught;
+            });
+        }).takeUntil(rEvent);
+        return this.subscribedObservable;
     };
     /**
      * Pass in callback functions to "subscribe" to an Observable emitting.  This is the only means of making an

@@ -34,9 +34,11 @@ export declare class SegmentCollection {
 export declare class Sequencer implements SegmentInterface {
     collection: SegmentCollection;
     private source;
+    private subscribedObservable;
     publication: Observable<TimeEmission>;
     startEvent: EventEmitter;
     pauseEvent: EventEmitter;
+    resetEvent: EventEmitter;
     constructor(config: SequenceConfigShape);
     /**
      * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.

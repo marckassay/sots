@@ -101,13 +101,16 @@ export class SegmentCollection {
 export class Sequencer implements SegmentInterface {
     collection: SegmentCollection;
     private source: Observable<TimeEmission>;
+    private subscribedObservable: Observable<TimeEmission>;
     publication: Observable<TimeEmission>;
     startEvent: EventEmitter;
     pauseEvent: EventEmitter;
+    resetEvent: EventEmitter;
     constructor(config: SequenceConfigShape) {
         this.collection = new SegmentCollection(config);
         this.startEvent = new EventEmitter();
         this.pauseEvent = new EventEmitter();
+        this.resetEvent = new EventEmitter();
     }
 
     /**
@@ -165,18 +168,20 @@ export class Sequencer implements SegmentInterface {
     publish(): Observable<TimeEmission> {
         const sEvent = Observable.fromEvent(this.startEvent, 'start');
         const pEvent = Observable.fromEvent(this.pauseEvent, 'pause');
+        const rEvent = Observable.fromEvent(this.resetEvent, 'reset');
         this.source = this.collection.toSequencedObservable();
-        sEvent.switchMap(() => Observable.interval(1000).takeUntil(pEvent))
-            .scan((count, n) => n === 0 ? 0 : count + n)
-            .subscribe(count => {
-                console.log(count);
-                this.source.
-            }, (err: any) => {
-                console.log(err);
-            }, () => {
-                console.log("out completed.");
-            });
-        return this.source;
+
+        this.subscribedObservable = sEvent.switchMap(() => Observable.interval(1000).takeUntil(pEvent))
+            .mergeMap((_value: number, index: number) => {
+                return this.source
+                    .elementAt(index)
+                    .catch((_err, caught: Observable<TimeEmission>) => {
+                        this.resetEvent.emit('reset');
+                        return caught;
+                    });
+            }).takeUntil(rEvent);
+
+        return this.subscribedObservable;
     }
 
     /**
