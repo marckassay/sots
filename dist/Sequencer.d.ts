@@ -1,10 +1,8 @@
-/// <reference types="node" />
 import { Observable } from 'rxjs/Rx';
 import { TimeEmission } from './api/Emission';
 import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
 import { TimeSegment } from './Segments';
 import { Subscription } from 'rxjs/Subscription';
-import { EventEmitter } from 'events';
 /**
  * Simply a pass-thru function to be used in the group function.
  *
@@ -32,14 +30,18 @@ export declare class SegmentCollection {
  * @returns   an instance.
  */
 export declare class Sequencer implements SegmentInterface {
+    config: SequenceConfigShape;
     collection: SegmentCollection;
     private source;
     private subscribedObservable;
     publication: Observable<TimeEmission>;
-    startEvent: EventEmitter;
-    pauseEvent: EventEmitter;
-    resetEvent: EventEmitter;
+    private emitter;
+    private startEventObserv;
+    private pauseEventObserv;
+    private resetEventObserv;
+    private completeEventObser;
     constructor(config: SequenceConfigShape);
+    private initEmitterAndObservs();
     /**
      * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
      * @param ctor    A type being subclass of TimeSegment,  Specifically CountupSegment or CountdownSegment.
@@ -65,6 +67,11 @@ export declare class Sequencer implements SegmentInterface {
      * @returns void.
      */
     pause(): void;
+    /**
+     * Pauses internal Observable to start emitting.  This must be called after the 'subscribe()' is called.
+     * @returns void.
+     */
+    reset(): void;
     /**
      * Returns an Observable<TimeEmission> versus, subscribe() which returns a Subscription.  Typically subscribe()
      * is used.

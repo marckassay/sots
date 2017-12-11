@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var Rx_1 = require("rxjs/Rx");
 var events_1 = require("events");
+var Rx = require("rxjs/Rx");
 /**
  * Simply a pass-thru function to be used in the group function.
  *
@@ -88,6 +89,13 @@ var SegmentCollection = /** @class */ (function () {
     return SegmentCollection;
 }());
 exports.SegmentCollection = SegmentCollection;
+var EmitterEvents;
+(function (EmitterEvents) {
+    EmitterEvents["start"] = "start";
+    EmitterEvents["pause"] = "pause";
+    EmitterEvents["reset"] = "reset";
+    EmitterEvents["complete"] = "complete";
+})(EmitterEvents || (EmitterEvents = {}));
 /**
  * Initiates a sequence with time period being defined in its constructor.
  * @param constructor   Sequencer must be instantiated with a value for period that is read in milliseconds.  This value becomes static and global to its segments.
@@ -95,11 +103,18 @@ exports.SegmentCollection = SegmentCollection;
  */
 var Sequencer = /** @class */ (function () {
     function Sequencer(config) {
+        this.config = config;
         this.collection = new SegmentCollection(config);
-        this.startEvent = new events_1.EventEmitter();
-        this.pauseEvent = new events_1.EventEmitter();
-        this.resetEvent = new events_1.EventEmitter();
+        //this.resetFlag = false;
+        this.initEmitterAndObservs();
     }
+    Sequencer.prototype.initEmitterAndObservs = function () {
+        this.emitter = new events_1.EventEmitter();
+        this.startEventObserv = Rx_1.Observable.fromEvent(this.emitter, EmitterEvents.start);
+        this.pauseEventObserv = Rx_1.Observable.fromEvent(this.emitter, EmitterEvents.pause);
+        this.resetEventObserv = Rx_1.Observable.fromEvent(this.emitter, EmitterEvents.reset);
+        this.completeEventObser = Rx_1.Observable.fromEvent(this.emitter, EmitterEvents.complete);
+    };
     /**
      * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
      * @param ctor    A type being subclass of TimeSegment,  Specifically CountupSegment or CountdownSegment.
@@ -131,7 +146,8 @@ var Sequencer = /** @class */ (function () {
      */
     Sequencer.prototype.start = function () {
         if (this.source) {
-            this.startEvent.emit('start');
+            // this.resetFlag = false;
+            this.emitter.emit(EmitterEvents.start);
         }
         else {
             throw "A call to subscribe() needs to be made prior to start() or pause() invocation.";
@@ -143,7 +159,21 @@ var Sequencer = /** @class */ (function () {
      */
     Sequencer.prototype.pause = function () {
         if (this.source) {
-            this.pauseEvent.emit('pause');
+            this.emitter.emit(EmitterEvents.pause);
+        }
+        else {
+            throw "A call to subscribe() needs to be made prior to start() or pause().";
+        }
+    };
+    /**
+     * Pauses internal Observable to start emitting.  This must be called after the 'subscribe()' is called.
+     * @returns void.
+     */
+    Sequencer.prototype.reset = function () {
+        if (this.source) {
+            //this.resetFlag = true;
+            //this.emitter.emit(EmitterEvents.pause);
+            this.emitter.emit(EmitterEvents.reset);
         }
         else {
             throw "A call to subscribe() needs to be made prior to start() or pause().";
@@ -156,19 +186,21 @@ var Sequencer = /** @class */ (function () {
      */
     Sequencer.prototype.publish = function () {
         var _this = this;
-        var sEvent = Rx_1.Observable.fromEvent(this.startEvent, 'start');
-        var pEvent = Rx_1.Observable.fromEvent(this.pauseEvent, 'pause');
-        var rEvent = Rx_1.Observable.fromEvent(this.resetEvent, 'reset');
         this.source = this.collection.toSequencedObservable();
-        this.subscribedObservable = sEvent.switchMap(function () { return Rx_1.Observable.interval(1000).takeUntil(pEvent); })
-            .mergeMap(function (_value, index) {
-            return _this.source
-                .elementAt(index)
+        this.subscribedObservable = Rx.Observable.merge(this.startEventObserv.switchMap(function () {
+            return Rx_1.Observable.interval(_this.config.period).takeUntil(_this.pauseEventObserv);
+        }).map(function () { return 1; }).startWith(0), this.resetEventObserv.map(function () { return 0; })).scan(function (acc, value, _index) {
+            return (value === 0 ? 0 : acc + value);
+        }, 0).mergeMap(function (value, _index) {
+            return _this.source.elementAt(value)
                 .catch(function (_err, caught) {
-                _this.resetEvent.emit('reset');
+                // TODO: this is thrown because of out of range on elementAt(). 
+                // emitting here serves the purpose, but there must be 
+                // a better way of handling this.
+                _this.emitter.emit(EmitterEvents.complete);
                 return caught;
             });
-        }).takeUntil(rEvent);
+        }).takeUntil(this.completeEventObser);
         return this.subscribedObservable;
     };
     /**
