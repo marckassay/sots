@@ -21,7 +21,8 @@ var TimeSegment = /** @class */ (function () {
         var _this = this;
         if (lastElement === void 0) { lastElement = false; }
         this.stateexp = new StateExpression(this.config, this.seqConfig.period);
-        var source = Rx_1.Observable.timer(0, this.seqConfig.period)
+        var source = new Rx_1.Subject()
+            .scan(function (acc, curr) { return Object.assign({}, acc, curr); }, {})
             .map(function (index) {
             var nuindex;
             if (!_this.countingUp) {

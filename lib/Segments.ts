@@ -1,4 +1,4 @@
-import { Observable } from 'rxjs/Rx';
+import { Observable, Subject } from 'rxjs/Rx';
 import { TimeEmission, IntervalEmissionShape, SlotEmissionShape, TimeSlot } from './api/Emission';
 import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
 import { StateConfig1, StateConfig2, StateConfig3, StateConfig4, StateConfig5 } from './api/StateConfigs';
@@ -19,9 +19,10 @@ export class TimeSegment implements SegmentInterface {
         this.countingUp = countingUp;
     }
 
-    public initializeObservable(lastElement: boolean = false) {
+    public initializeObservable(lastElement: boolean = false): Observable<TimeEmission> {
         this.stateexp = new StateExpression(this.config, this.seqConfig.period);
-        let source: Observable<TimeEmission> = Observable.timer(0, this.seqConfig.period)
+        let source: Observable<TimeEmission> = new Subject()
+            .scan((acc, curr) => Object.assign({}, acc, curr), {})
             .map((index: number): TimeEmission => {
                 let nuindex: number;
                 if (!this.countingUp) {

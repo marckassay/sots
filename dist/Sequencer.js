@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Rx_1 = require("rxjs/Rx");
+var events_1 = require("events");
 /**
  * Simply a pass-thru function to be used in the group function.
  *
@@ -43,6 +44,7 @@ var SegmentCollection = /** @class */ (function () {
                 }
             });
         };
+        // TODO: possibly use the 'repeat' operator in here..
         for (var index = 0; index < intervals; index++) {
             _loop_1(index);
         }
@@ -94,6 +96,8 @@ exports.SegmentCollection = SegmentCollection;
 var Sequencer = /** @class */ (function () {
     function Sequencer(config) {
         this.collection = new SegmentCollection(config);
+        this.startEvent = new events_1.EventEmitter();
+        this.pauseEvent = new events_1.EventEmitter();
     }
     /**
      * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
@@ -125,8 +129,8 @@ var Sequencer = /** @class */ (function () {
      * @returns void.
      */
     Sequencer.prototype.start = function () {
-        if (this.pauser) {
-            this.pauser.next(false);
+        if (this.source) {
+            this.startEvent.emit('start');
         }
         else {
             throw "A call to subscribe() needs to be made prior to start() or pause() invocation.";
@@ -137,8 +141,8 @@ var Sequencer = /** @class */ (function () {
      * @returns void.
      */
     Sequencer.prototype.pause = function () {
-        if (this.pauser) {
-            this.pauser.next(true);
+        if (this.source) {
+            this.pauseEvent.emit('pause');
         }
         else {
             throw "A call to subscribe() needs to be made prior to start() or pause().";
@@ -151,15 +155,20 @@ var Sequencer = /** @class */ (function () {
      */
     Sequencer.prototype.publish = function () {
         var _this = this;
-        if (!this.source) {
-            this.pauser = new Rx_1.Subject();
-            this.source = this.collection.toSequencedObservable();
-            this.pauser.next(true);
-            this.publication = this.pauser.switchMap(function (paused) {
-                return (paused == true) ? Rx_1.Observable.never().materialize() : _this.source.materialize();
-            }).dematerialize();
-        }
-        return this.publication;
+        var sEvent = Rx_1.Observable.fromEvent(this.startEvent, 'start');
+        var pEvent = Rx_1.Observable.fromEvent(this.pauseEvent, 'pause');
+        this.source = this.collection.toSequencedObservable();
+        sEvent.switchMap(function () { return Rx_1.Observable.interval(1000).takeUntil(pEvent); })
+            .scan(function (count, n) { return n === 0 ? 0 : count + n; })
+            .subscribe(function (count) {
+            console.log(count);
+            _this.source.elementAt;
+        }, function (err) {
+            console.log(err);
+        }, function () {
+            console.log("out completed.");
+        });
+        return this.source;
     };
     /**
      * Pass in callback functions to "subscribe" to an Observable emitting.  This is the only means of making an
@@ -172,7 +181,7 @@ var Sequencer = /** @class */ (function () {
     };
     /** @internal */
     Sequencer.prototype.__marauder = function () {
-        return { pauser: this.pauser, source: this.source };
+        return { pauser: new Rx_1.Subject(), source: this.source };
     };
     return Sequencer;
 }());

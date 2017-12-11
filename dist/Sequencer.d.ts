@@ -1,8 +1,10 @@
+/// <reference types="node" />
 import { Observable } from 'rxjs/Rx';
 import { TimeEmission } from './api/Emission';
 import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
 import { TimeSegment } from './Segments';
 import { Subscription } from 'rxjs/Subscription';
+import { EventEmitter } from 'events';
 /**
  * Simply a pass-thru function to be used in the group function.
  *
@@ -31,9 +33,10 @@ export declare class SegmentCollection {
  */
 export declare class Sequencer implements SegmentInterface {
     collection: SegmentCollection;
-    private pauser;
-    private publication;
     private source;
+    publication: Observable<TimeEmission>;
+    startEvent: EventEmitter;
+    pauseEvent: EventEmitter;
     constructor(config: SequenceConfigShape);
     /**
      * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.

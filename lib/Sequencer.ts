@@ -3,6 +3,7 @@ import { TimeEmission } from './api/Emission';
 import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
 import { TimeSegment } from './Segments';
 import { Subscription } from 'rxjs/Subscription';
+import { EventEmitter } from 'events';
 
 /**
  * Simply a pass-thru function to be used in the group function.
@@ -37,7 +38,7 @@ export class SegmentCollection {
 
     group<T extends TimeSegment>(intervals: number = 1, ...segments: GroupParameter<T>[]): T {
         let segment: TimeSegment;
-
+        // TODO: possibly use the 'repeat' operator in here..
         for (let index = 0; index < intervals; index++) {
             segments.forEach((value: GroupParameter<T>) => {
                 if ((index != 0) || (!value.config.omitFirst)) {
@@ -99,12 +100,14 @@ export class SegmentCollection {
  */
 export class Sequencer implements SegmentInterface {
     collection: SegmentCollection;
-    private pauser: Subject<boolean>;
-    private publication: Observable<TimeEmission>;
     private source: Observable<TimeEmission>;
-
+    publication: Observable<TimeEmission>;
+    startEvent: EventEmitter;
+    pauseEvent: EventEmitter;
     constructor(config: SequenceConfigShape) {
         this.collection = new SegmentCollection(config);
+        this.startEvent = new EventEmitter();
+        this.pauseEvent = new EventEmitter();
     }
 
     /**
@@ -133,8 +136,8 @@ export class Sequencer implements SegmentInterface {
      * @returns void.
      */
     start(): void {
-        if (this.pauser) {
-            this.pauser.next(false);
+        if (this.source) {
+            this.startEvent.emit('start');
         } else {
             throw "A call to subscribe() needs to be made prior to start() or pause() invocation.";
         }
@@ -145,8 +148,8 @@ export class Sequencer implements SegmentInterface {
      * @returns void.
      */
     pause(): void {
-        if (this.pauser) {
-            this.pauser.next(true);
+        if (this.source) {
+            this.pauseEvent.emit('pause');
         } else {
             throw "A call to subscribe() needs to be made prior to start() or pause().";
         }
@@ -157,8 +160,23 @@ export class Sequencer implements SegmentInterface {
      * is used.
      * @returns Observable<TimeEmission>.
      */
-    publish(): Observable<TimeEmission> {
 
+
+    publish(): Observable<TimeEmission> {
+        const sEvent = Observable.fromEvent(this.startEvent, 'start');
+        const pEvent = Observable.fromEvent(this.pauseEvent, 'pause');
+        this.source = this.collection.toSequencedObservable();
+        sEvent.switchMap(() => Observable.interval(1000).takeUntil(pEvent))
+            .scan((count, n) => n === 0 ? 0 : count + n)
+            .subscribe(count => {
+                console.log(count);
+                this.source.
+            }, (err: any) => {
+                console.log(err);
+            }, () => {
+                console.log("out completed.");
+            });
+        return this.source;
     }
 
     /**
@@ -173,6 +191,6 @@ export class Sequencer implements SegmentInterface {
 
     /** @internal */
     __marauder(): { pauser: Subject<boolean>, source: Observable<TimeEmission> } {
-        return { pauser: this.pauser, source: this.source };
+        return { pauser: new Subject(), source: this.source };
     }
 }
