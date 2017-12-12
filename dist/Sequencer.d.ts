@@ -20,8 +20,6 @@ export declare class SegmentCollection {
     constructor(config: SequenceConfigShape);
     add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T;
     group<T extends TimeSegment>(intervals?: number, ...segments: GroupParameter<T>[]): T;
-    push(segment: TimeSegment): void;
-    initializeObservales(): void;
     toSequencedObservable(): Observable<TimeEmission>;
 }
 /**

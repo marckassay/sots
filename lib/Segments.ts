@@ -9,10 +9,10 @@ export class TimeSegment implements SegmentInterface {
     seqConfig: SequenceConfigShape;
     interval: IntervalEmissionShape;
     collection: SegmentCollection;
-    protected config: SegmentConfigShape;
-    private stateexp: StateExpression;
-    private countingUp: boolean;
-    private previousspread: Array<string | number>;
+    config: SegmentConfigShape;
+    stateexp: StateExpression;
+    countingUp: boolean;
+    previousspread: Array<string | number>;
 
     constructor(config: SegmentConfigShape, countingUp: boolean = false) {
         this.config = config;
@@ -34,10 +34,11 @@ export class TimeSegment implements SegmentInterface {
                 nuindex = Number(nuindex.toFixed(3));
 
                 // TODO: currently when spreads are appiled, it will live to the 
-                // end of its segment; notice previousspread never gets cleared.
-                // make modifications to have it apply to a segment of the time
+                // end of its segment; notice this.previousspread never gets cleared.
+                // make modifications to have it apply to a section of the time
                 // segment.
                 let states: SlotEmissionShape | undefined = this.stateexp.evaluate(nuindex);
+                //console.log("--------------------------" + nuindex);
                 if (this.previousspread && states) {
                     states.spread = states.spread.concat(this.previousspread);
                 } else if (this.previousspread && !states) {
@@ -217,7 +218,7 @@ export class StateExpression {
         }
     }
 
-    private setSpreadState(operation: "lessThan" | "greaterThan", time: number, state: string | number): void {
+    private setSpreadState(_operation: "lessThan" | "greaterThan", time: number, state: string | number): void {
         const timeslot: SlotEmissionShape = this.timemap[time];
         if (!timeslot) {
             this.timemap[time] = { instant: [], spread: [state] };
@@ -226,7 +227,6 @@ export class StateExpression {
             this.timemap[time] = timeslot;
         }
 
-        operation!;
         // TODO: StateExpression.spread_off isnt being searched for at any moment.
         /*
         const polarend: number = (operation == 'lessThan') ? 0 : Number.MAX_VALUE;

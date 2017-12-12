@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var Rx_1 = require("rxjs/Rx");
 var events_1 = require("events");
-var Rx = require("rxjs/Rx");
 /**
  * Simply a pass-thru function to be used in the group function.
  *
@@ -26,7 +25,7 @@ var SegmentCollection = /** @class */ (function () {
         var segment = new ctor(config);
         segment.collection = this;
         segment.seqConfig = this.config;
-        this.push(segment);
+        this.segments.push(segment);
         return segment;
     };
     SegmentCollection.prototype.group = function (intervals) {
@@ -52,11 +51,9 @@ var SegmentCollection = /** @class */ (function () {
         // return the last instance, so that this group invocation can be chained if needed...
         return segment;
     };
-    SegmentCollection.prototype.push = function (segment) {
-        this.segments.push(segment);
-    };
-    SegmentCollection.prototype.initializeObservales = function () {
+    SegmentCollection.prototype.toSequencedObservable = function () {
         var _this = this;
+        var concatObservs;
         this.segments.forEach(function (value, index) {
             var observable;
             if (index === _this.segments.length - 1) {
@@ -65,22 +62,14 @@ var SegmentCollection = /** @class */ (function () {
             else {
                 observable = value.initializeObservable();
             }
-            _this.observables.push(observable);
-        });
-    };
-    SegmentCollection.prototype.toSequencedObservable = function () {
-        this.initializeObservales();
-        var len = this.observables.length;
-        if (len >= 1) {
-            var source = this.observables[0];
-            for (var index = 1; index <= len - 1; index++) {
-                source = source.concat(this.observables[index]);
+            if (concatObservs) {
+                concatObservs = concatObservs.concat(observable);
             }
-            return source;
-        }
-        else {
-            throw new Error("There are no observables to sequence.  Check your configuration.");
-        }
+            else {
+                concatObservs = Rx_1.Observable.concat(observable);
+            }
+        });
+        return concatObservs;
     };
     /** @internal */
     SegmentCollection.prototype.__marauder = function () {
@@ -105,7 +94,6 @@ var Sequencer = /** @class */ (function () {
     function Sequencer(config) {
         this.config = config;
         this.collection = new SegmentCollection(config);
-        //this.resetFlag = false;
         this.initEmitterAndObservs();
     }
     Sequencer.prototype.initEmitterAndObservs = function () {
@@ -146,7 +134,6 @@ var Sequencer = /** @class */ (function () {
      */
     Sequencer.prototype.start = function () {
         if (this.source) {
-            // this.resetFlag = false;
             this.emitter.emit(EmitterEvents.start);
         }
         else {
@@ -171,8 +158,6 @@ var Sequencer = /** @class */ (function () {
      */
     Sequencer.prototype.reset = function () {
         if (this.source) {
-            //this.resetFlag = true;
-            //this.emitter.emit(EmitterEvents.pause);
             this.emitter.emit(EmitterEvents.reset);
         }
         else {
@@ -187,7 +172,7 @@ var Sequencer = /** @class */ (function () {
     Sequencer.prototype.publish = function () {
         var _this = this;
         this.source = this.collection.toSequencedObservable();
-        this.subscribedObservable = Rx.Observable.merge(this.startEventObserv.switchMap(function () {
+        this.subscribedObservable = Rx_1.Observable.merge(this.startEventObserv.switchMap(function () {
             return Rx_1.Observable.interval(_this.config.period).takeUntil(_this.pauseEventObserv);
         }).map(function () { return 1; }).startWith(0), this.resetEventObserv.map(function () { return 0; })).scan(function (acc, value, _index) {
             return (value === 0 ? 0 : acc + value);

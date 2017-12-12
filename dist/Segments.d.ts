@@ -6,10 +6,10 @@ export declare class TimeSegment implements SegmentInterface {
     seqConfig: SequenceConfigShape;
     interval: IntervalEmissionShape;
     collection: SegmentCollection;
-    protected config: SegmentConfigShape;
-    private stateexp;
-    private countingUp;
-    private previousspread;
+    config: SegmentConfigShape;
+    stateexp: StateExpression;
+    countingUp: boolean;
+    previousspread: Array<string | number>;
     constructor(config: SegmentConfigShape, countingUp?: boolean);
     initializeObservable(lastElement?: boolean): Observable<TimeEmission>;
     /**
@@ -51,7 +51,7 @@ export declare class StateExpression {
     constructor(config: SegmentConfigShape, period: number);
     private parse(config);
     private setInstantStates(times, state);
-    private setSpreadState(operation, time, state);
+    private setSpreadState(_operation, time, state);
     /**
      * @param time The time for this segment.  This is not global time of a sequence.
      */

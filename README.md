@@ -1,4 +1,11 @@
-sots (Sequence of Time Segments) is a JS module that allows you to structure complex sequences of time segments.  By chaining sots' `add` and `group` methods, a complex sequence can be created with little development time on your end.  It's capable of being stateful relative to individual time segments, states can be momentary or non-momentary.  When setting states, you can use a string or a number type. And when it's a number you have the option to set sots' to use the Bitwise AND comparison operator.  This is beneficial if you're setting states using binary Enums.
+sots (Sequence of Time Segments) is a JS module that allows you to structure complex sequences of time segments.  By chaining sots' `add` and `group` methods, a complex sequence can be created with little development time on your end.
+
+sots is capable of being stateful relative to individual time segments, states can be momentary or non-momentary.  When setting states, you can use a string or a number type. And when its a number type you have the option to set sots' to use the Bitwise AND comparison operator.  This is beneficial if you're setting states using binary Enums.
+
+The control methods of iterating sots' internal clock, are the following:
+* `start` (starts and if sots is paused will resume clock)
+* `pause`
+* `reset`
 
 When compiled, this module's JS files weighs-in around 20kBs, excluding RxJS from this estimate.
 
@@ -16,9 +23,9 @@ yarn add sots
 link: [yarnpkg.com/en/package/sots](https://yarnpkg.com/en/package/sots)
 
 ## Definitions
-* instant (state): These states are momentary, as they are emitted only at a specific instant in time.
-* spread (state): These states are non-momentary, as they "spread" over time until termination of its time segment.
-* duration: Defines the length of a segment (in time).
+* instant (state): These states are momentary, as they are emitted only at a specific instant in time.  The time value needs to be defined in units of a second.
+* spread (state): These states are non-momentary, as they "spread" over time until termination of its time segment.  The time value needs to be defined in units of a second.
+* duration: Defines the length of a segment defined in millisecods.
 * period: As defined the same as in RxJS; the unit of time between emissions defined in milliseconds.
 
 ## Explanation of Basic Usage
@@ -75,6 +82,13 @@ This example contains:
 
 See this example here: https://github.com/marckassay/sots/blob/master/example/example-2.ts
 
+
+### Example 3
+This example is derived from example 2 and in an addition demostrates the usage of control methods:
+* After 2 seconds, a `setTimeout` will call sots' `pause` method.  Followed 2 seconds later a call to `reset` and finally a call to `start` to resume sots.
+
+See this example here: https://github.com/marckassay/sots/blob/master/example/example-3.ts
+
 ## Contribute
 If you want to fork sots and give it a go, deploy 'sotsHarness' and 'sots.code-workspace' from the harness folder into the parent directory of sots.
 This will enable: multi-root workspace (for VS Code) with tasks and launch configurations and, provide a test harness.
@@ -85,5 +99,5 @@ $ . .\Set-MultiRootWorkspace.ps1
 ```
 Afterwards for Windows, right-click on 'sots.code-workspace' and from the context menu open VS Code.
 
-## Issues
+### Issues
 Please add any feedback, concerns, requests and/or bugs in the 'Issues' section of this repository.

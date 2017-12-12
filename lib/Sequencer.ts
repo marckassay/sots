@@ -4,7 +4,6 @@ import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, Sequ
 import { TimeSegment } from './Segments';
 import { Subscription } from 'rxjs/Subscription';
 import { EventEmitter } from 'events';
-import * as Rx from 'rxjs/Rx'
 
 /**
  * Simply a pass-thru function to be used in the group function.
@@ -32,7 +31,7 @@ export class SegmentCollection {
         const segment: T = new ctor(config);
         segment.collection = this;
         segment.seqConfig = this.config;
-        this.push(segment);
+        this.segments.push(segment);
 
         return segment;
     }
@@ -53,11 +52,9 @@ export class SegmentCollection {
         return segment! as T;
     }
 
-    push(segment: TimeSegment): void {
-        this.segments.push(segment);
-    }
+    toSequencedObservable(): Observable<TimeEmission> {
+        let concatObservs: Observable<TimeEmission> | undefined;
 
-    initializeObservales(): void {
         this.segments.forEach((value: TimeSegment, index: number) => {
             let observable: Observable<TimeEmission>;
 
@@ -67,25 +64,15 @@ export class SegmentCollection {
                 observable = value.initializeObservable();
             }
 
-            this.observables.push(observable!);
-        });
-    }
-
-    toSequencedObservable(): Observable<TimeEmission> {
-        this.initializeObservales();
-
-        const len: number = this.observables.length;
-
-        if (len >= 1) {
-            let source: Observable<TimeEmission> = this.observables[0];
-            for (let index = 1; index <= len - 1; index++) {
-                source = source.concat(this.observables[index]);
+            if (concatObservs) {
+                concatObservs = concatObservs.concat(observable);
+            } else {
+                concatObservs = Observable.concat(observable);
             }
-            return source;
 
-        } else {
-            throw new Error("There are no observables to sequence.  Check your configuration.");
-        }
+        });
+
+        return concatObservs!;
     }
 
     /** @internal */
@@ -109,7 +96,6 @@ export class Sequencer implements SegmentInterface {
     private source: Observable<TimeEmission>;
     private subscribedObservable: Observable<TimeEmission>;
     publication: Observable<TimeEmission>;
-    // private resetFlag: boolean;
     private emitter: EventEmitter;
     private startEventObserv: Observable<{}>;
     private pauseEventObserv: Observable<{}>;
@@ -118,8 +104,6 @@ export class Sequencer implements SegmentInterface {
 
     constructor(public config: SequenceConfigShape) {
         this.collection = new SegmentCollection(config);
-
-        //this.resetFlag = false;
 
         this.initEmitterAndObservs();
     }
@@ -159,7 +143,6 @@ export class Sequencer implements SegmentInterface {
      */
     start(): void {
         if (this.source) {
-            // this.resetFlag = false;
             this.emitter.emit(EmitterEvents.start);
         } else {
             throw "A call to subscribe() needs to be made prior to start() or pause() invocation.";
@@ -184,8 +167,6 @@ export class Sequencer implements SegmentInterface {
      */
     reset(): void {
         if (this.source) {
-            //this.resetFlag = true;
-            //this.emitter.emit(EmitterEvents.pause);
             this.emitter.emit(EmitterEvents.reset);
         } else {
             throw "A call to subscribe() needs to be made prior to start() or pause().";
@@ -199,7 +180,8 @@ export class Sequencer implements SegmentInterface {
      */
     publish(): Observable<TimeEmission> {
         this.source = this.collection.toSequencedObservable();
-        this.subscribedObservable = Rx.Observable.merge(
+
+        this.subscribedObservable = Observable.merge(
             this.startEventObserv.switchMap(() =>
                 Observable.interval(this.config.period).takeUntil(this.pauseEventObserv)).map(() => 1).startWith(0),
             this.resetEventObserv.map(() => 0)

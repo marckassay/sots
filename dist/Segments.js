@@ -33,10 +33,11 @@ var TimeSegment = /** @class */ (function () {
             }
             nuindex = Number(nuindex.toFixed(3));
             // TODO: currently when spreads are appiled, it will live to the 
-            // end of its segment; notice previousspread never gets cleared.
-            // make modifications to have it apply to a segment of the time
+            // end of its segment; notice this.previousspread never gets cleared.
+            // make modifications to have it apply to a section of the time
             // segment.
             var states = _this.stateexp.evaluate(nuindex);
+            //console.log("--------------------------" + nuindex);
             if (_this.previousspread && states) {
                 states.spread = states.spread.concat(_this.previousspread);
             }
@@ -216,7 +217,7 @@ var StateExpression = /** @class */ (function () {
             });
         }
     };
-    StateExpression.prototype.setSpreadState = function (operation, time, state) {
+    StateExpression.prototype.setSpreadState = function (_operation, time, state) {
         var timeslot = this.timemap[time];
         if (!timeslot) {
             this.timemap[time] = { instant: [], spread: [state] };
@@ -225,7 +226,6 @@ var StateExpression = /** @class */ (function () {
             timeslot.spread.push(state);
             this.timemap[time] = timeslot;
         }
-        operation;
         // TODO: StateExpression.spread_off isnt being searched for at any moment.
         /*
         const polarend: number = (operation == 'lessThan') ? 0 : Number.MAX_VALUE;
