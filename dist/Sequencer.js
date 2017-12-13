@@ -1,8 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Rx_1 = require("rxjs/Rx");
-var events_1 = require("events");
-//import * as Rx from 'rxjs/Rx';
 /**
  * Simply a pass-thru function to be used in the group function.
  *
@@ -78,33 +76,17 @@ var SegmentCollection = /** @class */ (function () {
     return SegmentCollection;
 }());
 exports.SegmentCollection = SegmentCollection;
-var EmitterEvents;
-(function (EmitterEvents) {
-    EmitterEvents["start"] = "start";
-    EmitterEvents["pause"] = "pause";
-    EmitterEvents["reset"] = "reset";
-    EmitterEvents["complete"] = "complete";
-})(EmitterEvents || (EmitterEvents = {}));
 /**
  * Initiates a sequence with time period being defined in its constructor.
  * @param constructor   Sequencer must be instantiated with a value for period that is read in milliseconds.  This value becomes static and global to its segments.
  * @returns   an instance.
  */
 var Sequencer = /** @class */ (function () {
-    // private completeEventObser: Observable<{}>;
     function Sequencer(config) {
         this.config = config;
         this.collection = new SegmentCollection(config);
         this.pauser = new Rx_1.Subject();
-        this.initEmitterAndObservs();
     }
-    Sequencer.prototype.initEmitterAndObservs = function () {
-        this.emitter = new events_1.EventEmitter();
-        this.startEventObserv = Rx_1.Observable.fromEvent(this.emitter, EmitterEvents.start);
-        this.pauseEventObserv = Rx_1.Observable.fromEvent(this.emitter, EmitterEvents.pause);
-        this.resetEventObserv = Rx_1.Observable.fromEvent(this.emitter, EmitterEvents.reset);
-        // this.completeEventObser = Observable.fromEvent(this.emitter, EmitterEvents.complete);
-    };
     /**
      * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
      * @param ctor    A type being subclass of TimeSegment,  Specifically CountupSegment or CountdownSegment.
@@ -139,7 +121,7 @@ var Sequencer = /** @class */ (function () {
             this.pauser.next(true);
         }
         else {
-            throw "A call to subscribe() needs to be made prior to start() or pause() invocation.";
+            throw "A call to subscribe() needs to be made prior to start(), pause() or reset().";
         }
     };
     /**
@@ -151,7 +133,7 @@ var Sequencer = /** @class */ (function () {
             this.pauser.next(false);
         }
         else {
-            throw "A call to subscribe() needs to be made prior to start() or pause().";
+            throw "A call to subscribe() needs to be made prior to start(), pause() or reset().";
         }
     };
     /**
@@ -160,10 +142,10 @@ var Sequencer = /** @class */ (function () {
      */
     Sequencer.prototype.reset = function () {
         if (this.source) {
-            this.emitter.emit(EmitterEvents.reset);
+            this.unsubscribe();
         }
         else {
-            throw "A call to subscribe() needs to be made prior to start() or pause().";
+            throw "A call to subscribe() needs to be made prior to start(), pause() or reset().";
         }
     };
     /**
@@ -174,9 +156,6 @@ var Sequencer = /** @class */ (function () {
     Sequencer.prototype.publish = function () {
         var _this = this;
         this.source = this.collection.toSequencedObservable();
-        this.startEventObserv;
-        this.pauseEventObserv;
-        this.resetEventObserv;
         return Rx_1.Observable.from(this.source)
             .zip(this.pauser.switchMap(function (value) { return (value) ? Rx_1.Observable.interval(_this.config.period) : Rx_1.Observable.never(); }), function (value) { return value; });
     };

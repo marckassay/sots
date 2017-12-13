@@ -3,8 +3,7 @@ import { TimeEmission } from './api/Emission';
 import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
 import { TimeSegment } from './Segments';
 import { Subscription } from 'rxjs/Subscription';
-import { EventEmitter } from 'events';
-//import * as Rx from 'rxjs/Rx';
+import { SequencerCallback } from './index';
 
 /**
  * Simply a pass-thru function to be used in the group function.
@@ -78,12 +77,7 @@ export class SegmentCollection {
         return { segments: this.segments };
     }
 }
-enum EmitterEvents {
-    start = 'start',
-    pause = 'pause',
-    reset = 'reset',
-    complete = 'complete'
-}
+
 /**
  * Initiates a sequence with time period being defined in its constructor.
  * @param constructor   Sequencer must be instantiated with a value for period that is read in milliseconds.  This value becomes static and global to its segments.
@@ -92,29 +86,13 @@ enum EmitterEvents {
 export class Sequencer implements SegmentInterface {
     collection: SegmentCollection;
     subscription: Subscription;
+    private pauseObserv: Subject<boolean>;
     private source: Observable<TimeEmission>;
-    publication: Observable<TimeEmission>;
-    private emitter: EventEmitter;
-    pauser: Subject<boolean>;
-    private startEventObserv: Observable<boolean>;
-    private pauseEventObserv: Observable<{}>;
-    private resetEventObserv: Observable<boolean>;
-    // private completeEventObser: Observable<{}>;
 
     constructor(public config: SequenceConfigShape) {
         this.collection = new SegmentCollection(config);
-        this.pauser = new Subject<boolean>();
-        this.initEmitterAndObservs();
+        this.pauseObserv = new Subject<boolean>();
     }
-
-    private initEmitterAndObservs(): void {
-        this.emitter = new EventEmitter();
-        this.startEventObserv = Observable.fromEvent(this.emitter, EmitterEvents.start);
-        this.pauseEventObserv = Observable.fromEvent(this.emitter, EmitterEvents.pause);
-        this.resetEventObserv = Observable.fromEvent(this.emitter, EmitterEvents.reset);
-        // this.completeEventObser = Observable.fromEvent(this.emitter, EmitterEvents.complete);
-    }
-
     /**
      * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
      * @param ctor    A type being subclass of TimeSegment,  Specifically CountupSegment or CountdownSegment.
@@ -142,9 +120,9 @@ export class Sequencer implements SegmentInterface {
      */
     start(): void {
         if (this.source) {
-            this.pauser.next(true);
+            this.pauseObserv.next(true);
         } else {
-            throw "A call to subscribe() needs to be made prior to start() or pause() invocation.";
+            throw "A call to subscribe() needs to be made prior to start(), pause() or reset().";
         }
     }
 
@@ -154,9 +132,9 @@ export class Sequencer implements SegmentInterface {
      */
     pause(): void {
         if (this.source) {
-            this.pauser.next(false);
+            this.pauseObserv.next(false);
         } else {
-            throw "A call to subscribe() needs to be made prior to start() or pause().";
+            throw "A call to subscribe() needs to be made prior to start(), pause() or reset().";
         }
     }
 
@@ -166,9 +144,9 @@ export class Sequencer implements SegmentInterface {
      */
     reset(): void {
         if (this.source) {
-            this.emitter.emit(EmitterEvents.reset);
+            this.unsubscribe();
         } else {
-            throw "A call to subscribe() needs to be made prior to start() or pause().";
+            throw "A call to subscribe() needs to be made prior to start(), pause() or reset().";
         }
     }
 
@@ -180,12 +158,9 @@ export class Sequencer implements SegmentInterface {
 
     publish(): Observable<TimeEmission> {
         this.source = this.collection.toSequencedObservable();
-        this.startEventObserv;
-        this.pauseEventObserv;
-        this.resetEventObserv;
 
         return Observable.from(this.source)
-            .zip(this.pauser.switchMap(
+            .zip(this.pauseObserv.switchMap(
                 (value) => (value) ? Observable.interval(this.config.period) : Observable.never<number>()),
             (value: TimeEmission) => value);
     }
@@ -201,7 +176,7 @@ export class Sequencer implements SegmentInterface {
         return this.subscription;
     }
 
-    subscribeWith(callback: { next: (value: TimeEmission) => void, error?: (error: any) => void, complete?: () => void }): Subscription {
+    subscribeWith(callback: SequencerCallback): Subscription {
         return this.subscribe(callback.next, callback.error, callback.complete);
     }
 

@@ -1,4 +1,4 @@
-import { Observable, Subject } from 'rxjs/Rx';
+import { Observable } from 'rxjs/Rx';
 import { TimeEmission } from './api/Emission';
 import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
 import { TimeSegment } from './Segments';
@@ -30,15 +30,9 @@ export declare class Sequencer implements SegmentInterface {
     config: SequenceConfigShape;
     collection: SegmentCollection;
     subscription: Subscription;
+    private pauser;
     private source;
-    publication: Observable<TimeEmission>;
-    private emitter;
-    pauser: Subject<boolean>;
-    private startEventObserv;
-    private pauseEventObserv;
-    private resetEventObserv;
     constructor(config: SequenceConfigShape);
-    private initEmitterAndObservs();
     /**
      * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
      * @param ctor    A type being subclass of TimeSegment,  Specifically CountupSegment or CountdownSegment.
@@ -82,11 +76,12 @@ export declare class Sequencer implements SegmentInterface {
      * @returns Subscription.
      */
     subscribe(next?: (value: TimeEmission) => void, error?: (error: any) => void, complete?: () => void): Subscription;
-    subscribeWith(callback: {
-        next: (value: TimeEmission) => void;
-        error?: (error: any) => void;
-        complete?: () => void;
-    }): Subscription;
+    subscribeWith(callback: SequencerCallback): Subscription;
     unsubscribe(): void;
     remove(): void;
+}
+export interface SequencerCallback {
+    next?(value: TimeEmission): void;
+    error?(error: any): void;
+    complete?(): void;
 }
