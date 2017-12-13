@@ -11,6 +11,7 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var Rx_1 = require("rxjs/Rx");
+//import * as Rx from 'rxjs/Rx';
 var TimeSegment = /** @class */ (function () {
     function TimeSegment(config, countingUp) {
         if (countingUp === void 0) { countingUp = false; }
@@ -23,7 +24,7 @@ var TimeSegment = /** @class */ (function () {
         this.stateexp = new StateExpression(this.config, this.seqConfig.period);
         var totalElements = this.config.duration / this.seqConfig.period;
         var source = Rx_1.Observable.range(0, totalElements)
-            .map(function (index) {
+            .map(function (value, index) {
             var nuindex;
             if (!_this.countingUp) {
                 nuindex = (_this.config.duration - (_this.seqConfig.period * index)) * .001;
@@ -37,7 +38,7 @@ var TimeSegment = /** @class */ (function () {
             // make modifications to have it apply to a section of the time
             // segment.
             var states = _this.stateexp.evaluate(nuindex);
-            //console.log("--------------------------" + nuindex);
+            console.log("--------------------------" + value + " --- " + index + " --- " + nuindex);
             if (_this.previousspread && states) {
                 states.spread = states.spread.concat(_this.previousspread);
             }

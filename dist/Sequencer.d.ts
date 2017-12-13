@@ -1,4 +1,4 @@
-import { Observable } from 'rxjs/Rx';
+import { Observable, Subject } from 'rxjs/Rx';
 import { TimeEmission } from './api/Emission';
 import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
 import { TimeSegment } from './Segments';
@@ -16,7 +16,6 @@ export declare function add<T extends TimeSegment>(ctor: SegmentType<T>, config:
 export declare class SegmentCollection {
     config: SequenceConfigShape;
     private segments;
-    private observables;
     constructor(config: SequenceConfigShape);
     add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T;
     group<T extends TimeSegment>(intervals?: number, ...segments: GroupParameter<T>[]): T;
@@ -31,13 +30,10 @@ export declare class Sequencer implements SegmentInterface {
     config: SequenceConfigShape;
     collection: SegmentCollection;
     private source;
-    private subscribedObservable;
     publication: Observable<TimeEmission>;
     private emitter;
     private startEventObserv;
     private pauseEventObserv;
-    private resetEventObserv;
-    private completeEventObser;
     constructor(config: SequenceConfigShape);
     private initEmitterAndObservs();
     /**
@@ -59,6 +55,7 @@ export declare class Sequencer implements SegmentInterface {
      * Starts internal Observable to start emitting.  This must be called after the 'subscribe()' is called.
      * @returns void.
      */
+    status: boolean;
     start(): void;
     /**
      * Pauses internal Observable to start emitting.  This must be called after the 'subscribe()' is called.
@@ -75,6 +72,7 @@ export declare class Sequencer implements SegmentInterface {
      * is used.
      * @returns Observable<TimeEmission>.
      */
+    pauser: Subject<boolean>;
     publish(): Observable<TimeEmission>;
     /**
      * Pass in callback functions to "subscribe" to an Observable emitting.  This is the only means of making an

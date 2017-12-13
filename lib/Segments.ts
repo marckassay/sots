@@ -3,7 +3,7 @@ import { TimeEmission, IntervalEmissionShape, SlotEmissionShape, TimeSlot } from
 import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
 import { StateConfig1, StateConfig2, StateConfig3, StateConfig4, StateConfig5 } from './api/StateConfigs';
 import { SegmentCollection } from './Sequencer';
-import { } from './index';
+//import * as Rx from 'rxjs/Rx';
 
 export class TimeSegment implements SegmentInterface {
     seqConfig: SequenceConfigShape;
@@ -23,7 +23,7 @@ export class TimeSegment implements SegmentInterface {
         this.stateexp = new StateExpression(this.config, this.seqConfig.period);
         let totalElements: number = this.config.duration / this.seqConfig.period;
         let source: Observable<TimeEmission> = Observable.range(0, totalElements)
-            .map((index: number): TimeEmission => {
+            .map((value: number, index: number): TimeEmission => {
                 let nuindex: number;
                 if (!this.countingUp) {
                     nuindex = (this.config.duration - (this.seqConfig.period * index)) * .001;
@@ -38,7 +38,7 @@ export class TimeSegment implements SegmentInterface {
                 // make modifications to have it apply to a section of the time
                 // segment.
                 let states: SlotEmissionShape | undefined = this.stateexp.evaluate(nuindex);
-                //console.log("--------------------------" + nuindex);
+                console.log("--------------------------" + value + " --- " + index + " --- " + nuindex);
                 if (this.previousspread && states) {
                     states.spread = states.spread.concat(this.previousspread);
                 } else if (this.previousspread && !states) {

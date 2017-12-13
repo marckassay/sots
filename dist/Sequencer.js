@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var Rx_1 = require("rxjs/Rx");
 var events_1 = require("events");
+//import * as Rx from 'rxjs/Rx';
 /**
  * Simply a pass-thru function to be used in the group function.
  *
@@ -19,7 +20,6 @@ var SegmentCollection = /** @class */ (function () {
     function SegmentCollection(config) {
         this.config = config;
         this.segments = new Array();
-        this.observables = new Array();
     }
     SegmentCollection.prototype.add = function (ctor, config) {
         var segment = new ctor(config);
@@ -73,7 +73,7 @@ var SegmentCollection = /** @class */ (function () {
     };
     /** @internal */
     SegmentCollection.prototype.__marauder = function () {
-        return { segments: this.segments, observables: this.observables };
+        return { segments: this.segments };
     };
     return SegmentCollection;
 }());
@@ -91,17 +91,25 @@ var EmitterEvents;
  * @returns   an instance.
  */
 var Sequencer = /** @class */ (function () {
+    //  private resetEventObserv: Observable<{}>;
+    // private completeEventObser: Observable<{}>;
     function Sequencer(config) {
         this.config = config;
+        /**
+         * Starts internal Observable to start emitting.  This must be called after the 'subscribe()' is called.
+         * @returns void.
+         */
+        this.status = false;
         this.collection = new SegmentCollection(config);
+        this.pauser = new Rx_1.Subject();
         this.initEmitterAndObservs();
     }
     Sequencer.prototype.initEmitterAndObservs = function () {
         this.emitter = new events_1.EventEmitter();
         this.startEventObserv = Rx_1.Observable.fromEvent(this.emitter, EmitterEvents.start);
         this.pauseEventObserv = Rx_1.Observable.fromEvent(this.emitter, EmitterEvents.pause);
-        this.resetEventObserv = Rx_1.Observable.fromEvent(this.emitter, EmitterEvents.reset);
-        this.completeEventObser = Rx_1.Observable.fromEvent(this.emitter, EmitterEvents.complete);
+        // this.resetEventObserv = Observable.fromEvent(this.emitter, EmitterEvents.reset);
+        // this.completeEventObser = Observable.fromEvent(this.emitter, EmitterEvents.complete);
     };
     /**
      * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
@@ -128,13 +136,11 @@ var Sequencer = /** @class */ (function () {
         return (_a = this.collection).group.apply(_a, [intervals].concat(segments));
         var _a;
     };
-    /**
-     * Starts internal Observable to start emitting.  This must be called after the 'subscribe()' is called.
-     * @returns void.
-     */
     Sequencer.prototype.start = function () {
         if (this.source) {
-            this.emitter.emit(EmitterEvents.start);
+            this.status = true;
+            this.pauser.next(true);
+            this.emitter.emit(EmitterEvents.start, this.status);
         }
         else {
             throw "A call to subscribe() needs to be made prior to start() or pause() invocation.";
@@ -146,7 +152,10 @@ var Sequencer = /** @class */ (function () {
      */
     Sequencer.prototype.pause = function () {
         if (this.source) {
+            this.pauser.next(false);
             this.emitter.emit(EmitterEvents.pause);
+            this.status = false;
+            this.emitter.emit(EmitterEvents.start, this.status);
         }
         else {
             throw "A call to subscribe() needs to be made prior to start() or pause().";
@@ -164,29 +173,43 @@ var Sequencer = /** @class */ (function () {
             throw "A call to subscribe() needs to be made prior to start() or pause().";
         }
     };
-    /**
-     * Returns an Observable<TimeEmission> versus, subscribe() which returns a Subscription.  Typically subscribe()
-     * is used.
-     * @returns Observable<TimeEmission>.
-     */
     Sequencer.prototype.publish = function () {
         var _this = this;
         this.source = this.collection.toSequencedObservable();
-        this.subscribedObservable = Rx_1.Observable.merge(this.startEventObserv.switchMap(function () {
-            return Rx_1.Observable.interval(_this.config.period).takeUntil(_this.pauseEventObserv);
-        }).map(function () { return 1; }).startWith(0), this.resetEventObserv.map(function () { return 0; })).scan(function (acc, value, _index) {
-            return (value === 0 ? 0 : acc + value);
-        }, 0).mergeMap(function (value, _index) {
-            return _this.source.elementAt(value)
-                .catch(function (_err, caught) {
-                // TODO: this is thrown because of out of range on elementAt(). 
-                // emitting here serves the purpose, but there must be 
-                // a better way of handling this.
-                _this.emitter.emit(EmitterEvents.complete);
-                return caught;
-            });
-        }).takeUntil(this.completeEventObser);
-        return this.subscribedObservable;
+        this.startEventObserv;
+        this.pauseEventObserv;
+        return Rx_1.Observable.from(this.source).zip(this.pauser.switchMap(function (value) { return (value) ? Rx_1.Observable.interval(_this.config.period) : Rx_1.Observable.never(); }), function (value, index) {
+            console.log(value + " ## " + index);
+            return value;
+        });
+        /*
+        this.subscribedObservable = Observable.merge(
+            this.startEventObserv.switchMap(() =>
+                                    Observable.interval(this.config.period, Rx.Scheduler.async).takeUntil(this.pauseEventObserv)
+                                  )
+                                 .map(() => 1).startWith(0),
+            this.resetEventObserv.map(() => 0)
+        )
+        
+                this.subscribedObservable = Observable.merge(
+                    this.startEventObserv.switchMap(() =>
+                        Observable.interval(this.config.period, Rx.Scheduler.async).takeUntil(this.pauseEventObserv)).map(() => 1).startWith(0),
+                    this.resetEventObserv.map(() => 0)
+                )
+                    .scan((acc: number, value: number, _index: number) => (value === 0 ? 0 : acc + value), 0)
+                    .mergeMap((value: number, _index: number) => {
+                        return this.source.elementAt(value)
+                            .catch((_err, caught: Observable<TimeEmission>) => {
+                                // TODO: this is thrown because of out of range on elementAt().
+                                // emitting here serves the purpose, but there must be
+                                // a better way of handling this.
+                                this.emitter.emit(EmitterEvents.complete);
+                                return caught;
+                            });
+                    })
+                    .takeUntil(this.completeEventObser);
+                    return this.subscribedObservable;
+                    */
     };
     /**
      * Pass in callback functions to "subscribe" to an Observable emitting.  This is the only means of making an

@@ -4,6 +4,7 @@ import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, Sequ
 import { TimeSegment } from './Segments';
 import { Subscription } from 'rxjs/Subscription';
 import { EventEmitter } from 'events';
+//import * as Rx from 'rxjs/Rx';
 
 /**
  * Simply a pass-thru function to be used in the group function.
@@ -20,11 +21,9 @@ export function add<T extends TimeSegment>(ctor: SegmentType<T>, config: Segment
 
 export class SegmentCollection {
     private segments: Array<TimeSegment>;
-    private observables: Array<Observable<TimeEmission>>;
 
     constructor(public config: SequenceConfigShape) {
         this.segments = new Array();
-        this.observables = new Array();
     }
 
     add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T {
@@ -69,15 +68,14 @@ export class SegmentCollection {
             } else {
                 concatObservs = Observable.concat(observable);
             }
-
         });
 
         return concatObservs!;
     }
 
     /** @internal */
-    __marauder(): { segments: Array<TimeSegment>, observables: any } {
-        return { segments: this.segments, observables: this.observables };
+    __marauder(): { segments: Array<TimeSegment> } {
+        return { segments: this.segments };
     }
 }
 enum EmitterEvents {
@@ -94,17 +92,16 @@ enum EmitterEvents {
 export class Sequencer implements SegmentInterface {
     collection: SegmentCollection;
     private source: Observable<TimeEmission>;
-    private subscribedObservable: Observable<TimeEmission>;
     publication: Observable<TimeEmission>;
     private emitter: EventEmitter;
-    private startEventObserv: Observable<{}>;
+    private startEventObserv: Observable<boolean>;
     private pauseEventObserv: Observable<{}>;
-    private resetEventObserv: Observable<{}>;
-    private completeEventObser: Observable<{}>;
+    //  private resetEventObserv: Observable<{}>;
+    // private completeEventObser: Observable<{}>;
 
     constructor(public config: SequenceConfigShape) {
         this.collection = new SegmentCollection(config);
-
+        this.pauser = new Subject<boolean>();
         this.initEmitterAndObservs();
     }
 
@@ -112,8 +109,8 @@ export class Sequencer implements SegmentInterface {
         this.emitter = new EventEmitter();
         this.startEventObserv = Observable.fromEvent(this.emitter, EmitterEvents.start);
         this.pauseEventObserv = Observable.fromEvent(this.emitter, EmitterEvents.pause);
-        this.resetEventObserv = Observable.fromEvent(this.emitter, EmitterEvents.reset);
-        this.completeEventObser = Observable.fromEvent(this.emitter, EmitterEvents.complete);
+        // this.resetEventObserv = Observable.fromEvent(this.emitter, EmitterEvents.reset);
+        // this.completeEventObser = Observable.fromEvent(this.emitter, EmitterEvents.complete);
     }
 
     /**
@@ -141,9 +138,13 @@ export class Sequencer implements SegmentInterface {
      * Starts internal Observable to start emitting.  This must be called after the 'subscribe()' is called.
      * @returns void.
      */
+    status: boolean = false;
     start(): void {
         if (this.source) {
-            this.emitter.emit(EmitterEvents.start);
+            this.status = true;
+            this.pauser.next(true);
+
+            this.emitter.emit(EmitterEvents.start, this.status);
         } else {
             throw "A call to subscribe() needs to be made prior to start() or pause() invocation.";
         }
@@ -155,7 +156,11 @@ export class Sequencer implements SegmentInterface {
      */
     pause(): void {
         if (this.source) {
+            this.pauser.next(false);
             this.emitter.emit(EmitterEvents.pause);
+            this.status = false;
+            this.emitter.emit(EmitterEvents.start, this.status);
+
         } else {
             throw "A call to subscribe() needs to be made prior to start() or pause().";
         }
@@ -178,27 +183,45 @@ export class Sequencer implements SegmentInterface {
      * is used.
      * @returns Observable<TimeEmission>.
      */
+    pauser: Subject<boolean>;
     publish(): Observable<TimeEmission> {
         this.source = this.collection.toSequencedObservable();
+        this.startEventObserv;
+        this.pauseEventObserv;
 
+
+        return Observable.from(this.source).zip(this.pauser.switchMap((value) => (value) ? Observable.interval(this.config.period) : Observable.never()), (value: TimeEmission, index: number) => {
+            console.log(value + " ## " + index)
+            return value;
+        })
+        /*
         this.subscribedObservable = Observable.merge(
             this.startEventObserv.switchMap(() =>
-                Observable.interval(this.config.period).takeUntil(this.pauseEventObserv)).map(() => 1).startWith(0),
+                                    Observable.interval(this.config.period, Rx.Scheduler.async).takeUntil(this.pauseEventObserv)
+                                  )
+                                 .map(() => 1).startWith(0),
             this.resetEventObserv.map(() => 0)
-        ).scan((acc: number, value: number, _index: number) => {
-            return (value === 0 ? 0 : acc + value);
-        }, 0).mergeMap((value: number, _index: number) => {
-            return this.source.elementAt(value)
-                .catch((_err, caught: Observable<TimeEmission>) => {
-                    // TODO: this is thrown because of out of range on elementAt(). 
-                    // emitting here serves the purpose, but there must be 
-                    // a better way of handling this.
-                    this.emitter.emit(EmitterEvents.complete);
-                    return caught;
-                });
-        }).takeUntil(this.completeEventObser);
-
-        return this.subscribedObservable;
+        )
+        
+                this.subscribedObservable = Observable.merge(
+                    this.startEventObserv.switchMap(() =>
+                        Observable.interval(this.config.period, Rx.Scheduler.async).takeUntil(this.pauseEventObserv)).map(() => 1).startWith(0),
+                    this.resetEventObserv.map(() => 0)
+                )
+                    .scan((acc: number, value: number, _index: number) => (value === 0 ? 0 : acc + value), 0)
+                    .mergeMap((value: number, _index: number) => {
+                        return this.source.elementAt(value)
+                            .catch((_err, caught: Observable<TimeEmission>) => {
+                                // TODO: this is thrown because of out of range on elementAt(). 
+                                // emitting here serves the purpose, but there must be 
+                                // a better way of handling this.
+                                this.emitter.emit(EmitterEvents.complete);
+                                return caught;
+                            });
+                    })
+                    .takeUntil(this.completeEventObser);
+                    return this.subscribedObservable;
+                    */
     }
 
     /**
