@@ -29,11 +29,14 @@ export declare class SegmentCollection {
 export declare class Sequencer implements SegmentInterface {
     config: SequenceConfigShape;
     collection: SegmentCollection;
+    subscription: Subscription;
     private source;
     publication: Observable<TimeEmission>;
     private emitter;
+    pauser: Subject<boolean>;
     private startEventObserv;
     private pauseEventObserv;
+    private resetEventObserv;
     constructor(config: SequenceConfigShape);
     private initEmitterAndObservs();
     /**
@@ -55,7 +58,6 @@ export declare class Sequencer implements SegmentInterface {
      * Starts internal Observable to start emitting.  This must be called after the 'subscribe()' is called.
      * @returns void.
      */
-    status: boolean;
     start(): void;
     /**
      * Pauses internal Observable to start emitting.  This must be called after the 'subscribe()' is called.
@@ -72,7 +74,6 @@ export declare class Sequencer implements SegmentInterface {
      * is used.
      * @returns Observable<TimeEmission>.
      */
-    pauser: Subject<boolean>;
     publish(): Observable<TimeEmission>;
     /**
      * Pass in callback functions to "subscribe" to an Observable emitting.  This is the only means of making an
@@ -81,4 +82,11 @@ export declare class Sequencer implements SegmentInterface {
      * @returns Subscription.
      */
     subscribe(next?: (value: TimeEmission) => void, error?: (error: any) => void, complete?: () => void): Subscription;
+    subscribeWith(callback: {
+        next: (value: TimeEmission) => void;
+        error?: (error: any) => void;
+        complete?: () => void;
+    }): Subscription;
+    unsubscribe(): void;
+    remove(): void;
 }

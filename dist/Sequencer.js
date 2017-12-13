@@ -91,15 +91,9 @@ var EmitterEvents;
  * @returns   an instance.
  */
 var Sequencer = /** @class */ (function () {
-    //  private resetEventObserv: Observable<{}>;
     // private completeEventObser: Observable<{}>;
     function Sequencer(config) {
         this.config = config;
-        /**
-         * Starts internal Observable to start emitting.  This must be called after the 'subscribe()' is called.
-         * @returns void.
-         */
-        this.status = false;
         this.collection = new SegmentCollection(config);
         this.pauser = new Rx_1.Subject();
         this.initEmitterAndObservs();
@@ -108,7 +102,7 @@ var Sequencer = /** @class */ (function () {
         this.emitter = new events_1.EventEmitter();
         this.startEventObserv = Rx_1.Observable.fromEvent(this.emitter, EmitterEvents.start);
         this.pauseEventObserv = Rx_1.Observable.fromEvent(this.emitter, EmitterEvents.pause);
-        // this.resetEventObserv = Observable.fromEvent(this.emitter, EmitterEvents.reset);
+        this.resetEventObserv = Rx_1.Observable.fromEvent(this.emitter, EmitterEvents.reset);
         // this.completeEventObser = Observable.fromEvent(this.emitter, EmitterEvents.complete);
     };
     /**
@@ -136,11 +130,13 @@ var Sequencer = /** @class */ (function () {
         return (_a = this.collection).group.apply(_a, [intervals].concat(segments));
         var _a;
     };
+    /**
+     * Starts internal Observable to start emitting.  This must be called after the 'subscribe()' is called.
+     * @returns void.
+     */
     Sequencer.prototype.start = function () {
         if (this.source) {
-            this.status = true;
             this.pauser.next(true);
-            this.emitter.emit(EmitterEvents.start, this.status);
         }
         else {
             throw "A call to subscribe() needs to be made prior to start() or pause() invocation.";
@@ -153,9 +149,6 @@ var Sequencer = /** @class */ (function () {
     Sequencer.prototype.pause = function () {
         if (this.source) {
             this.pauser.next(false);
-            this.emitter.emit(EmitterEvents.pause);
-            this.status = false;
-            this.emitter.emit(EmitterEvents.start, this.status);
         }
         else {
             throw "A call to subscribe() needs to be made prior to start() or pause().";
@@ -173,43 +166,19 @@ var Sequencer = /** @class */ (function () {
             throw "A call to subscribe() needs to be made prior to start() or pause().";
         }
     };
+    /**
+     * Returns an Observable<TimeEmission> versus, subscribe() which returns a Subscription.  Typically subscribe()
+     * is used.
+     * @returns Observable<TimeEmission>.
+     */
     Sequencer.prototype.publish = function () {
         var _this = this;
         this.source = this.collection.toSequencedObservable();
         this.startEventObserv;
         this.pauseEventObserv;
-        return Rx_1.Observable.from(this.source).zip(this.pauser.switchMap(function (value) { return (value) ? Rx_1.Observable.interval(_this.config.period) : Rx_1.Observable.never(); }), function (value, index) {
-            console.log(value + " ## " + index);
-            return value;
-        });
-        /*
-        this.subscribedObservable = Observable.merge(
-            this.startEventObserv.switchMap(() =>
-                                    Observable.interval(this.config.period, Rx.Scheduler.async).takeUntil(this.pauseEventObserv)
-                                  )
-                                 .map(() => 1).startWith(0),
-            this.resetEventObserv.map(() => 0)
-        )
-        
-                this.subscribedObservable = Observable.merge(
-                    this.startEventObserv.switchMap(() =>
-                        Observable.interval(this.config.period, Rx.Scheduler.async).takeUntil(this.pauseEventObserv)).map(() => 1).startWith(0),
-                    this.resetEventObserv.map(() => 0)
-                )
-                    .scan((acc: number, value: number, _index: number) => (value === 0 ? 0 : acc + value), 0)
-                    .mergeMap((value: number, _index: number) => {
-                        return this.source.elementAt(value)
-                            .catch((_err, caught: Observable<TimeEmission>) => {
-                                // TODO: this is thrown because of out of range on elementAt().
-                                // emitting here serves the purpose, but there must be
-                                // a better way of handling this.
-                                this.emitter.emit(EmitterEvents.complete);
-                                return caught;
-                            });
-                    })
-                    .takeUntil(this.completeEventObser);
-                    return this.subscribedObservable;
-                    */
+        this.resetEventObserv;
+        return Rx_1.Observable.from(this.source)
+            .zip(this.pauser.switchMap(function (value) { return (value) ? Rx_1.Observable.interval(_this.config.period) : Rx_1.Observable.never(); }), function (value) { return value; });
     };
     /**
      * Pass in callback functions to "subscribe" to an Observable emitting.  This is the only means of making an
@@ -218,7 +187,17 @@ var Sequencer = /** @class */ (function () {
      * @returns Subscription.
      */
     Sequencer.prototype.subscribe = function (next, error, complete) {
-        return this.publish().subscribe(next, error, complete);
+        this.subscription = this.publish().subscribe(next, error, complete);
+        return this.subscription;
+    };
+    Sequencer.prototype.subscribeWith = function (callback) {
+        return this.subscribe(callback.next, callback.error, callback.complete);
+    };
+    Sequencer.prototype.unsubscribe = function () {
+        this.subscription.unsubscribe();
+    };
+    Sequencer.prototype.remove = function () {
+        this.subscription.remove(this.subscription);
     };
     /** @internal */
     Sequencer.prototype.__marauder = function () {
