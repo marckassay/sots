@@ -11,7 +11,6 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var Rx_1 = require("rxjs/Rx");
-//import * as Rx from 'rxjs/Rx';
 var TimeSegment = /** @class */ (function () {
     function TimeSegment(config, countingUp) {
         if (countingUp === void 0) { countingUp = false; }
@@ -21,6 +20,7 @@ var TimeSegment = /** @class */ (function () {
     TimeSegment.prototype.initializeObservable = function (lastElement) {
         var _this = this;
         if (lastElement === void 0) { lastElement = false; }
+        this.previousspread = undefined;
         this.stateexp = new StateExpression(this.config, this.seqConfig.period);
         var totalElements = this.config.duration / this.seqConfig.period;
         var source = Rx_1.Observable.range(0, totalElements)
@@ -48,7 +48,7 @@ var TimeSegment = /** @class */ (function () {
                 _this.previousspread = states.spread;
             }
             return {
-                time: nuindex, inStateOf: function (state, compareAsBitwise) {
+                time: nuindex, state: states, interval: _this.interval, inStateOf: function (state, compareAsBitwise) {
                     var useBitwiseCompare;
                     if (compareAsBitwise != undefined) {
                         useBitwiseCompare = compareAsBitwise;
@@ -87,7 +87,7 @@ var TimeSegment = /** @class */ (function () {
                         }
                     }
                     return false;
-                }, state: states, interval: _this.interval
+                }
             };
         }).takeWhile(function (value) {
             if (lastElement == false) {

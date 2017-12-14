@@ -9,7 +9,7 @@ export declare class TimeSegment implements SegmentInterface {
     config: SegmentConfigShape;
     stateexp: StateExpression;
     countingUp: boolean;
-    previousspread: Array<string | number>;
+    previousspread: Array<string | number> | undefined;
     constructor(config: SegmentConfigShape, countingUp?: boolean);
     initializeObservable(lastElement?: boolean): Observable<TimeEmission>;
     /**

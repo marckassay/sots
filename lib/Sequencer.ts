@@ -181,6 +181,7 @@ export class Sequencer implements SegmentInterface {
     }
 
     unsubscribe(): void {
+        this.remove();
         this.subscription.unsubscribe();
     }
 
@@ -190,6 +191,6 @@ export class Sequencer implements SegmentInterface {
 
     /** @internal */
     __marauder(): { pauser: Subject<boolean>, source: Observable<TimeEmission> } {
-        return { pauser: new Subject(), source: this.source };
+        return { pauser: new Subject(), source: this.source! };
     }
 }

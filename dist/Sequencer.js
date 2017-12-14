@@ -85,7 +85,7 @@ var Sequencer = /** @class */ (function () {
     function Sequencer(config) {
         this.config = config;
         this.collection = new SegmentCollection(config);
-        this.pauser = new Rx_1.Subject();
+        this.pauseObserv = new Rx_1.Subject();
     }
     /**
      * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
@@ -118,7 +118,7 @@ var Sequencer = /** @class */ (function () {
      */
     Sequencer.prototype.start = function () {
         if (this.source) {
-            this.pauser.next(true);
+            this.pauseObserv.next(true);
         }
         else {
             throw "A call to subscribe() needs to be made prior to start(), pause() or reset().";
@@ -130,7 +130,7 @@ var Sequencer = /** @class */ (function () {
      */
     Sequencer.prototype.pause = function () {
         if (this.source) {
-            this.pauser.next(false);
+            this.pauseObserv.next(false);
         }
         else {
             throw "A call to subscribe() needs to be made prior to start(), pause() or reset().";
@@ -157,7 +157,7 @@ var Sequencer = /** @class */ (function () {
         var _this = this;
         this.source = this.collection.toSequencedObservable();
         return Rx_1.Observable.from(this.source)
-            .zip(this.pauser.switchMap(function (value) { return (value) ? Rx_1.Observable.interval(_this.config.period) : Rx_1.Observable.never(); }), function (value) { return value; });
+            .zip(this.pauseObserv.switchMap(function (value) { return (value) ? Rx_1.Observable.interval(_this.config.period) : Rx_1.Observable.never(); }), function (value) { return value; });
     };
     /**
      * Pass in callback functions to "subscribe" to an Observable emitting.  This is the only means of making an
@@ -173,6 +173,7 @@ var Sequencer = /** @class */ (function () {
         return this.subscribe(callback.next, callback.error, callback.complete);
     };
     Sequencer.prototype.unsubscribe = function () {
+        this.remove();
         this.subscription.unsubscribe();
     };
     Sequencer.prototype.remove = function () {

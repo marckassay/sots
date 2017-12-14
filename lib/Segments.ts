@@ -11,7 +11,7 @@ export class TimeSegment implements SegmentInterface {
     config: SegmentConfigShape;
     stateexp: StateExpression;
     countingUp: boolean;
-    previousspread: Array<string | number>;
+    previousspread: Array<string | number> | undefined;
 
     constructor(config: SegmentConfigShape, countingUp: boolean = false) {
         this.config = config;
@@ -19,6 +19,7 @@ export class TimeSegment implements SegmentInterface {
     }
 
     public initializeObservable(lastElement: boolean = false): Observable<TimeEmission> {
+        this.previousspread = undefined;
         this.stateexp = new StateExpression(this.config, this.seqConfig.period);
         let totalElements: number = this.config.duration / this.seqConfig.period;
         let source: Observable<TimeEmission> = Observable.range(0, totalElements)
@@ -47,7 +48,7 @@ export class TimeSegment implements SegmentInterface {
                 }
 
                 return {
-                    time: nuindex, inStateOf: (state: string | number, compareAsBitwise?: boolean): boolean => {
+                    time: nuindex, state: states, interval: this.interval, inStateOf: (state: string | number, compareAsBitwise?: boolean): boolean => {
                         let useBitwiseCompare;
                         if (compareAsBitwise != undefined) {
                             useBitwiseCompare = compareAsBitwise;
@@ -89,7 +90,7 @@ export class TimeSegment implements SegmentInterface {
 
                         return false;
 
-                    }, state: states, interval: this.interval
+                    }
                 };
 
             }).takeWhile((value: TimeEmission) => {

@@ -1,0 +1,1 @@
+{"version":3,"file":"SequencerCallback.js","sourceRoot":"","sources":["../../lib/api/SequencerCallback.ts"],"names":[],"mappings":"","sourcesContent":["import { TimeEmission } from \"./Emission\";\r\n\r\nexport interface SequencerCallback {\r\n    next?(value: TimeEmission): void;\r\n    error?(error: any): void;\r\n    complete?(): void;\r\n}"]}

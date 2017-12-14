@@ -3,6 +3,7 @@ import { TimeEmission } from './api/Emission';
 import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
 import { TimeSegment } from './Segments';
 import { Subscription } from 'rxjs/Subscription';
+import { SequencerCallback } from './index';
 /**
  * Simply a pass-thru function to be used in the group function.
  *
@@ -30,7 +31,7 @@ export declare class Sequencer implements SegmentInterface {
     config: SequenceConfigShape;
     collection: SegmentCollection;
     subscription: Subscription;
-    private pauser;
+    private pauseObserv;
     private source;
     constructor(config: SequenceConfigShape);
     /**
@@ -79,9 +80,4 @@ export declare class Sequencer implements SegmentInterface {
     subscribeWith(callback: SequencerCallback): Subscription;
     unsubscribe(): void;
     remove(): void;
-}
-export interface SequencerCallback {
-    next?(value: TimeEmission): void;
-    error?(error: any): void;
-    complete?(): void;
 }
