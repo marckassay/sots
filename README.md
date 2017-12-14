@@ -2,13 +2,6 @@ sots (Sequence of Time Segments) is a JS module that allows you to structure com
 
 sots is capable of being stateful relative to individual time segments, states can be momentary or non-momentary.  When setting states, you can use a string or a number type. And when its a number type you have the option to set sots' to use the Bitwise AND comparison operator.  This is beneficial if you're setting states using binary Enums.
 
-The control methods of iterating sots' internal clock, are the following:
-* `start` (starts and if sots is paused will resume clock)
-* `pause`
-* `reset`
-
-When compiled, this module's JS files weighs-in around 20kBs, excluding RxJS from this estimate.
-
 ## Install
 ### npm
 ```bash
@@ -25,8 +18,26 @@ link: [yarnpkg.com/en/package/sots](https://yarnpkg.com/en/package/sots)
 ## Definitions
 * instant (state): These states are momentary, as they are emitted only at a specific instant in time.  The time value needs to be defined in units of a second.
 * spread (state): These states are non-momentary, as they "spread" over time until termination of its time segment.  The time value needs to be defined in units of a second.
-* duration: Defines the length of a segment defined in millisecods.
+* duration: Defines the length of a segment defined in milliseconds.
 * period: As defined the same as in RxJS; the unit of time between emissions defined in milliseconds.
+
+## API
+The 3 control methods for iterating a sots' sequence, are the following:
+* `start(): void`  
+Starts sequence or if sots is paused will resume sequence.
+
+* `pause(): void`  
+Pauses the running sequence.  Since this has idempotent behavior, a call to `start()` is needed to restart/resume the sequence.
+
+* `reset(): void`  
+Can only be used if `subscribeWith()` has been called since a callback instance is needed.  This method will unsubscribe and subscribe the sequence again.
+
+The 2 methods for subscribing to a sots' sequence, are the following:
+* `subscribe(next?: (value: TimeEmission) => void, error?: (error: any) => void, complete?: () => void): Subscription`  
+In order to make observations of sots' emissions, this is needed to be called or `subscribeWith()`.  See 'Explanation of Basic Usage' section on how this is called with value for its `next` parameter.
+
+* `subscribeWith(callback: SequencerCallback): Subscription`  
+Used when a sequence will be needed to reset.  The `callback` parameter must be an instance the implements `SequencerCallback`.  See example-3 on how this is used.
 
 ## Explanation of Basic Usage
 First, create an instance of Sequencer.  Here it is given a period of 1 second, which will program it to emit every second:
@@ -60,7 +71,7 @@ seq.start();
 ```
 
 ## Examples
-The following are links to examples using sots.
+The following are links to examples using sots.  These examples will run as-is if copied-and-pasted into the index.ts file of sotsHarness folder *if* that folder is setup as explained in the 'Contribute' section.
 
 ### Example 1
 This example contains:
@@ -84,14 +95,15 @@ See this example here: https://github.com/marckassay/sots/blob/master/example/ex
 
 
 ### Example 3
-This example is derived from example 2 and in an addition demostrates the usage of control methods:
-* After 2 seconds, a `setTimeout` will call sots' `pause` method.  Followed 2 seconds later a call to `reset` and finally a call to `start` to resume sots.
+This example is derived from example 2 and in an addition demonstrates the usage of control methods:
+* The JS `setTimeout` will be used to call the following methods in sequential order: `start`, `pause`, `reset`, and `start` .
+* `ExampleCallback` that implements `SequencerCallback` is used in this example since resetting is performed.
 
 See this example here: https://github.com/marckassay/sots/blob/master/example/example-3.ts
 
 ## Contribute
 If you want to fork sots and give it a go, deploy 'sotsHarness' and 'sots.code-workspace' from the harness folder into the parent directory of sots.
-This will enable: multi-root workspace (for VS Code) with tasks and launch configurations and, provide a test harness.
+This will enable: multi-root workspace (for VS Code) with tasks and a debug launch configuration, and provide a test harness.  Any example files can be copied-and-pasted into index.ts file of 'sotsHarness'.
 
 In PowerShell, dot-source the following file in harness folder to move the contents for you:
 ```

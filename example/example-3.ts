@@ -86,20 +86,20 @@ setTimeout(() => {
     console.log("started!");
 }, 3000);
 setTimeout(() => {
-    sequencer.unsubscribe();
-    console.log("unsubscribe!");
+    sequencer.pause();
+    console.log("pausing for 3 seconds until reset.");
 }, 6000);
 setTimeout(() => {
-    sequencer.subscribeWith(callbackInstance);
-    console.log("subscribed!");
+    sequencer.reset();
+    console.log("reset completed.  restarting in 3 seconds.");
 }, 9000);
 setTimeout(() => {
     sequencer.start();
-    console.log("started!");
+    console.log("(re)started!");
 }, 12000);
 
 // Output:
-/* 
+/*
 $ node .\index.js
 started!
 time: 10 state: 'beep'
@@ -130,9 +130,10 @@ time: 7.6
 time: 7.5
 time: 7.4
 time: 7.3
-unsubscribe!
-subscribed!
-started!
+time: 7.2
+pausing for 3 seconds until reset.
+reset completed.  restarting in 3 seconds.
+(re)started!
 time: 10 state: 'beep'
 time: 9.9
 time: 9.8
