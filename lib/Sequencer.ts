@@ -186,7 +186,7 @@ export class Sequencer implements SegmentInterface, Subscribable {
      * 
      * @returns Subscription.
      */
-    //subscribe(): Subscription
+  
 
     subscribe(observer: Observer<TimeEmission>): Subscription;
     subscribe(next?: (value: TimeEmission) => void, error?: (error: any) => void, complete?: () => void): Subscription;
