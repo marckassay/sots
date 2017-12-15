@@ -3,7 +3,7 @@ import { TimeEmission } from './api/Emission';
 import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
 import { TimeSegment } from './Segments';
 import { Subscription } from 'rxjs/Subscription';
-import { Observer } from 'rxjs/Observer';
+import { Observer, PartialObserver } from 'rxjs/Observer';
 import { Subscribable } from './api/Subscribable';
 //import { toSubscriber } from 'rxjs/util/toSubscriber';
 
@@ -182,13 +182,11 @@ export class Sequencer implements SegmentInterface, Subscribable {
     }
 
     /**
-     * Pass in callback functions to "subscribe" to emissions from sots.  See also `subscribeWith()`.
+     * Pass in callback functions to "subscribe" to emissions from sots.
      * 
      * @returns Subscription.
      */
-  
-
-    subscribe(observer: Observer<TimeEmission>): Subscription;
+    subscribe(observer: PartialObserver<TimeEmission>): Subscription;
     subscribe(next?: (value: TimeEmission) => void, error?: (error: any) => void, complete?: () => void): Subscription;
     subscribe(nextOrObserver: any, error?: (error: any) => void, complete?: () => void): Subscription {
 

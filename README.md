@@ -42,8 +42,8 @@ The only method (2 overloads) for subscribing to a sots' sequence, are the follo
 * `subscribe(next?: (value: TimeEmission) => void, error?: (error: any) => void, complete?: () => void): Subscription`  
 In order to make observations of sots' emissions, this is needed to be called.  See 'Explanation of Basic Usage' section on how this is called with value for its `next` parameter.
 
-* `subscribe(observer: Observer<TimeEmission>): Subscription`  
-Used when a sequence will be needed to reset.  The `observer` parameter must have the same shape as `Observer<TimeEmission>`.  See example-3 on how this is used.
+* `subscribe(observer: PartialObserver<TimeEmission>): Subscription`  
+Used when a sequence will be needed to reset.  The `observer` parameter must have the same shape as `PartialObserver<TimeEmission>`.  See example-3 on how this is used.
 
 ## Explanation of Basic Usage
 First, create an instance of Sequencer.  Here it is given a period of 1 second, which will program it to emit every second:
@@ -103,7 +103,7 @@ See this example here: https://github.com/marckassay/sots/blob/master/example/ex
 ### Example 3
 This example is derived from example 2 and in an addition demonstrates the usage of control methods:
 * The JS `setTimeout` will be used to call the following methods in sequential order: `start`, `pause`, `reset`, and `start` .
-* A shape of `Observer<TimeEmission>` is passed in `subscribe` since in this example resetting is performed.
+* A shape of `PartialObserver<TimeEmission>` is passed in `subscribe` since in this example resetting is performed.
 
 See this example here: https://github.com/marckassay/sots/blob/master/example/example-3.ts
 
