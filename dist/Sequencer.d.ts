@@ -3,7 +3,8 @@ import { TimeEmission } from './api/Emission';
 import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
 import { TimeSegment } from './Segments';
 import { Subscription } from 'rxjs/Subscription';
-import { SequencerCallback } from './index';
+import { Observer } from 'rxjs/Observer';
+import { Subscribable } from './api/Subscribable';
 /**
  * Simply a pass-thru function to be used with-in a group functions parentheses.
  *
@@ -27,13 +28,13 @@ export declare class SegmentCollection {
  * @param constructor  Sequencer must be instantiated with a value for period that is read in milliseconds.  This
  * value becomes static and global to its segments.
  */
-export declare class Sequencer implements SegmentInterface {
+export declare class Sequencer implements SegmentInterface, Subscribable {
     config: SequenceConfigShape;
     collection: SegmentCollection;
     subscription: Subscription;
     private pauseObserv;
     private source;
-    private callback;
+    private observer;
     constructor(config: SequenceConfigShape);
     /**
      * Adds a single segment (`CountupSegment` or `CountdownSegment`) to a sequence.
@@ -77,6 +78,7 @@ export declare class Sequencer implements SegmentInterface {
      *
      * @returns Subscription.
      */
+    subscribe(observer: Observer<TimeEmission>): Subscription;
     subscribe(next?: (value: TimeEmission) => void, error?: (error: any) => void, complete?: () => void): Subscription;
     /**
      * This method primarily serves the same purpose as `subscribe()` and in an addition enables reset method to be
@@ -84,8 +86,10 @@ export declare class Sequencer implements SegmentInterface {
      *
      * @param callback must implement SequencerCallback.
      * @returns Subscription
-     */
-    subscribeWith(callback: SequencerCallback): Subscription;
+     subscribeWith(observer: Observer<TimeEmission>): Subscription {
+         return this.subscribe(observer.next, observer.error, observer.complete);
+        }
+        */
     /**
      * Unsubscribe the subscription that is create from `subscribe()` or `subscribeWith()`.  This also calls the `remove()`
      * method.

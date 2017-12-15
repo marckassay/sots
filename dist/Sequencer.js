@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Rx_1 = require("rxjs/Rx");
+//import { toSubscriber } from 'rxjs/util/toSubscriber';
 /**
  * Simply a pass-thru function to be used with-in a group functions parentheses.
  *
@@ -142,16 +143,16 @@ var Sequencer = /** @class */ (function () {
      * @returns void.
      */
     Sequencer.prototype.reset = function () {
-        if (this.source && this.callback) {
+        if (this.source && this.observer) {
             this.unsubscribe();
-            this.subscribeWith(this.callback);
+            // this.subscribeWith(this.callback);
         }
         else {
             var mesg = "";
             if (!this.source) {
                 mesg += "A call to subscribe() or subscribeWith() needs to be made prior to start(), pause() or reset().";
             }
-            if (!this.callback) {
+            if (!this.observer) {
                 mesg += (mesg.length > 0) ? "  Also, in " : "  In ";
                 mesg += "order to reset, a callback instance is needed.  See documentation on subscribeWith().";
             }
@@ -169,13 +170,11 @@ var Sequencer = /** @class */ (function () {
         return Rx_1.Observable.from(this.source)
             .zip(this.pauseObserv.switchMap(function (value) { return (value) ? Rx_1.Observable.interval(_this.config.period) : Rx_1.Observable.never(); }), function (value) { return value; });
     };
-    /**
-     * Pass in callback functions to "subscribe" to emissions from sots.  See also `subscribeWith()`.
-     *
-     * @returns Subscription.
-     */
-    Sequencer.prototype.subscribe = function (next, error, complete) {
-        this.subscription = this.publish().subscribe(next, error, complete);
+    Sequencer.prototype.subscribe = function (nextOrObserver, error, complete) {
+        if (typeof nextOrObserver !== 'function') {
+            this.observer = nextOrObserver;
+        }
+        this.subscription = this.publish().subscribe(nextOrObserver, error, complete);
         return this.subscription;
     };
     /**
@@ -184,11 +183,12 @@ var Sequencer = /** @class */ (function () {
      *
      * @param callback must implement SequencerCallback.
      * @returns Subscription
-     */
-    Sequencer.prototype.subscribeWith = function (callback) {
-        this.callback = callback;
-        return this.subscribe(callback.next, callback.error, callback.complete);
-    };
+     subscribeWith(observer: Observer<TimeEmission>): Subscription {
+         return this.subscribe(observer.next, observer.error, observer.complete);
+        }
+        */
+    //this.subscribe(observer);
+    //callBack: (next?: (value: TimeEmission) => void, error?: (error: any) => void, complete?: () => void)
     /**
      * Unsubscribe the subscription that is create from `subscribe()` or `subscribeWith()`.  This also calls the `remove()`
      * method.

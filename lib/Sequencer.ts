@@ -3,7 +3,11 @@ import { TimeEmission } from './api/Emission';
 import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
 import { TimeSegment } from './Segments';
 import { Subscription } from 'rxjs/Subscription';
-import { SequencerCallback } from './index';
+import { Observer } from 'rxjs/Observer';
+import { Subscribable } from './api/Subscribable';
+//import { toSubscriber } from 'rxjs/util/toSubscriber';
+
+
 
 /**
  * Simply a pass-thru function to be used with-in a group functions parentheses.
@@ -83,12 +87,12 @@ export class SegmentCollection {
  * @param constructor  Sequencer must be instantiated with a value for period that is read in milliseconds.  This 
  * value becomes static and global to its segments.
  */
-export class Sequencer implements SegmentInterface {
+export class Sequencer implements SegmentInterface, Subscribable {
     collection: SegmentCollection;
     subscription: Subscription;
     private pauseObserv: Subject<boolean>;
     private source: Observable<TimeEmission>;
-    private callback: SequencerCallback;
+    private observer: Observer<TimeEmission>;
 
     constructor(public config: SequenceConfigShape) {
         this.collection = new SegmentCollection(config);
@@ -145,16 +149,16 @@ export class Sequencer implements SegmentInterface {
      * @returns void.
      */
     reset(): void {
-        if (this.source && this.callback) {
+        if (this.source && this.observer) {
             this.unsubscribe();
-            this.subscribeWith(this.callback);
+            // this.subscribeWith(this.callback);
         } else {
             let mesg: string = "";
             if (!this.source) {
                 mesg += "A call to subscribe() or subscribeWith() needs to be made prior to start(), pause() or reset().";
             }
 
-            if (!this.callback) {
+            if (!this.observer) {
                 mesg += (mesg.length > 0) ? "  Also, in " : "  In ";
                 mesg += "order to reset, a callback instance is needed.  See documentation on subscribeWith().";
             }
@@ -182,8 +186,17 @@ export class Sequencer implements SegmentInterface {
      * 
      * @returns Subscription.
      */
-    subscribe(next?: (value: TimeEmission) => void, error?: (error: any) => void, complete?: () => void): Subscription {
-        this.subscription = this.publish().subscribe(next, error, complete);
+    //subscribe(): Subscription
+
+    subscribe(observer: Observer<TimeEmission>): Subscription;
+    subscribe(next?: (value: TimeEmission) => void, error?: (error: any) => void, complete?: () => void): Subscription;
+    subscribe(nextOrObserver: any, error?: (error: any) => void, complete?: () => void): Subscription {
+
+        if (typeof nextOrObserver !== 'function') {
+            this.observer = nextOrObserver;
+        }
+        this.subscription = this.publish().subscribe(nextOrObserver, error, complete);
+
         return this.subscription;
     }
 
@@ -193,11 +206,13 @@ export class Sequencer implements SegmentInterface {
      * 
      * @param callback must implement SequencerCallback.
      * @returns Subscription
-     */
-    subscribeWith(callback: SequencerCallback): Subscription {
-        this.callback = callback;
-        return this.subscribe(callback.next, callback.error, callback.complete);
-    }
+     subscribeWith(observer: Observer<TimeEmission>): Subscription {
+         return this.subscribe(observer.next, observer.error, observer.complete);
+        }
+        */
+    //this.subscribe(observer);
+
+    //callBack: (next?: (value: TimeEmission) => void, error?: (error: any) => void, complete?: () => void)
 
     /**
      * Unsubscribe the subscription that is create from `subscribe()` or `subscribeWith()`.  This also calls the `remove()`
