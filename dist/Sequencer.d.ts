@@ -81,16 +81,6 @@ export declare class Sequencer implements SegmentInterface, Subscribable {
     subscribe(observer: Observer<TimeEmission>): Subscription;
     subscribe(next?: (value: TimeEmission) => void, error?: (error: any) => void, complete?: () => void): Subscription;
     /**
-     * This method primarily serves the same purpose as `subscribe()` and in an addition enables reset method to be
-     * callable.
-     *
-     * @param callback must implement SequencerCallback.
-     * @returns Subscription
-     subscribeWith(observer: Observer<TimeEmission>): Subscription {
-         return this.subscribe(observer.next, observer.error, observer.complete);
-        }
-        */
-    /**
      * Unsubscribe the subscription that is create from `subscribe()` or `subscribeWith()`.  This also calls the `remove()`
      * method.
      */

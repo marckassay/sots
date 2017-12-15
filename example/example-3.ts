@@ -1,4 +1,5 @@
-import { Sequencer, CountdownSegment, CountupSegment, TimeEmission, add, SequencerCallback } from '../sots/dist/index';
+import { Sequencer, CountdownSegment, CountupSegment, TimeEmission, add } from '../sots/dist/index';
+import { Observer } from '../sots/node_modules/rxjs/Observer';
 
 enum AppStates {
     Beep = 2,
@@ -8,9 +9,8 @@ enum AppStates {
     Alert = AppStates.Beep + AppStates.Warning
 }
 
-class ExampleCallback implements SequencerCallback {
-
-    next(value: TimeEmission): void {
+let observer: Observer<TimeEmission> = {
+    next: (value: TimeEmission): void => {
         let output: string = "time: " + value.time;
 
         if (value.inStateOf(AppStates.Alert)) {
@@ -36,16 +36,14 @@ class ExampleCallback implements SequencerCallback {
         }
 
         console.log(output);
-    }
-    error(error: any): void {
+    },
+    error: (error: any): void => {
         console.error(error);
-    }
-    complete(): void {
+    },
+    complete: (): void => {
         console.log("Play final beep!");
     }
 }
-
-let callbackInstance: SequencerCallback = new ExampleCallback();
 
 const sequencer: Sequencer = new Sequencer({ period: 100, compareAsBitwise: true });
 sequencer.add(CountdownSegment, {
@@ -79,7 +77,7 @@ sequencer.add(CountdownSegment, {
             { state: AppStates.Warning, timeGreaterThanOrEqualTo: "3" }]
     });
 
-sequencer.subscribeWith(callbackInstance);
+sequencer.subscribe(observer);
 
 setTimeout(() => {
     sequencer.start();

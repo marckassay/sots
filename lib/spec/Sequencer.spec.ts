@@ -1,6 +1,7 @@
 import { Sequencer, add } from "../Sequencer";
 import * as sinon from "sinon";
 import { CountdownSegment, CountupSegment } from "../Segments";
+import { TimeEmission } from "../api/Emission";
 var sinonTestFactory = require('sinon-test');
 var sinonTest = sinonTestFactory(sinon);
 var assert = require('assert');
@@ -12,7 +13,6 @@ describe('Sequencer', function () {
     let seq: Sequencer;
 
     beforeEach(function () {
-      
       seq = new Sequencer({ period: 1000 });
     });
 
@@ -20,20 +20,20 @@ describe('Sequencer', function () {
     });
 
     it('should throw error from no prior subscribe() invocation', sinonTest(function () {
-      assert.throws(seq.start, "A call to subscribe() needs to be made prior to start() or pause() invocation.");
+      assert.throws(seq.start, "A call to subscribe() or subscribeWith() needs to be made prior to start(), pause() or reset().");
     }));
 
-    it('should of called pauser.next(false) once', sinonTest(function () {
+    it('should of called pauseObserv.next(true) once', sinonTest(function () {
       seq.add(CountdownSegment, { duration: 3000 });
-      seq.subscribe(() => {
-        
+      seq.subscribe((value: TimeEmission) => {
+        value!;
       });
-      var next = sinon.spy(seq.__marauder().pauser, 'next');
+      var next = sinon.spy(seq.__marauder().pauseObserv, 'next');
 
       seq.start();
 
       next.restore();
-      sinon.assert.calledWith(next, false);
+      sinon.assert.calledWith(next, true);
     }));
   });
 
@@ -48,19 +48,19 @@ describe('Sequencer', function () {
     });
 
     it('should throw error from no prior subscribe() invocation', sinonTest(function () {
-      assert.throws(seq.pause, "A call to subscribe() needs to be made prior to start() or pause() invocation.");
+      assert.throws(seq.pause, "A call to subscribe() or subscribeWith() needs to be made prior to start(), pause() or reset().");
     }));
 
-    it('should of called pauser.next(true) once', sinonTest(function () {
+    it('should of called pauseObserv.next(false) once', sinonTest(function () {
       seq.add(CountdownSegment, { duration: 3000 });
       seq.subscribe(() => {
       });
-      var next = sinon.spy(seq.__marauder().pauser, 'next');
+      var next = sinon.spy(seq.__marauder().pauseObserv, 'next');
 
       seq.pause();
 
       next.restore();
-      sinon.assert.calledWith(next, true);
+      sinon.assert.calledWith(next, false);
     }));
   });
 
@@ -83,7 +83,7 @@ describe('Sequencer', function () {
     }));
 
     it('collection property should have 2 segments.', sinonTest(function () {
-      seq.group(1, add(CountdownSegment, { duration: 3000 }),add(CountupSegment, { duration: 3000 }));
+      seq.group(1, add(CountdownSegment, { duration: 3000 }), add(CountupSegment, { duration: 3000 }));
       seq.subscribe(() => {
       });
 
@@ -99,7 +99,7 @@ describe('Sequencer', function () {
     }));
 
     it('collection property should have 4 segments.', sinonTest(function () {
-      seq.group(2, add(CountdownSegment, { duration: 3000 }),add(CountupSegment, { duration: 3000 }));
+      seq.group(2, add(CountdownSegment, { duration: 3000 }), add(CountupSegment, { duration: 3000 }));
       seq.subscribe(() => {
       });
 

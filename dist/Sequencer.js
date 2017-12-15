@@ -122,7 +122,7 @@ var Sequencer = /** @class */ (function () {
             this.pauseObserv.next(true);
         }
         else {
-            throw "A call to subscribe() or subscribeWith() needs to be made prior to start(), pause() or reset().";
+            throw "A call to subscribe() needs to be made prior to start(), pause() or reset().";
         }
     };
     /**
@@ -134,7 +134,7 @@ var Sequencer = /** @class */ (function () {
             this.pauseObserv.next(false);
         }
         else {
-            throw "A call to subscribe() or subscribeWith() needs to be made prior to start(), pause() or reset().";
+            throw "A call to subscribe() needs to be made prior to start(), pause() or reset().";
         }
     };
     /**
@@ -145,16 +145,16 @@ var Sequencer = /** @class */ (function () {
     Sequencer.prototype.reset = function () {
         if (this.source && this.observer) {
             this.unsubscribe();
-            // this.subscribeWith(this.callback);
+            this.subscribe(this.observer);
         }
         else {
             var mesg = "";
             if (!this.source) {
-                mesg += "A call to subscribe() or subscribeWith() needs to be made prior to start(), pause() or reset().";
+                mesg += "A call to subscribe() needs to be made prior to start(), pause() or reset().";
             }
             if (!this.observer) {
                 mesg += (mesg.length > 0) ? "  Also, in " : "  In ";
-                mesg += "order to reset, a callback instance is needed.  See documentation on subscribeWith().";
+                mesg += "order to reset, an observer instance is needed.  See documentation on subscribe(observer).";
             }
             throw mesg;
         }
@@ -178,18 +178,6 @@ var Sequencer = /** @class */ (function () {
         return this.subscription;
     };
     /**
-     * This method primarily serves the same purpose as `subscribe()` and in an addition enables reset method to be
-     * callable.
-     *
-     * @param callback must implement SequencerCallback.
-     * @returns Subscription
-     subscribeWith(observer: Observer<TimeEmission>): Subscription {
-         return this.subscribe(observer.next, observer.error, observer.complete);
-        }
-        */
-    //this.subscribe(observer);
-    //callBack: (next?: (value: TimeEmission) => void, error?: (error: any) => void, complete?: () => void)
-    /**
      * Unsubscribe the subscription that is create from `subscribe()` or `subscribeWith()`.  This also calls the `remove()`
      * method.
      */
@@ -205,7 +193,7 @@ var Sequencer = /** @class */ (function () {
     };
     /** @internal */
     Sequencer.prototype.__marauder = function () {
-        return { pauser: new Rx_1.Subject(), source: this.source };
+        return { pauseObserv: this.pauseObserv, source: this.source };
     };
     return Sequencer;
 }());

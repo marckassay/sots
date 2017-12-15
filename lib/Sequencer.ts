@@ -127,7 +127,7 @@ export class Sequencer implements SegmentInterface, Subscribable {
         if (this.source) {
             this.pauseObserv.next(true);
         } else {
-            throw "A call to subscribe() or subscribeWith() needs to be made prior to start(), pause() or reset().";
+            throw "A call to subscribe() needs to be made prior to start(), pause() or reset().";
         }
     }
 
@@ -139,7 +139,7 @@ export class Sequencer implements SegmentInterface, Subscribable {
         if (this.source) {
             this.pauseObserv.next(false);
         } else {
-            throw "A call to subscribe() or subscribeWith() needs to be made prior to start(), pause() or reset().";
+            throw "A call to subscribe() needs to be made prior to start(), pause() or reset().";
         }
     }
 
@@ -151,16 +151,16 @@ export class Sequencer implements SegmentInterface, Subscribable {
     reset(): void {
         if (this.source && this.observer) {
             this.unsubscribe();
-            // this.subscribeWith(this.callback);
+            this.subscribe(this.observer);
         } else {
             let mesg: string = "";
             if (!this.source) {
-                mesg += "A call to subscribe() or subscribeWith() needs to be made prior to start(), pause() or reset().";
+                mesg += "A call to subscribe() needs to be made prior to start(), pause() or reset().";
             }
 
             if (!this.observer) {
                 mesg += (mesg.length > 0) ? "  Also, in " : "  In ";
-                mesg += "order to reset, a callback instance is needed.  See documentation on subscribeWith().";
+                mesg += "order to reset, an observer instance is needed.  See documentation on subscribe(observer).";
             }
             throw mesg;
         }
@@ -201,20 +201,6 @@ export class Sequencer implements SegmentInterface, Subscribable {
     }
 
     /**
-     * This method primarily serves the same purpose as `subscribe()` and in an addition enables reset method to be 
-     * callable.
-     * 
-     * @param callback must implement SequencerCallback.
-     * @returns Subscription
-     subscribeWith(observer: Observer<TimeEmission>): Subscription {
-         return this.subscribe(observer.next, observer.error, observer.complete);
-        }
-        */
-    //this.subscribe(observer);
-
-    //callBack: (next?: (value: TimeEmission) => void, error?: (error: any) => void, complete?: () => void)
-
-    /**
      * Unsubscribe the subscription that is create from `subscribe()` or `subscribeWith()`.  This also calls the `remove()`
      * method.
      */
@@ -231,7 +217,7 @@ export class Sequencer implements SegmentInterface, Subscribable {
     }
 
     /** @internal */
-    __marauder(): { pauser: Subject<boolean>, source: Observable<TimeEmission> } {
-        return { pauser: new Subject(), source: this.source! };
+    __marauder(): { pauseObserv: Subject<boolean>, source: Observable<TimeEmission> } {
+        return { pauseObserv: this.pauseObserv, source: this.source };
     }
 }

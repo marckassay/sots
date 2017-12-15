@@ -22,22 +22,28 @@ link: [yarnpkg.com/en/package/sots](https://yarnpkg.com/en/package/sots)
 * period: As defined the same as in RxJS; the unit of time between emissions defined in milliseconds.
 
 ## API
+The 2 build methods for creating a sequence are the following:
+* `add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T`
+  The first parameter can only take: CountupSegment or CountdownSegment class type.  The second parameter configures this segment's duration, to be used with bitwise operator, states, and a flag to indicate to be omitted in first interval.  In addition to this method, there is a static version of this that's identical.  This static version is used inside `group` parentheses. 
+* `group<T extends TimeSegment>(intervals?: number, ...segments: GroupParameter<T>[]): T`
+  Used to create groups, a.k.a intervals.  The first parameter specifies the number of intervals and the second takes static calls of `add`.  See `add` API for more information.
+
 The 3 control methods for iterating a sots' sequence, are the following:
 * `start(): void`  
 Starts sequence or if sots is paused will resume sequence.
 
 * `pause(): void`  
-Pauses the running sequence.  Since this has idempotent behavior, a call to `start()` is needed to restart/resume the sequence.
+Pauses the running sequence.  Since this has idempotent behavior, a call to `start` is needed to restart/resume the sequence.
 
 * `reset(): void`  
-Can only be used if `subscribeWith()` has been called since a callback instance is needed.  This method will unsubscribe and subscribe the sequence again.
+Can only be used if `subscribe` has been called with an observer.  This method will unsubscribe and subscribe the sequence.  See example-3 on how this is being used.
 
-The 2 methods for subscribing to a sots' sequence, are the following:
+The only method (2 overloads) for subscribing to a sots' sequence, are the following:
 * `subscribe(next?: (value: TimeEmission) => void, error?: (error: any) => void, complete?: () => void): Subscription`  
-In order to make observations of sots' emissions, this is needed to be called or `subscribeWith()`.  See 'Explanation of Basic Usage' section on how this is called with value for its `next` parameter.
+In order to make observations of sots' emissions, this is needed to be called.  See 'Explanation of Basic Usage' section on how this is called with value for its `next` parameter.
 
-* `subscribeWith(callback: SequencerCallback): Subscription`  
-Used when a sequence will be needed to reset.  The `callback` parameter must be an instance the implements `SequencerCallback`.  See example-3 on how this is used.
+* `subscribe(observer: Observer<TimeEmission>): Subscription`  
+Used when a sequence will be needed to reset.  The `observer` parameter must have the same shape as `Observer<TimeEmission>`.  See example-3 on how this is used.
 
 ## Explanation of Basic Usage
 First, create an instance of Sequencer.  Here it is given a period of 1 second, which will program it to emit every second:
@@ -97,7 +103,7 @@ See this example here: https://github.com/marckassay/sots/blob/master/example/ex
 ### Example 3
 This example is derived from example 2 and in an addition demonstrates the usage of control methods:
 * The JS `setTimeout` will be used to call the following methods in sequential order: `start`, `pause`, `reset`, and `start` .
-* `ExampleCallback` that implements `SequencerCallback` is used in this example since resetting is performed.
+* A shape of `Observer<TimeEmission>` is passed in `subscribe` since in this example resetting is performed.
 
 See this example here: https://github.com/marckassay/sots/blob/master/example/example-3.ts
 
