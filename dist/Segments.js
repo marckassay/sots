@@ -20,8 +20,8 @@ var TimeSegment = /** @class */ (function () {
     TimeSegment.prototype.initializeObservable = function (lastElement) {
         var _this = this;
         if (lastElement === void 0) { lastElement = false; }
-        this.previousspread = undefined;
-        this.stateexp = new StateExpression(this.config, this.seqConfig);
+        this.previousSpread = undefined;
+        this.stateExp = new StateExpression(this.config, this.seqConfig);
         var totalElements = this.config.duration / this.seqConfig.period;
         var source = Rx_1.Observable.range(0, totalElements)
             .map(function (_value, index) {
@@ -33,9 +33,9 @@ var TimeSegment = /** @class */ (function () {
                 nuindex = (_this.seqConfig.period * index) * .001;
             }
             nuindex = parseFloat(nuindex.toFixed(3));
-            var slot = _this.stateexp.checkForSlot(nuindex, _this.previousspread);
+            var slot = _this.stateExp.checkForSlot(nuindex, _this.previousSpread);
             if (slot && slot.spread.length > 0) {
-                _this.previousspread = slot.spread;
+                _this.previousSpread = slot.spread;
             }
             return { time: nuindex, interval: _this.interval, state: slot };
         })
@@ -130,19 +130,19 @@ var StateExpression = /** @class */ (function () {
                             this.setInstantStates(statetime[index].timeAt, state);
                             break;
                         case "timeLessThan":
-                            var time2 = Number(statetime[index].timeLessThan) - this.seqConfig.period;
+                            var time2 = parseFloat(statetime[index].timeLessThan) - this.seqConfig.period;
                             this.setSpreadState("lessThan", time2, state);
                             break;
                         case "timeLessThanOrEqualTo":
-                            var time3 = Number(statetime[index].timeLessThanOrEqualTo);
+                            var time3 = parseFloat(statetime[index].timeLessThanOrEqualTo);
                             this.setSpreadState("lessThan", time3, state);
                             break;
                         case "timeGreaterThan":
-                            var time4 = Number(statetime[index].timeGreaterThan) + this.seqConfig.period;
+                            var time4 = parseFloat(statetime[index].timeGreaterThan) + this.seqConfig.period;
                             this.setSpreadState("greaterThan", time4, state);
                             break;
                         case "timeGreaterThanOrEqualTo":
-                            var time5 = Number(statetime[index].timeGreaterThanOrEqualTo);
+                            var time5 = parseFloat(statetime[index].timeGreaterThanOrEqualTo);
                             this.setSpreadState("greaterThan", time5, state);
                             break;
                     }
@@ -156,13 +156,12 @@ var StateExpression = /** @class */ (function () {
         var results = times.match(time_expression);
         if (results) {
             results.map(function (value) {
-                var timeslot = _this.timemap[Number(value)];
+                var timeslot = _this.timemap[parseFloat(value)];
                 if (!timeslot) {
-                    _this.timemap[parseFloat(value)] = _this.newSlotShape([state]);
+                    _this.timemap[parseFloat(value)] = _this.newSlot([state]);
                 }
-                else if (timeslot.instant) {
+                else {
                     timeslot.instant.push(state);
-                    _this.timemap[Number(value)] = timeslot;
                 }
             });
         }
@@ -170,11 +169,10 @@ var StateExpression = /** @class */ (function () {
     StateExpression.prototype.setSpreadState = function (_operation, time, state) {
         var timeslot = this.timemap[time];
         if (!timeslot) {
-            this.timemap[time] = this.newSlotShape([], [state]);
+            this.timemap[time] = this.newSlot([], [state]);
         }
-        else if (timeslot.spread) {
+        else {
             timeslot.spread.push(state);
-            this.timemap[time] = timeslot;
         }
         // TODO: currently when spreads are appiled, it will exists to the 
         // end of its segment. StateExpression.spread_off may need to be 
@@ -192,14 +190,15 @@ var StateExpression = /** @class */ (function () {
     StateExpression.prototype.checkForSlot = function (time, previousSpread) {
         var slot = this.timemap[time];
         if (slot && previousSpread) {
-            slot.spread = slot.spread.concat(previousSpread);
+            slot.spread.concat(previousSpread);
         }
         else if (!slot && previousSpread) {
-            slot = this.newSlotShape([], previousSpread);
+            slot = this.newSlot([], previousSpread);
+            this.timemap[time] = slot;
         }
         return slot;
     };
-    StateExpression.prototype.newSlotShape = function (instant, spread) {
+    StateExpression.prototype.newSlot = function (instant, spread) {
         var _this = this;
         if (instant === void 0) { instant = []; }
         if (spread === void 0) { spread = []; }

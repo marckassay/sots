@@ -7,9 +7,9 @@ export declare class TimeSegment implements SegmentInterface {
     interval: IntervalEmissionShape;
     collection: SegmentCollection;
     config: SegmentConfigShape;
-    stateexp: StateExpression;
+    stateExp: StateExpression;
     countingUp: boolean;
-    previousspread: Array<string | number> | undefined;
+    previousSpread: Array<string | number> | undefined;
     constructor(config: SegmentConfigShape, countingUp?: boolean);
     initializeObservable(lastElement?: boolean): Observable<TimeEmission>;
     /**
@@ -53,6 +53,6 @@ export declare class StateExpression {
     private setInstantStates(times, state);
     private setSpreadState(_operation, time, state);
     checkForSlot(time: number, previousSpread: Array<string | number> | undefined): SlotEmissionShape | undefined;
-    newSlotShape(instant?: Array<string | number>, spread?: Array<string | number>): SlotEmissionShape;
+    newSlot(instant?: Array<string | number>, spread?: Array<string | number>): SlotEmissionShape;
     private getStateValues(instant, spread, state, compareAsBitwise?);
 }

@@ -9,9 +9,9 @@ export class TimeSegment implements SegmentInterface {
     interval: IntervalEmissionShape;
     collection: SegmentCollection;
     config: SegmentConfigShape;
-    stateexp: StateExpression;
+    stateExp: StateExpression;
     countingUp: boolean;
-    previousspread: Array<string | number> | undefined;
+    previousSpread: Array<string | number> | undefined;
 
     constructor(config: SegmentConfigShape, countingUp: boolean = false) {
         this.config = config;
@@ -19,8 +19,8 @@ export class TimeSegment implements SegmentInterface {
     }
 
     public initializeObservable(lastElement: boolean = false): Observable<TimeEmission> {
-        this.previousspread = undefined;
-        this.stateexp = new StateExpression(this.config, this.seqConfig);
+        this.previousSpread = undefined;
+        this.stateExp = new StateExpression(this.config, this.seqConfig);
         let totalElements: number = this.config.duration / this.seqConfig.period;
         let source: Observable<TimeEmission> = Observable.range(0, totalElements)
             .map((_value: number, index: number): TimeEmission => {
@@ -33,10 +33,10 @@ export class TimeSegment implements SegmentInterface {
 
                 nuindex = parseFloat(nuindex.toFixed(3));
 
-                let slot: SlotEmissionShape | undefined = this.stateexp.checkForSlot(nuindex, this.previousspread);
+                let slot: SlotEmissionShape | undefined = this.stateExp.checkForSlot(nuindex, this.previousSpread);
 
                 if (slot && slot.spread.length > 0) {
-                    this.previousspread = slot.spread;
+                    this.previousSpread = slot.spread;
                 }
 
                 return { time: nuindex, interval: this.interval, state: slot };
@@ -126,22 +126,22 @@ export class StateExpression {
                             break;
 
                         case "timeLessThan":
-                            let time2: number = Number((statetime[index] as StateConfig2).timeLessThan) - this.seqConfig.period;
+                            let time2: number = parseFloat((statetime[index] as StateConfig2).timeLessThan) - this.seqConfig.period;
                             this.setSpreadState("lessThan", time2, state);
                             break;
 
                         case "timeLessThanOrEqualTo":
-                            let time3: number = Number((statetime[index] as StateConfig3).timeLessThanOrEqualTo);
+                            let time3: number = parseFloat((statetime[index] as StateConfig3).timeLessThanOrEqualTo);
                             this.setSpreadState("lessThan", time3, state);
                             break;
 
                         case "timeGreaterThan":
-                            let time4: number = Number((statetime[index] as StateConfig4).timeGreaterThan) + this.seqConfig.period;
+                            let time4: number = parseFloat((statetime[index] as StateConfig4).timeGreaterThan) + this.seqConfig.period;
                             this.setSpreadState("greaterThan", time4, state);
                             break;
 
                         case "timeGreaterThanOrEqualTo":
-                            let time5: number = Number((statetime[index] as StateConfig5).timeGreaterThanOrEqualTo);
+                            let time5: number = parseFloat((statetime[index] as StateConfig5).timeGreaterThanOrEqualTo);
                             this.setSpreadState("greaterThan", time5, state);
                             break;
                     }
@@ -156,12 +156,11 @@ export class StateExpression {
         let results: RegExpMatchArray | null = times.match(time_expression);
         if (results) {
             results.map((value: string) => {
-                let timeslot: SlotEmissionShape = this.timemap[Number(value)];
+                let timeslot: SlotEmissionShape = this.timemap[parseFloat(value)];
                 if (!timeslot) {
-                    this.timemap[parseFloat(value)] = this.newSlotShape([state]);
-                } else if (timeslot.instant) {
+                    this.timemap[parseFloat(value)] = this.newSlot([state]);
+                } else {
                     timeslot.instant.push(state);
-                    this.timemap[Number(value)] = timeslot;
                 }
             });
         }
@@ -170,12 +169,10 @@ export class StateExpression {
     private setSpreadState(_operation: "lessThan" | "greaterThan", time: number, state: string | number): void {
         const timeslot: SlotEmissionShape = this.timemap[time];
         if (!timeslot) {
-            this.timemap[time] = this.newSlotShape([], [state]);
-        } else if (timeslot.spread) {
+            this.timemap[time] = this.newSlot([], [state]);
+        } else {
             timeslot.spread.push(state);
-            this.timemap[time] = timeslot;
         }
-
         // TODO: currently when spreads are appiled, it will exists to the 
         // end of its segment. StateExpression.spread_off may need to be 
         // used for some purposes, if so modification (at minimum) here 
@@ -194,15 +191,16 @@ export class StateExpression {
         let slot: SlotEmissionShape | undefined = this.timemap[time];
 
         if (slot && previousSpread) {
-            slot.spread = slot.spread.concat(previousSpread);
+            slot.spread.concat(previousSpread);
         } else if (!slot && previousSpread) {
-            slot = this.newSlotShape([], previousSpread);
+            slot = this.newSlot([], previousSpread);
+            this.timemap[time] = slot;
         }
 
         return slot;
     }
 
-    newSlotShape(instant: Array<string | number> = [], spread: Array<string | number> = []): SlotEmissionShape {
+    newSlot(instant: Array<string | number> = [], spread: Array<string | number> = []): SlotEmissionShape {
         return {
             instant: instant,
             spread: spread,
