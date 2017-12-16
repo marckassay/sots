@@ -1,4 +1,6 @@
+.vscode
 lib
 harness
-.vscode
 example
+tsconfig.json
+tsfmt.json

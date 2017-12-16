@@ -1,6 +1,5 @@
 export interface TimeEmission {
     time: number;
-    inStateOf: (value: string | number, compareAsBitwise?: boolean) => boolean;
     state?: SlotEmissionShape;
     interval?: IntervalEmissionShape;
 }
@@ -27,4 +26,5 @@ export interface TimeSlot<T> {
 export interface SlotEmissionShape {
     instant: Array<string | number>;
     spread: Array<string | number>;
+    valueOf: (state?: string | number, compareAsBitwise?: boolean) => boolean | number;
 }

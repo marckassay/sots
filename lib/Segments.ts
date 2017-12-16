@@ -20,7 +20,7 @@ export class TimeSegment implements SegmentInterface {
 
     public initializeObservable(lastElement: boolean = false): Observable<TimeEmission> {
         this.previousspread = undefined;
-        this.stateexp = new StateExpression(this.config, this.seqConfig.period);
+        this.stateexp = new StateExpression(this.config, this.seqConfig);
         let totalElements: number = this.config.duration / this.seqConfig.period;
         let source: Observable<TimeEmission> = Observable.range(0, totalElements)
             .map((_value: number, index: number): TimeEmission => {
@@ -31,69 +31,17 @@ export class TimeSegment implements SegmentInterface {
                     nuindex = (this.seqConfig.period * index) * .001;
                 }
 
-                nuindex = Number(nuindex.toFixed(3));
+                nuindex = parseFloat(nuindex.toFixed(3));
 
-                // TODO: currently when spreads are appiled, it will live to the 
-                // end of its segment; notice this.previousspread never gets cleared.
-                // make modifications to have it apply to a section of the time
-                // segment.
-                let states: SlotEmissionShape | undefined = this.stateexp.evaluate(nuindex);
+                let slot: SlotEmissionShape | undefined = this.stateexp.checkForSlot(nuindex, this.previousspread);
 
-                if (this.previousspread && states) {
-                    states.spread = states.spread.concat(this.previousspread);
-                } else if (this.previousspread && !states) {
-                    states = { instant: [], spread: this.previousspread };
-                } else if (states && states.spread.length > 0) {
-                    this.previousspread = states.spread;
+                if (slot && slot.spread.length > 0) {
+                    this.previousspread = slot.spread;
                 }
 
-                return {
-                    time: nuindex, state: states, interval: this.interval, inStateOf: (state: string | number, compareAsBitwise?: boolean): boolean => {
-                        let useBitwiseCompare;
-                        if (compareAsBitwise != undefined) {
-                            useBitwiseCompare = compareAsBitwise;
-                        }
-                        else if (this.seqConfig.compareAsBitwise != undefined) {
-                            useBitwiseCompare = this.seqConfig.compareAsBitwise;
-                        }
-                        else {
-                            useBitwiseCompare = false;
-                        }
-
-                        if (states) {
-                            if (useBitwiseCompare === false) {
-                                if (states.instant.indexOf(state) === -1) {
-                                    return states.spread.indexOf(state) !== -1;
-                                } else {
-                                    return true;
-                                }
-                            } else if (typeof state === 'string') {
-                                throw "inStateOf() has been called with a string and flagged to use bitwise comparisons."
-                            } else {
-                                let total: number = 0;
-                                states.instant.forEach((value: string | number) => {
-                                    if (typeof value === 'number') {
-                                        total += value;
-                                    }
-                                }, total);
-
-                                states.spread.forEach((value: string | number) => {
-                                    if (typeof value === 'number') {
-                                        total += value;
-                                    }
-                                }, total);
-
-                                return ((total & state) === state) ? true : false;
-
-                            }
-                        }
-
-                        return false;
-
-                    }
-                };
-
-            }).takeWhile((value: TimeEmission) => {
+                return { time: nuindex, interval: this.interval, state: slot };
+            })
+            .takeWhile((value: TimeEmission) => {
                 if (lastElement == false) {
                     if (!this.countingUp) {
                         return value.time > 0;
@@ -159,7 +107,7 @@ export class StateExpression {
 
     private timemap: TimeSlot<SlotEmissionShape> = {};
 
-    constructor(config: SegmentConfigShape, public period: number) {
+    constructor(config: SegmentConfigShape, public seqConfig: SequenceConfigShape) {
         this.parse(config);
     }
 
@@ -178,7 +126,7 @@ export class StateExpression {
                             break;
 
                         case "timeLessThan":
-                            let time2: number = Number((statetime[index] as StateConfig2).timeLessThan) - this.period;
+                            let time2: number = Number((statetime[index] as StateConfig2).timeLessThan) - this.seqConfig.period;
                             this.setSpreadState("lessThan", time2, state);
                             break;
 
@@ -188,7 +136,7 @@ export class StateExpression {
                             break;
 
                         case "timeGreaterThan":
-                            let time4: number = Number((statetime[index] as StateConfig4).timeGreaterThan) + this.period;
+                            let time4: number = Number((statetime[index] as StateConfig4).timeGreaterThan) + this.seqConfig.period;
                             this.setSpreadState("greaterThan", time4, state);
                             break;
 
@@ -210,7 +158,7 @@ export class StateExpression {
             results.map((value: string) => {
                 let timeslot: SlotEmissionShape = this.timemap[Number(value)];
                 if (!timeslot) {
-                    this.timemap[Number(value)] = { instant: [state], spread: [] };
+                    this.timemap[parseFloat(value)] = this.newSlotShape([state]);
                 } else if (timeslot.instant) {
                     timeslot.instant.push(state);
                     this.timemap[Number(value)] = timeslot;
@@ -222,13 +170,16 @@ export class StateExpression {
     private setSpreadState(_operation: "lessThan" | "greaterThan", time: number, state: string | number): void {
         const timeslot: SlotEmissionShape = this.timemap[time];
         if (!timeslot) {
-            this.timemap[time] = { instant: [], spread: [state] };
+            this.timemap[time] = this.newSlotShape([], [state]);
         } else if (timeslot.spread) {
             timeslot.spread.push(state);
             this.timemap[time] = timeslot;
         }
 
-        // TODO: StateExpression.spread_off isnt being searched for at any moment.
+        // TODO: currently when spreads are appiled, it will exists to the 
+        // end of its segment. StateExpression.spread_off may need to be 
+        // used for some purposes, if so modification (at minimum) here 
+        // will be needed.
         /*
         const polarend: number = (operation == 'lessThan') ? 0 : Number.MAX_VALUE;
         if (!this.timemap[polarend]) {
@@ -239,10 +190,75 @@ export class StateExpression {
         */
     }
 
-    /**
-     * @param time The time for this segment.  This is not global time of a sequence.
-     */
-    evaluate(time: number): SlotEmissionShape | undefined {
-        return this.timemap[time];
+    checkForSlot(time: number, previousSpread: Array<string | number> | undefined): SlotEmissionShape | undefined {
+        let slot: SlotEmissionShape | undefined = this.timemap[time];
+
+        if (slot && previousSpread) {
+            slot.spread = slot.spread.concat(previousSpread);
+        } else if (!slot && previousSpread) {
+            slot = this.newSlotShape([], previousSpread);
+        }
+
+        return slot;
+    }
+
+    newSlotShape(instant: Array<string | number> = [], spread: Array<string | number> = []): SlotEmissionShape {
+        return {
+            instant: instant,
+            spread: spread,
+            valueOf: (state?: string | number, compareAsBitwise?: boolean): boolean | number => {
+                let results: boolean | number;
+                if (state !== undefined) {
+                    results = (this.getStateValues(instant, spread, state, compareAsBitwise) >= 0);
+                } else {
+                    results = this.getStateValues(instant, spread, -1, true);
+                }
+
+                return results;
+            }
+        } as SlotEmissionShape;
+    }
+
+    private getStateValues(instant: Array<string | number>, spread: Array<string | number>, state: string | number, compareAsBitwise?: boolean): number {
+
+        let useBitwiseCompare: boolean;
+        if (compareAsBitwise != undefined) {
+            useBitwiseCompare = compareAsBitwise;
+        }
+        else if (this.seqConfig.compareAsBitwise != undefined) {
+            useBitwiseCompare = this.seqConfig.compareAsBitwise;
+        }
+        else {
+            useBitwiseCompare = false;
+        }
+
+        if (useBitwiseCompare === false) {
+            if (instant.indexOf(state) === -1) {
+                return spread.indexOf(state);
+            } else {
+                return 1;
+            }
+        } else if (typeof state === 'string') {
+            throw "valueOf() has been called with a string and flagged to use bitwise comparisons."
+        } else {
+            let total: number = 0;
+            instant.forEach((value: string | number) => {
+                if (typeof value === 'number') {
+                    total += value;
+                }
+            }, total);
+
+            spread.forEach((value: string | number) => {
+                if (typeof value === 'number') {
+                    total += value;
+                }
+            }, total);
+
+            if (state === -1) {
+                return total;
+            } else {
+                return ((total & state) === state) ? 1 : -1;
+            }
+        }
     }
 }

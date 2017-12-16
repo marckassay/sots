@@ -43,17 +43,16 @@ export declare class CountupSegment extends TimeSegment {
     constructor(config: SegmentConfigShape);
 }
 export declare class StateExpression {
-    period: number;
+    seqConfig: SequenceConfigShape;
     static applySpread: string;
     static removeSpread: string;
     static spread_regex: RegExp;
     private timemap;
-    constructor(config: SegmentConfigShape, period: number);
+    constructor(config: SegmentConfigShape, seqConfig: SequenceConfigShape);
     private parse(config);
     private setInstantStates(times, state);
     private setSpreadState(_operation, time, state);
-    /**
-     * @param time The time for this segment.  This is not global time of a sequence.
-     */
-    evaluate(time: number): SlotEmissionShape | undefined;
+    checkForSlot(time: number, previousSpread: Array<string | number> | undefined): SlotEmissionShape | undefined;
+    newSlotShape(instant?: Array<string | number>, spread?: Array<string | number>): SlotEmissionShape;
+    private getStateValues(instant, spread, state, compareAsBitwise?);
 }

@@ -21,7 +21,7 @@ var TimeSegment = /** @class */ (function () {
         var _this = this;
         if (lastElement === void 0) { lastElement = false; }
         this.previousspread = undefined;
-        this.stateexp = new StateExpression(this.config, this.seqConfig.period);
+        this.stateexp = new StateExpression(this.config, this.seqConfig);
         var totalElements = this.config.duration / this.seqConfig.period;
         var source = Rx_1.Observable.range(0, totalElements)
             .map(function (_value, index) {
@@ -32,64 +32,14 @@ var TimeSegment = /** @class */ (function () {
             else {
                 nuindex = (_this.seqConfig.period * index) * .001;
             }
-            nuindex = Number(nuindex.toFixed(3));
-            // TODO: currently when spreads are appiled, it will live to the 
-            // end of its segment; notice this.previousspread never gets cleared.
-            // make modifications to have it apply to a section of the time
-            // segment.
-            var states = _this.stateexp.evaluate(nuindex);
-            if (_this.previousspread && states) {
-                states.spread = states.spread.concat(_this.previousspread);
+            nuindex = parseFloat(nuindex.toFixed(3));
+            var slot = _this.stateexp.checkForSlot(nuindex, _this.previousspread);
+            if (slot && slot.spread.length > 0) {
+                _this.previousspread = slot.spread;
             }
-            else if (_this.previousspread && !states) {
-                states = { instant: [], spread: _this.previousspread };
-            }
-            else if (states && states.spread.length > 0) {
-                _this.previousspread = states.spread;
-            }
-            return {
-                time: nuindex, state: states, interval: _this.interval, inStateOf: function (state, compareAsBitwise) {
-                    var useBitwiseCompare;
-                    if (compareAsBitwise != undefined) {
-                        useBitwiseCompare = compareAsBitwise;
-                    }
-                    else if (_this.seqConfig.compareAsBitwise != undefined) {
-                        useBitwiseCompare = _this.seqConfig.compareAsBitwise;
-                    }
-                    else {
-                        useBitwiseCompare = false;
-                    }
-                    if (states) {
-                        if (useBitwiseCompare === false) {
-                            if (states.instant.indexOf(state) === -1) {
-                                return states.spread.indexOf(state) !== -1;
-                            }
-                            else {
-                                return true;
-                            }
-                        }
-                        else if (typeof state === 'string') {
-                            throw "inStateOf() has been called with a string and flagged to use bitwise comparisons.";
-                        }
-                        else {
-                            var total_1 = 0;
-                            states.instant.forEach(function (value) {
-                                if (typeof value === 'number') {
-                                    total_1 += value;
-                                }
-                            }, total_1);
-                            states.spread.forEach(function (value) {
-                                if (typeof value === 'number') {
-                                    total_1 += value;
-                                }
-                            }, total_1);
-                            return ((total_1 & state) === state) ? true : false;
-                        }
-                    }
-                    return false;
-                }
-            };
-        }).takeWhile(function (value) {
+            return { time: nuindex, interval: _this.interval, state: slot };
+        })
+            .takeWhile(function (value) {
             if (lastElement == false) {
                 if (!_this.countingUp) {
                     return value.time > 0;
@@ -163,8 +113,8 @@ var CountupSegment = /** @class */ (function (_super) {
 }(TimeSegment));
 exports.CountupSegment = CountupSegment;
 var StateExpression = /** @class */ (function () {
-    function StateExpression(config, period) {
-        this.period = period;
+    function StateExpression(config, seqConfig) {
+        this.seqConfig = seqConfig;
         this.timemap = {};
         this.parse(config);
     }
@@ -180,7 +130,7 @@ var StateExpression = /** @class */ (function () {
                             this.setInstantStates(statetime[index].timeAt, state);
                             break;
                         case "timeLessThan":
-                            var time2 = Number(statetime[index].timeLessThan) - this.period;
+                            var time2 = Number(statetime[index].timeLessThan) - this.seqConfig.period;
                             this.setSpreadState("lessThan", time2, state);
                             break;
                         case "timeLessThanOrEqualTo":
@@ -188,7 +138,7 @@ var StateExpression = /** @class */ (function () {
                             this.setSpreadState("lessThan", time3, state);
                             break;
                         case "timeGreaterThan":
-                            var time4 = Number(statetime[index].timeGreaterThan) + this.period;
+                            var time4 = Number(statetime[index].timeGreaterThan) + this.seqConfig.period;
                             this.setSpreadState("greaterThan", time4, state);
                             break;
                         case "timeGreaterThanOrEqualTo":
@@ -208,7 +158,7 @@ var StateExpression = /** @class */ (function () {
             results.map(function (value) {
                 var timeslot = _this.timemap[Number(value)];
                 if (!timeslot) {
-                    _this.timemap[Number(value)] = { instant: [state], spread: [] };
+                    _this.timemap[parseFloat(value)] = _this.newSlotShape([state]);
                 }
                 else if (timeslot.instant) {
                     timeslot.instant.push(state);
@@ -220,13 +170,16 @@ var StateExpression = /** @class */ (function () {
     StateExpression.prototype.setSpreadState = function (_operation, time, state) {
         var timeslot = this.timemap[time];
         if (!timeslot) {
-            this.timemap[time] = { instant: [], spread: [state] };
+            this.timemap[time] = this.newSlotShape([], [state]);
         }
         else if (timeslot.spread) {
             timeslot.spread.push(state);
             this.timemap[time] = timeslot;
         }
-        // TODO: StateExpression.spread_off isnt being searched for at any moment.
+        // TODO: currently when spreads are appiled, it will exists to the 
+        // end of its segment. StateExpression.spread_off may need to be 
+        // used for some purposes, if so modification (at minimum) here 
+        // will be needed.
         /*
         const polarend: number = (operation == 'lessThan') ? 0 : Number.MAX_VALUE;
         if (!this.timemap[polarend]) {
@@ -236,11 +189,76 @@ var StateExpression = /** @class */ (function () {
         }
         */
     };
-    /**
-     * @param time The time for this segment.  This is not global time of a sequence.
-     */
-    StateExpression.prototype.evaluate = function (time) {
-        return this.timemap[time];
+    StateExpression.prototype.checkForSlot = function (time, previousSpread) {
+        var slot = this.timemap[time];
+        if (slot && previousSpread) {
+            slot.spread = slot.spread.concat(previousSpread);
+        }
+        else if (!slot && previousSpread) {
+            slot = this.newSlotShape([], previousSpread);
+        }
+        return slot;
+    };
+    StateExpression.prototype.newSlotShape = function (instant, spread) {
+        var _this = this;
+        if (instant === void 0) { instant = []; }
+        if (spread === void 0) { spread = []; }
+        return {
+            instant: instant,
+            spread: spread,
+            valueOf: function (state, compareAsBitwise) {
+                var results;
+                if (state !== undefined) {
+                    results = (_this.getStateValues(instant, spread, state, compareAsBitwise) >= 0);
+                }
+                else {
+                    results = _this.getStateValues(instant, spread, -1, true);
+                }
+                return results;
+            }
+        };
+    };
+    StateExpression.prototype.getStateValues = function (instant, spread, state, compareAsBitwise) {
+        var useBitwiseCompare;
+        if (compareAsBitwise != undefined) {
+            useBitwiseCompare = compareAsBitwise;
+        }
+        else if (this.seqConfig.compareAsBitwise != undefined) {
+            useBitwiseCompare = this.seqConfig.compareAsBitwise;
+        }
+        else {
+            useBitwiseCompare = false;
+        }
+        if (useBitwiseCompare === false) {
+            if (instant.indexOf(state) === -1) {
+                return spread.indexOf(state);
+            }
+            else {
+                return 1;
+            }
+        }
+        else if (typeof state === 'string') {
+            throw "valueOf() has been called with a string and flagged to use bitwise comparisons.";
+        }
+        else {
+            var total_1 = 0;
+            instant.forEach(function (value) {
+                if (typeof value === 'number') {
+                    total_1 += value;
+                }
+            }, total_1);
+            spread.forEach(function (value) {
+                if (typeof value === 'number') {
+                    total_1 += value;
+                }
+            }, total_1);
+            if (state === -1) {
+                return total_1;
+            }
+            else {
+                return ((total_1 & state) === state) ? 1 : -1;
+            }
+        }
     };
     StateExpression.applySpread = "::ON";
     StateExpression.removeSpread = "::OFF";
