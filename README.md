@@ -1,6 +1,6 @@
 sots (Sequence of Time Segments) is a JS module that allows you to structure complex sequences of time segments.  By chaining sots' `add` and `group` methods, a complex sequence can be created with little development time on your end.
 
-sots is capable of being stateful relative to individual time segments, states can be momentary or non-momentary.  When setting states, you can use a string or a number type. And when its a number type you have the option to set sots' to use the Bitwise AND comparison operator.  This is beneficial if you're setting states using binary Enums.
+sots is capable of being stateful relative to individual time segments, states can be momentary or non-momentary.  When setting states, you can use a string or a number type. And when its a number type you have the option to set sots' to use the Bitwise AND comparison operator.  This is beneficial, if for instance, you're setting states using binary Enums.
 
 ## Install
 ### npm
@@ -29,7 +29,7 @@ seq.add(CountdownSegment, { duration: 5000 });
 Now we can subscribe and perform a `start` call:
 ```typescript
 seq.subscribe((value: TimeEmission) => {
-	console.log(value);
+  console.log(value);
 });
 seq.start();
 ```
@@ -39,48 +39,52 @@ This example's coalesced code:
 let seq: Sequencer = new Sequencer({ period: 1000 });
 seq.add(CountdownSegment, { duration: 5000 });
 seq.subscribe((value: TimeEmission) => {
-	console.log(value);
+  console.log(value);
 });
 seq.start();
 ```
 
 ## Definitions
-* instant (state):  
+* instant (state): 
 These states are momentary, as they are emitted only at a specific instant in time.  The time value needs to be defined in units of a second.
 
-* spread (state):  
-These states are non-momentary, as they "spread" over time until termination of its time segment.  The time value needs to be defined in units of a second.  
+* spread (state): 
+These states are non-momentary, as they "spread" over time until termination of its time segment.  The time value needs to be defined in units of a second. 
 
-* duration:  
-Defines the length of a segment defined in milliseconds.  
+* duration: 
+Defines the length of a segment defined in milliseconds. 
 
-* period:  
+* period: 
 As defined the same as in RxJS; the unit of time between emissions defined in milliseconds.
 
 ## API
 The 2 build methods for creating a sequence are the following:
-* `add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T`  
-  The first parameter can only take: CountdownSegment or CountupSegment class type.  The second parameter configures this segment's duration, to be used with bitwise operator, states, and a flag to indicate to be omitted in first interval.  In addition to this method, there is a static version of this that's identical.  This static version is used inside `group` parentheses.  
+* `add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T` 
+ The first parameter can only take: CountdownSegment or CountupSegment class type.  The second parameter configures this segment's duration, to be used with bitwise operator, states, and a flag to indicate to be omitted in first interval.  In addition to this method, there is a static version of this that's identical.  This static version is used inside `group` parentheses. 
 
-* `group<T extends TimeSegment>(intervals?: number, ...segments: GroupParameter<T>[]): T`  
-  Used to create groups, a.k.a intervals.  The first parameter specifies the number of intervals and the second takes static calls of `add`.  See `add` API for more information.
+* `group<T extends TimeSegment>(intervals?: number, ...segments: GroupParameter<T>[]): T` 
+ Used to create groups, a.k.a intervals.  The first parameter specifies the number of intervals and the second takes static calls of `add`.  See `add` API for more information.
 
 The 3 control methods for iterating a sots' sequence, are the following:
-* `start(): void`  
+* `start(): void` 
 Starts sequence or if sots is paused will resume sequence.
 
-* `pause(): void`  
+* `pause(): void` 
 Pauses the running sequence.  Since this has idempotent behavior, a call to `start` is needed to restart/resume the sequence.
 
-* `reset(): void`  
+* `reset(): void` 
 Can only be used if `subscribe` has been called with an observer.  This method will unsubscribe and subscribe the sequence.  See example-3 on how this is being used.
 
 The only method (2 overloads) for subscribing to a sots' sequence, are the following:
-* `subscribe(next?: (value: TimeEmission) => void, error?: (error: any) => void, complete?: () => void): Subscription`  
+* `subscribe(next?: (value: TimeEmission) => void, error?: (error: any) => void, complete?: () => void): Subscription` 
 In order to make observations of sots' emissions, this is needed to be called.  See 'Explanation of Basic Usage' section on how this is called with value for its `next` parameter.
 
-* `subscribe(observer: PartialObserver<TimeEmission>): Subscription`  
+* `subscribe(observer: PartialObserver<TimeEmission>): Subscription` 
 Used when a sequence will be needed to reset.  The `observer` parameter must have the same shape as `PartialObserver<TimeEmission>`.  See example-3 on how this is used.
+
+The emitted value (TimeEmission) has 1 property method:
+* `valueOf: (state?: string | number, compareAsBitwise?: boolean) => boolean | number` 
+When called with a value for state, this method will return a boolean value of true if found.  If this method is called with no value, then all numeric states totaled for this emission will be returned.  See example-3 on how this is used both with and without arguments.
 
 ## Examples
 The following are links to examples using sots.  These examples will run as-is if copied-and-pasted into the index.ts file of sotsHarness folder *if* that folder is setup as explained in the 'Contribute' section.
@@ -110,6 +114,7 @@ See this example here: https://github.com/marckassay/sots/blob/master/example/ex
 This example is derived from example 2 and in an addition demonstrates the usage of control methods:
 * The JS `setTimeout` will be used to call the following methods in sequential order: `start`, `pause`, `reset`, and `start` .
 * A shape of `PartialObserver<TimeEmission>` is passed in `subscribe` since in this example resetting is performed.
+* This example is also using `valueOf` with and without arguments.
 
 See this example here: https://github.com/marckassay/sots/blob/master/example/example-3.ts
 

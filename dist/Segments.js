@@ -114,7 +114,9 @@ var StateExpression = /** @class */ (function () {
         this.countingUp = countingUp;
         this.timemap = new Map();
         this.parse(config);
-        this.applySpreading();
+        if (this.flaggedToApplySpreading) {
+            this.applySpreading();
+        }
     }
     StateExpression.prototype.parse = function (config) {
         if (config.states) {
@@ -219,6 +221,7 @@ var StateExpression = /** @class */ (function () {
         }
     };
     StateExpression.prototype.setSpreadState = function (_operation, time, state) {
+        this.flaggedToApplySpreading = true;
         if (!this.timemap.has(time)) {
             this.timemap.set(time, this.newSlot([], [state]));
         }

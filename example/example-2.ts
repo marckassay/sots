@@ -43,20 +43,23 @@ sequencer.add(CountdownSegment, {
 sequencer.subscribe((value: TimeEmission) => {
     let output: string = "time: " + value.time;
 
-    if (value.inStateOf(AppStates.Alert)) {
-        output += " state: 'alert!'";
-    }
-    else if (value.inStateOf(AppStates.Warning)) {
-        output += " state: 'warning'";
-    }
-    else if (value.inStateOf(AppStates.Beep)) {
-        output += " state: 'beep'";
-    }
-    else if (value.inStateOf(AppStates.Rest)) {
-        output += " state: 'rest'";
-    }
-    else if (value.inStateOf(AppStates.Active)) {
-        output += " state: 'active'";
+    if (value.state) {
+        if (value.state.valueOf(AppStates.Alert)) {
+            output += " state: 'alert!'";
+        }
+        else if (value.state.valueOf(AppStates.Warning)) {
+            output += " state: 'warning'";
+        }
+        else if (value.state.valueOf(AppStates.Beep)) {
+            output += " state: 'beep'";
+        }
+
+        if (value.state.valueOf(AppStates.Rest)) {
+            output += " state: 'rest'";
+        }
+        else if (value.state.valueOf(AppStates.Active)) {
+            output += " state: 'active'";
+        }
     }
 
     if (value.interval) {
@@ -72,8 +75,7 @@ sequencer.subscribe((value: TimeEmission) => {
 });
 
 sequencer.start();
-
-// Output from this example:
+// Output:
 /*
 time: 10 state: 'beep'
 time: 9.9
@@ -175,7 +177,7 @@ time: 0.4 state: 'warning'
 time: 0.3 state: 'warning'
 time: 0.2 state: 'warning'
 time: 0.1 state: 'warning'
-time: 2 state: 'beep' interval.current: 1 interval.total: 3
+time: 2 state: 'beep' state: 'active' interval.current: 1 interval.total: 3
 time: 1.9 state: 'active' interval.current: 1 interval.total: 3
 time: 1.8 state: 'active' interval.current: 1 interval.total: 3
 time: 1.7 state: 'active' interval.current: 1 interval.total: 3
@@ -195,7 +197,7 @@ time: 0.4 state: 'active' interval.current: 1 interval.total: 3
 time: 0.3 state: 'active' interval.current: 1 interval.total: 3
 time: 0.2 state: 'active' interval.current: 1 interval.total: 3
 time: 0.1 state: 'active' interval.current: 1 interval.total: 3
-time: 2 state: 'beep' interval.current: 2 interval.total: 3
+time: 2 state: 'beep' state: 'rest' interval.current: 2 interval.total: 3
 time: 1.9 state: 'rest' interval.current: 2 interval.total: 3
 time: 1.8 state: 'rest' interval.current: 2 interval.total: 3
 time: 1.7 state: 'rest' interval.current: 2 interval.total: 3
@@ -215,7 +217,7 @@ time: 0.4 state: 'rest' interval.current: 2 interval.total: 3
 time: 0.3 state: 'rest' interval.current: 2 interval.total: 3
 time: 0.2 state: 'rest' interval.current: 2 interval.total: 3
 time: 0.1 state: 'rest' interval.current: 2 interval.total: 3
-time: 2 state: 'beep' interval.current: 2 interval.total: 3
+time: 2 state: 'beep' state: 'active' interval.current: 2 interval.total: 3
 time: 1.9 state: 'active' interval.current: 2 interval.total: 3
 time: 1.8 state: 'active' interval.current: 2 interval.total: 3
 time: 1.7 state: 'active' interval.current: 2 interval.total: 3
@@ -235,7 +237,7 @@ time: 0.4 state: 'active' interval.current: 2 interval.total: 3
 time: 0.3 state: 'active' interval.current: 2 interval.total: 3
 time: 0.2 state: 'active' interval.current: 2 interval.total: 3
 time: 0.1 state: 'active' interval.current: 2 interval.total: 3
-time: 2 state: 'beep' interval.current: 3 interval.total: 3
+time: 2 state: 'beep' state: 'rest' interval.current: 3 interval.total: 3
 time: 1.9 state: 'rest' interval.current: 3 interval.total: 3
 time: 1.8 state: 'rest' interval.current: 3 interval.total: 3
 time: 1.7 state: 'rest' interval.current: 3 interval.total: 3
@@ -255,7 +257,7 @@ time: 0.4 state: 'rest' interval.current: 3 interval.total: 3
 time: 0.3 state: 'rest' interval.current: 3 interval.total: 3
 time: 0.2 state: 'rest' interval.current: 3 interval.total: 3
 time: 0.1 state: 'rest' interval.current: 3 interval.total: 3
-time: 2 state: 'beep' interval.current: 3 interval.total: 3
+time: 2 state: 'beep' state: 'active' interval.current: 3 interval.total: 3
 time: 1.9 state: 'active' interval.current: 3 interval.total: 3
 time: 1.8 state: 'active' interval.current: 3 interval.total: 3
 time: 1.7 state: 'active' interval.current: 3 interval.total: 3
@@ -315,7 +317,7 @@ time: 3.6 state: 'warning'
 time: 3.7 state: 'warning'
 time: 3.8 state: 'warning'
 time: 3.9 state: 'warning'
-time: 4 state: 'alert!'
+time: 4 state: 'warning'
 time: 4.1 state: 'warning'
 time: 4.2 state: 'warning'
 time: 4.3 state: 'warning'

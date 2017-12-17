@@ -18,13 +18,15 @@ sequencer.subscribe((value: TimeEmission) => {
     let output: string;
 
     output = "time: " + value.time;
-    if (value.inStateOf("Started!")) {
-        output += "<play audible for start>";
-    }
-    else if (value.inStateOf("Halfway")) {
-        output += "<play audible for halfway point>";
-    }
+    if (value.state) {
 
+        if (value.state.valueOf("Started!")) {
+            output += "<play audible for start>";
+        }
+        else if (value.state.valueOf("Halfway")) {
+            output += "<play audible for halfway point>";
+        }
+    }
     console.log(output);
 }, (error) => {
     console.error(error);

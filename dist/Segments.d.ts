@@ -48,6 +48,7 @@ export declare class StateExpression {
     static removeSpread: string;
     static spread_regex: RegExp;
     private timemap;
+    private flaggedToApplySpreading;
     constructor(config: SegmentConfigShape, seqConfig: SequenceConfigShape, countingUp: boolean);
     private parse(config);
     private applySpreading();

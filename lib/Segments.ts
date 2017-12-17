@@ -98,13 +98,15 @@ export class StateExpression {
     static applySpread: string = "::ON";
     static removeSpread: string = "::OFF";
     static spread_regex: RegExp = /(\w+)(?:\:{2})/g;
-
     private timemap: Map<number, SlotEmissionShape>;
+    private flaggedToApplySpreading: boolean;
 
     constructor(config: SegmentConfigShape, public seqConfig: SequenceConfigShape, public countingUp: boolean) {
         this.timemap = new Map<number, SlotEmissionShape>();
         this.parse(config);
-        this.applySpreading();
+        if (this.flaggedToApplySpreading) {
+            this.applySpreading();
+        }
     }
 
     private parse(config: SegmentConfigShape): void {
@@ -221,6 +223,9 @@ export class StateExpression {
     }
 
     private setSpreadState(_operation: "lessThan" | "greaterThan", time: number, state: string | number): void {
+
+        this.flaggedToApplySpreading = true;
+
         if (!this.timemap.has(time)) {
             this.timemap.set(time, this.newSlot([], [state]));
         } else {
