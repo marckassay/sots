@@ -149,28 +149,25 @@ var StateExpression = /** @class */ (function () {
         }
     };
     StateExpression.prototype.applySpreading = function () {
-        var _this = this;
-        var pointerTimeMap = Array.from(this.timemap).sort(function (a, b) {
-            if (!_this.countingUp) {
-                return b[0] - a[0];
-            }
-            else {
-                return a[0] - b[0];
-            }
+        var pointerTimeMap = Array
+            .from(this.timemap)
+            .sort(function (a, b) {
+            return b[0] - a[0];
         });
-        var firstSpreadIndex = pointerTimeMap.findIndex(function (value) {
+        var firstSpreadIndex = pointerTimeMap
+            .findIndex(function (value) {
             return value[1].spread.length > 0;
         });
         var factor = parseFloat((1000 / this.seqConfig.period).toFixed(1));
         var timeforEachElement = parseFloat((this.seqConfig.period * .001).toFixed(1));
-        //if (!this.countingUp) {
+        var lastTouchedElement;
         for (var i = firstSpreadIndex; i < pointerTimeMap.length; i++) {
-            var pointerElement = pointerTimeMap[i];
+            var pointerElement = (lastTouchedElement) ? lastTouchedElement : pointerTimeMap[i];
             var pointerElementIndex = pointerElement[0];
             var nextPointerElement = pointerTimeMap[i + 1];
             var timeInBetween = void 0;
             if (nextPointerElement) {
-                timeInBetween = pointerElementIndex - nextPointerElement[0];
+                timeInBetween = Math.abs(pointerElementIndex - nextPointerElement[0]);
             }
             else {
                 timeInBetween = pointerElementIndex;
@@ -179,15 +176,24 @@ var StateExpression = /** @class */ (function () {
             var spreadFill = pointerElement[1].spread;
             var spreadFillSlot = this.newSlot([], spreadFill);
             for (var j = 1; j <= numberOfElementsNeeded; j++) {
-                var nuIndex = parseFloat((pointerElementIndex - (timeforEachElement * j)).toFixed(1));
+                var nuIndex = void 0;
+                if (!this.countingUp) {
+                    nuIndex = parseFloat((pointerElementIndex - (timeforEachElement * j)).toFixed(1));
+                }
+                else {
+                    nuIndex = parseFloat((pointerElementIndex + (timeforEachElement * j)).toFixed(1));
+                }
                 if (j !== numberOfElementsNeeded) {
                     this.timemap.set(nuIndex, spreadFillSlot);
                 }
                 else {
                     if (this.timemap.has(nuIndex)) {
                         var el = this.timemap.get(nuIndex);
-                        el.spread = el.spread.concat(spreadFillSlot.spread);
-                        this.timemap.set(nuIndex, el);
+                        var nuInstant = el.instant;
+                        var nuSpread = el.spread.concat(spreadFillSlot.spread);
+                        var nuSlot = this.newSlot(nuInstant, nuSpread);
+                        this.timemap.set(nuIndex, nuSlot);
+                        lastTouchedElement = [nuIndex, nuSlot];
                     }
                     else {
                         return;
@@ -195,7 +201,6 @@ var StateExpression = /** @class */ (function () {
                 }
             }
         }
-        //}
     };
     StateExpression.prototype.setInstantStates = function (times, state) {
         var _this = this;
