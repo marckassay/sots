@@ -9,7 +9,6 @@ export declare class TimeSegment implements SegmentInterface {
     config: SegmentConfigShape;
     stateExp: StateExpression;
     countingUp: boolean;
-    previousSpread: Array<string | number> | undefined;
     constructor(config: SegmentConfigShape, countingUp?: boolean);
     initializeObservable(lastElement?: boolean): Observable<TimeEmission>;
     /**
@@ -44,15 +43,17 @@ export declare class CountupSegment extends TimeSegment {
 }
 export declare class StateExpression {
     seqConfig: SequenceConfigShape;
+    countingUp: boolean;
     static applySpread: string;
     static removeSpread: string;
     static spread_regex: RegExp;
     private timemap;
-    constructor(config: SegmentConfigShape, seqConfig: SequenceConfigShape);
+    constructor(config: SegmentConfigShape, seqConfig: SequenceConfigShape, countingUp: boolean);
     private parse(config);
+    private applySpreading();
     private setInstantStates(times, state);
     private setSpreadState(_operation, time, state);
-    checkForSlot(time: number, previousSpread: Array<string | number> | undefined): SlotEmissionShape | undefined;
+    checkForSlot(time: number): SlotEmissionShape | undefined;
     newSlot(instant?: Array<string | number>, spread?: Array<string | number>): SlotEmissionShape;
     private getStateValues(instant, spread, state, compareAsBitwise?);
 }

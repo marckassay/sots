@@ -20,8 +20,7 @@ var TimeSegment = /** @class */ (function () {
     TimeSegment.prototype.initializeObservable = function (lastElement) {
         var _this = this;
         if (lastElement === void 0) { lastElement = false; }
-        this.previousSpread = undefined;
-        this.stateExp = new StateExpression(this.config, this.seqConfig);
+        this.stateExp = new StateExpression(this.config, this.seqConfig, this.countingUp);
         var totalElements = this.config.duration / this.seqConfig.period;
         var source = Rx_1.Observable.range(0, totalElements)
             .map(function (_value, index) {
@@ -33,10 +32,7 @@ var TimeSegment = /** @class */ (function () {
                 nuindex = (_this.seqConfig.period * index) * .001;
             }
             nuindex = parseFloat(nuindex.toFixed(3));
-            var slot = _this.stateExp.checkForSlot(nuindex, _this.previousSpread);
-            if (slot && slot.spread.length > 0) {
-                _this.previousSpread = slot.spread;
-            }
+            var slot = _this.stateExp.checkForSlot(nuindex);
             return { time: nuindex, interval: _this.interval, state: slot };
         })
             .takeWhile(function (value) {
@@ -113,10 +109,12 @@ var CountupSegment = /** @class */ (function (_super) {
 }(TimeSegment));
 exports.CountupSegment = CountupSegment;
 var StateExpression = /** @class */ (function () {
-    function StateExpression(config, seqConfig) {
+    function StateExpression(config, seqConfig, countingUp) {
         this.seqConfig = seqConfig;
-        this.timemap = {};
+        this.countingUp = countingUp;
+        this.timemap = new Map();
         this.parse(config);
+        this.applySpreading();
     }
     StateExpression.prototype.parse = function (config) {
         if (config.states) {
@@ -150,29 +148,77 @@ var StateExpression = /** @class */ (function () {
             }
         }
     };
+    StateExpression.prototype.applySpreading = function () {
+        var _this = this;
+        var pointerTimeMap = Array.from(this.timemap).sort(function (a, b) {
+            if (!_this.countingUp) {
+                return b[0] - a[0];
+            }
+            else {
+                return a[0] - b[0];
+            }
+        });
+        var firstSpreadIndex = pointerTimeMap.findIndex(function (value) {
+            return value[1].spread.length > 0;
+        });
+        var factor = parseFloat((1000 / this.seqConfig.period).toFixed(1));
+        var timeforEachElement = parseFloat((this.seqConfig.period * .001).toFixed(1));
+        //if (!this.countingUp) {
+        for (var i = firstSpreadIndex; i < pointerTimeMap.length; i++) {
+            var pointerElement = pointerTimeMap[i];
+            var pointerElementIndex = pointerElement[0];
+            var nextPointerElement = pointerTimeMap[i + 1];
+            var timeInBetween = void 0;
+            if (nextPointerElement) {
+                timeInBetween = pointerElementIndex - nextPointerElement[0];
+            }
+            else {
+                timeInBetween = pointerElementIndex;
+            }
+            var numberOfElementsNeeded = timeInBetween * factor;
+            var spreadFill = pointerElement[1].spread;
+            var spreadFillSlot = this.newSlot([], spreadFill);
+            for (var j = 1; j <= numberOfElementsNeeded; j++) {
+                var nuIndex = parseFloat((pointerElementIndex - (timeforEachElement * j)).toFixed(1));
+                if (j !== numberOfElementsNeeded) {
+                    this.timemap.set(nuIndex, spreadFillSlot);
+                }
+                else {
+                    if (this.timemap.has(nuIndex)) {
+                        var el = this.timemap.get(nuIndex);
+                        el.spread = el.spread.concat(spreadFillSlot.spread);
+                        this.timemap.set(nuIndex, el);
+                    }
+                    else {
+                        return;
+                    }
+                }
+            }
+        }
+        //}
+    };
     StateExpression.prototype.setInstantStates = function (times, state) {
         var _this = this;
         var time_expression = /(\d+)/g;
         var results = times.match(time_expression);
         if (results) {
             results.map(function (value) {
-                var timeslot = _this.timemap[parseFloat(value)];
-                if (!timeslot) {
-                    _this.timemap[parseFloat(value)] = _this.newSlot([state]);
+                var time = parseFloat(value);
+                if (!_this.timemap.has(time)) {
+                    _this.timemap.set(time, _this.newSlot([state]));
                 }
                 else {
-                    timeslot.instant.push(state);
+                    _this.timemap.get(time).instant.push(state);
                 }
             });
         }
     };
     StateExpression.prototype.setSpreadState = function (_operation, time, state) {
-        var timeslot = this.timemap[time];
-        if (!timeslot) {
-            this.timemap[time] = this.newSlot([], [state]);
+        if (!this.timemap.has(time)) {
+            this.timemap.set(time, this.newSlot([], [state]));
         }
         else {
-            timeslot.spread.push(state);
+            this.timemap.get(time).spread.push(state);
         }
         // TODO: currently when spreads are appiled, it will exists to the 
         // end of its segment. StateExpression.spread_off may need to be 
@@ -187,16 +233,8 @@ var StateExpression = /** @class */ (function () {
         }
         */
     };
-    StateExpression.prototype.checkForSlot = function (time, previousSpread) {
-        var slot = this.timemap[time];
-        if (slot && previousSpread) {
-            slot.spread.concat(previousSpread);
-        }
-        else if (!slot && previousSpread) {
-            slot = this.newSlot([], previousSpread);
-            this.timemap[time] = slot;
-        }
-        return slot;
+    StateExpression.prototype.checkForSlot = function (time) {
+        return this.timemap.get(time);
     };
     StateExpression.prototype.newSlot = function (instant, spread) {
         var _this = this;

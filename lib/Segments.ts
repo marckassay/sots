@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs/Rx';
-import { TimeEmission, IntervalEmissionShape, SlotEmissionShape, TimeSlot } from './api/Emission';
+import { TimeEmission, IntervalEmissionShape, SlotEmissionShape } from './api/Emission';
 import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
 import { StateConfig1, StateConfig2, StateConfig3, StateConfig4, StateConfig5 } from './api/StateConfigs';
 import { SegmentCollection } from './Sequencer';
@@ -11,7 +11,6 @@ export class TimeSegment implements SegmentInterface {
     config: SegmentConfigShape;
     stateExp: StateExpression;
     countingUp: boolean;
-    previousSpread: Array<string | number> | undefined;
 
     constructor(config: SegmentConfigShape, countingUp: boolean = false) {
         this.config = config;
@@ -19,8 +18,7 @@ export class TimeSegment implements SegmentInterface {
     }
 
     public initializeObservable(lastElement: boolean = false): Observable<TimeEmission> {
-        this.previousSpread = undefined;
-        this.stateExp = new StateExpression(this.config, this.seqConfig);
+        this.stateExp = new StateExpression(this.config, this.seqConfig, this.countingUp);
         let totalElements: number = this.config.duration / this.seqConfig.period;
         let source: Observable<TimeEmission> = Observable.range(0, totalElements)
             .map((_value: number, index: number): TimeEmission => {
@@ -33,11 +31,7 @@ export class TimeSegment implements SegmentInterface {
 
                 nuindex = parseFloat(nuindex.toFixed(3));
 
-                let slot: SlotEmissionShape | undefined = this.stateExp.checkForSlot(nuindex, this.previousSpread);
-
-                if (slot && slot.spread.length > 0) {
-                    this.previousSpread = slot.spread;
-                }
+                let slot: SlotEmissionShape | undefined = this.stateExp.checkForSlot(nuindex);
 
                 return { time: nuindex, interval: this.interval, state: slot };
             })
@@ -105,10 +99,12 @@ export class StateExpression {
     static removeSpread: string = "::OFF";
     static spread_regex: RegExp = /(\w+)(?:\:{2})/g;
 
-    private timemap: TimeSlot<SlotEmissionShape> = {};
+    private timemap: Map<number, SlotEmissionShape>;
 
-    constructor(config: SegmentConfigShape, public seqConfig: SequenceConfigShape) {
+    constructor(config: SegmentConfigShape, public seqConfig: SequenceConfigShape, public countingUp: boolean) {
+        this.timemap = new Map<number, SlotEmissionShape>();
         this.parse(config);
+        this.applySpreading();
     }
 
     private parse(config: SegmentConfigShape): void {
@@ -150,29 +146,80 @@ export class StateExpression {
         }
     }
 
+    private applySpreading(): void {
+        const pointerTimeMap: Array<Array<number | SlotEmissionShape>> = Array.from(this.timemap).sort((a: [number, SlotEmissionShape], b: [number, SlotEmissionShape]) => {
+            if (!this.countingUp) {
+                return b[0] - a[0];
+            } else {
+                return a[0] - b[0];
+            }
+        });
+
+        const firstSpreadIndex: number = pointerTimeMap.findIndex((value: Array<number | SlotEmissionShape>) => {
+            return (value[1] as SlotEmissionShape).spread.length > 0;
+        });
+
+        const factor: number = parseFloat((1000 / this.seqConfig.period).toFixed(1));
+        const timeforEachElement: number = parseFloat((this.seqConfig.period * .001).toFixed(1));
+
+        //if (!this.countingUp) {
+        for (var i: number = firstSpreadIndex; i < pointerTimeMap.length; i++) {
+            const pointerElement: Array<number | SlotEmissionShape> = pointerTimeMap[i];
+            const pointerElementIndex: number = (pointerElement[0] as number);
+            const nextPointerElement: Array<number | SlotEmissionShape> = pointerTimeMap[i + 1];
+            let timeInBetween: number;
+            if (nextPointerElement) {
+                timeInBetween = pointerElementIndex - (nextPointerElement[0] as number);
+            } else {
+                timeInBetween = pointerElementIndex;
+            }
+
+            const numberOfElementsNeeded: number = timeInBetween * factor;
+            const spreadFill: (string | number)[] = (pointerElement[1] as SlotEmissionShape).spread;
+            const spreadFillSlot: SlotEmissionShape = this.newSlot([], spreadFill);
+
+            for (let j: number = 1; j <= numberOfElementsNeeded; j++) {
+                const nuIndex: number = parseFloat((pointerElementIndex - (timeforEachElement * j)).toFixed(1));
+
+                if (j !== numberOfElementsNeeded) {
+                    this.timemap.set(nuIndex, spreadFillSlot);
+                } else {
+                    if (this.timemap.has(nuIndex)) {
+                        const el: SlotEmissionShape = this.timemap.get(nuIndex)!;
+                        el.spread = el.spread.concat(spreadFillSlot.spread);
+                        this.timemap.set(nuIndex, el);
+                    } else {
+                        return;
+                    }
+                }
+            }
+        }
+        //}
+    }
+
     private setInstantStates(times: string, state: string | number): void {
         const time_expression: RegExp = /(\d+)/g;
 
         let results: RegExpMatchArray | null = times.match(time_expression);
         if (results) {
             results.map((value: string) => {
-                let timeslot: SlotEmissionShape = this.timemap[parseFloat(value)];
-                if (!timeslot) {
-                    this.timemap[parseFloat(value)] = this.newSlot([state]);
+                const time: number = parseFloat(value);
+                if (!this.timemap.has(time)) {
+                    this.timemap.set(time, this.newSlot([state]));
                 } else {
-                    timeslot.instant.push(state);
+                    this.timemap.get(time)!.instant.push(state);
                 }
             });
         }
     }
 
     private setSpreadState(_operation: "lessThan" | "greaterThan", time: number, state: string | number): void {
-        const timeslot: SlotEmissionShape = this.timemap[time];
-        if (!timeslot) {
-            this.timemap[time] = this.newSlot([], [state]);
+        if (!this.timemap.has(time)) {
+            this.timemap.set(time, this.newSlot([], [state]));
         } else {
-            timeslot.spread.push(state);
+            this.timemap.get(time)!.spread.push(state);
         }
+
         // TODO: currently when spreads are appiled, it will exists to the 
         // end of its segment. StateExpression.spread_off may need to be 
         // used for some purposes, if so modification (at minimum) here 
@@ -187,17 +234,8 @@ export class StateExpression {
         */
     }
 
-    checkForSlot(time: number, previousSpread: Array<string | number> | undefined): SlotEmissionShape | undefined {
-        let slot: SlotEmissionShape | undefined = this.timemap[time];
-
-        if (slot && previousSpread) {
-            slot.spread.concat(previousSpread);
-        } else if (!slot && previousSpread) {
-            slot = this.newSlot([], previousSpread);
-            this.timemap[time] = slot;
-        }
-
-        return slot;
+    checkForSlot(time: number): SlotEmissionShape | undefined {
+        return this.timemap.get(time);
     }
 
     newSlot(instant: Array<string | number> = [], spread: Array<string | number> = []): SlotEmissionShape {
