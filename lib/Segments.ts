@@ -1,42 +1,39 @@
 import { Observable } from 'rxjs/Rx';
-import { TimeEmission, IntervalEmissionShape, SlotEmissionShape } from './api/Emission';
+import { TimeEmission, IntervalEmission, StateEmission } from './api/Emission';
 import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
 import { StateConfig1, StateConfig2, StateConfig3, StateConfig4, StateConfig5 } from './api/StateConfigs';
 import { SegmentCollection } from './Sequencer';
 
 export class TimeSegment implements SegmentInterface {
-    seqConfig: SequenceConfigShape;
-    interval: IntervalEmissionShape;
-    collection: SegmentCollection;
     config: SegmentConfigShape;
-    stateExp: StateExpression;
-    countingUp: boolean;
+    seqConfig: SequenceConfigShape;
+    collection: SegmentCollection;
+    interval: IntervalEmission;
+    private countingUp: boolean;
+    private stateExp: StateExpression;
 
     constructor(config: SegmentConfigShape, countingUp: boolean = false) {
         this.config = config;
         this.countingUp = countingUp;
     }
 
-    public initializeObservable(lastElement: boolean = false): Observable<TimeEmission> {
+    public initializeObservable(lastElementOfSeq: boolean = false): Observable<TimeEmission> {
         this.stateExp = new StateExpression(this.config, this.seqConfig, this.countingUp);
-        let totalElements: number = this.config.duration / this.seqConfig.period;
-        let source: Observable<TimeEmission> = Observable.range(0, totalElements)
+        let numberOfElements: number = this.config.duration / this.seqConfig.period;
+        let source: Observable<TimeEmission> = Observable.range(0, numberOfElements)
             .map((_value: number, index: number): TimeEmission => {
-                let nuindex: number;
+                let newIndex: number;
                 if (!this.countingUp) {
-                    nuindex = (this.config.duration - (this.seqConfig.period * index)) * .001;
+                    newIndex = (this.config.duration - (this.seqConfig.period * index)) * .001;
                 } else {
-                    nuindex = (this.seqConfig.period * index) * .001;
+                    newIndex = (this.seqConfig.period * index) * .001;
                 }
+                newIndex = parseFloat(newIndex.toFixed(3));
 
-                nuindex = parseFloat(nuindex.toFixed(3));
-
-                let slot: SlotEmissionShape | undefined = this.stateExp.checkForSlot(nuindex);
-
-                return { time: nuindex, interval: this.interval, state: slot };
+                return { time: newIndex, interval: this.interval, state: this.stateExp.getStateEmission(newIndex) };
             })
             .takeWhile((value: TimeEmission) => {
-                if (lastElement == false) {
+                if (lastElementOfSeq == false) {
                     if (!this.countingUp) {
                         return value.time > 0;
                     } else {
@@ -95,51 +92,47 @@ export class CountupSegment extends TimeSegment {
 }
 
 export class StateExpression {
-    static applySpread: string = "::ON";
-    static removeSpread: string = "::OFF";
-    static spread_regex: RegExp = /(\w+)(?:\:{2})/g;
-    private timemap: Map<number, SlotEmissionShape>;
-    private flaggedToApplySpreading: boolean;
+    private timemap: Map<number, StateEmission>;
+    private toApplySpreading: boolean;
 
     constructor(config: SegmentConfigShape, public seqConfig: SequenceConfigShape, public countingUp: boolean) {
-        this.timemap = new Map<number, SlotEmissionShape>();
+        this.timemap = new Map<number, StateEmission>();
         this.parse(config);
-        if (this.flaggedToApplySpreading) {
+        if (this.toApplySpreading) {
             this.applySpreading();
         }
     }
 
     private parse(config: SegmentConfigShape): void {
-
         if (config.states) {
-            let statetime: Array<StateConfig1 | StateConfig2 | StateConfig3 | StateConfig4 | StateConfig5> = config.states;
-            const len: number = statetime.length;
+            const states: Array<StateConfig1 | StateConfig2 | StateConfig3 | StateConfig4 | StateConfig5> = config.states;
+            const statesLength: number = states.length;
 
-            for (let index = 0; index < len; index++) {
-                for (let property in statetime[index]) {
-                    let state: string | number = statetime[index].state;
+            for (let index = 0; index < statesLength; index++) {
+                for (let property in states[index]) {
+                    let state: string | number = states[index].state;
                     switch (property) {
                         case "timeAt":
-                            this.setInstantStates((statetime[index] as StateConfig1).timeAt, state);
+                            this.setInstantStates((states[index] as StateConfig1).timeAt, state);
                             break;
 
                         case "timeLessThan":
-                            let time2: number = parseFloat((statetime[index] as StateConfig2).timeLessThan) - this.seqConfig.period;
+                            let time2: number = parseFloat((states[index] as StateConfig2).timeLessThan) - this.seqConfig.period;
                             this.setSpreadState("lessThan", time2, state);
                             break;
 
                         case "timeLessThanOrEqualTo":
-                            let time3: number = parseFloat((statetime[index] as StateConfig3).timeLessThanOrEqualTo);
+                            let time3: number = parseFloat((states[index] as StateConfig3).timeLessThanOrEqualTo);
                             this.setSpreadState("lessThan", time3, state);
                             break;
 
                         case "timeGreaterThan":
-                            let time4: number = parseFloat((statetime[index] as StateConfig4).timeGreaterThan) + this.seqConfig.period;
+                            let time4: number = parseFloat((states[index] as StateConfig4).timeGreaterThan) + this.seqConfig.period;
                             this.setSpreadState("greaterThan", time4, state);
                             break;
 
                         case "timeGreaterThanOrEqualTo":
-                            let time5: number = parseFloat((statetime[index] as StateConfig5).timeGreaterThanOrEqualTo);
+                            let time5: number = parseFloat((states[index] as StateConfig5).timeGreaterThanOrEqualTo);
                             this.setSpreadState("greaterThan", time5, state);
                             break;
                     }
@@ -149,55 +142,54 @@ export class StateExpression {
     }
 
     private applySpreading(): void {
-        const pointerTimeMap: Array<Array<number | SlotEmissionShape>> = Array
+        // create an array from timemap and sort it...
+        const pointerTimemap: Array<Array<number | StateEmission>> = Array
             .from(this.timemap)
-            .sort((a: [number, SlotEmissionShape], b: [number, SlotEmissionShape]) => {
+            .sort((a: [number, StateEmission], b: [number, StateEmission]) => {
                 return b[0] - a[0];
             });
 
-        const firstSpreadIndex: number = pointerTimeMap
-            .findIndex((value: Array<number | SlotEmissionShape>) => {
-                return (value[1] as SlotEmissionShape).spread.length > 0;
+        // find the first element that has a spread with length...
+        const firstSpreadIndex: number = pointerTimemap
+            .findIndex((value: Array<number | StateEmission>) => {
+                return (value[1] as StateEmission).spread.length > 0;
             });
+        // calculate the time for the element to be spread...
+        const timeFactor: number = parseFloat((1000 / this.seqConfig.period).toFixed(1));
+        const timeForElement: number = parseFloat((this.seqConfig.period * .001).toFixed(1));
 
-        const factor: number = parseFloat((1000 / this.seqConfig.period).toFixed(1));
-        const timeforEachElement: number = parseFloat((this.seqConfig.period * .001).toFixed(1));
-        let lastTouchedElement: Array<number | SlotEmissionShape> | undefined;
+        let lastAddedElement: Array<number | StateEmission> | undefined;
 
-        for (var i: number = firstSpreadIndex; i < pointerTimeMap.length; i++) {
-            const pointerElement: Array<number | SlotEmissionShape> = (lastTouchedElement) ? lastTouchedElement : pointerTimeMap[i];
+        // for each spread element in this timesegment calculate the time between it, and the next element or end of segment. 
+        for (var i: number = firstSpreadIndex; i < pointerTimemap.length; i++) {
+            const pointerElement: Array<number | StateEmission> = (lastAddedElement) ? lastAddedElement : pointerTimemap[i];
             const pointerElementIndex: number = (pointerElement[0] as number);
-            const nextPointerElement: Array<number | SlotEmissionShape> = pointerTimeMap[i + 1];
-            let timeInBetween: number;
+            const nextPointerElement: Array<number | StateEmission> = pointerTimemap[i + 1];
+            let timeInBetweenElements: number;
             if (nextPointerElement) {
-                timeInBetween = Math.abs(pointerElementIndex - (nextPointerElement[0] as number));
+                timeInBetweenElements = Math.abs(pointerElementIndex - (nextPointerElement[0] as number));
             } else {
-                timeInBetween = pointerElementIndex;
+                timeInBetweenElements = pointerElementIndex;
             }
 
-            const numberOfElementsNeeded: number = timeInBetween * factor;
-            const spreadFill: (string | number)[] = (pointerElement[1] as SlotEmissionShape).spread;
-            const spreadFillSlot: SlotEmissionShape = this.newSlot([], spreadFill);
+            const numberOfElementsNeeded: number = timeInBetweenElements * timeFactor;
+            const spreadThisEmission: StateEmission = this.newStateEmission([], (pointerElement[1] as StateEmission).spread);
 
             for (let j: number = 1; j <= numberOfElementsNeeded; j++) {
-                let nuIndex: number;
-                if (!this.countingUp) {
-                    nuIndex = parseFloat((pointerElementIndex - (timeforEachElement * j)).toFixed(1));
-                } else {
-                    nuIndex = parseFloat((pointerElementIndex + (timeforEachElement * j)).toFixed(1));
-                }
+                let newIndex: number = (!this.countingUp) ? pointerElementIndex - (timeForElement * j) : pointerElementIndex + (timeForElement * j);
+                newIndex = parseFloat(newIndex.toFixed(1));
 
                 if (j !== numberOfElementsNeeded) {
-                    this.timemap.set(nuIndex, spreadFillSlot);
+                    this.timemap.set(newIndex, spreadThisEmission);
                 } else {
-                    if (this.timemap.has(nuIndex)) {
-                        const el: SlotEmissionShape = this.timemap.get(nuIndex)!;
-                        let nuInstant = el.instant;
-                        let nuSpread = el.spread.concat(spreadFillSlot.spread);
-                        let nuSlot = this.newSlot(nuInstant, nuSpread);
-                        this.timemap.set(nuIndex, nuSlot);
+                    if (this.timemap.has(newIndex)) {
+                        const emission: StateEmission = this.timemap.get(newIndex)!;
+                        let newInstant = emission.instant;
+                        let newSpread = emission.spread.concat(spreadThisEmission.spread);
+                        let newEmission = this.newStateEmission(newInstant, newSpread);
+                        this.timemap.set(newIndex, newEmission);
 
-                        lastTouchedElement = [nuIndex, nuSlot];
+                        lastAddedElement = [newIndex, newEmission];
                     } else {
                         return;
                     }
@@ -207,14 +199,14 @@ export class StateExpression {
     }
 
     private setInstantStates(times: string, state: string | number): void {
-        const time_expression: RegExp = /(\d+)/g;
+        const timeExpression: RegExp = /(\d+)/g;
 
-        let results: RegExpMatchArray | null = times.match(time_expression);
+        let results: RegExpMatchArray | null = times.match(timeExpression);
         if (results) {
             results.map((value: string) => {
                 const time: number = parseFloat(value);
                 if (!this.timemap.has(time)) {
-                    this.timemap.set(time, this.newSlot([state]));
+                    this.timemap.set(time, this.newStateEmission([state]));
                 } else {
                     this.timemap.get(time)!.instant.push(state);
                 }
@@ -223,11 +215,10 @@ export class StateExpression {
     }
 
     private setSpreadState(_operation: "lessThan" | "greaterThan", time: number, state: string | number): void {
-
-        this.flaggedToApplySpreading = true;
+        this.toApplySpreading = true;
 
         if (!this.timemap.has(time)) {
-            this.timemap.set(time, this.newSlot([], [state]));
+            this.timemap.set(time, this.newStateEmission([], [state]));
         } else {
             this.timemap.get(time)!.spread.push(state);
         }
@@ -246,11 +237,11 @@ export class StateExpression {
         */
     }
 
-    checkForSlot(time: number): SlotEmissionShape | undefined {
+    getStateEmission(time: number): StateEmission | undefined {
         return this.timemap.get(time);
     }
 
-    newSlot(instant: Array<string | number> = [], spread: Array<string | number> = []): SlotEmissionShape {
+    newStateEmission(instant: Array<string | number> = [], spread: Array<string | number> = []): StateEmission {
         return {
             instant: instant,
             spread: spread,
@@ -264,11 +255,10 @@ export class StateExpression {
 
                 return results;
             }
-        } as SlotEmissionShape;
+        } as StateEmission;
     }
 
     private getStateValues(instant: Array<string | number>, spread: Array<string | number>, state: string | number, compareAsBitwise?: boolean): number {
-
         let useBitwiseCompare: boolean;
         if (compareAsBitwise != undefined) {
             useBitwiseCompare = compareAsBitwise;
