@@ -17,26 +17,25 @@ var TimeSegment = /** @class */ (function () {
         this.config = config;
         this.countingUp = countingUp;
     }
-    TimeSegment.prototype.initializeObservable = function (lastElement) {
+    TimeSegment.prototype.initializeObservable = function (lastElementOfSeq) {
         var _this = this;
-        if (lastElement === void 0) { lastElement = false; }
+        if (lastElementOfSeq === void 0) { lastElementOfSeq = false; }
         this.stateExp = new StateExpression(this.config, this.seqConfig, this.countingUp);
-        var totalElements = this.config.duration / this.seqConfig.period;
-        var source = Rx_1.Observable.range(0, totalElements)
+        //let numberOfElements: number = this.config.duration / this.seqConfig.period;
+        var source = Rx_1.Observable.interval(this.seqConfig.period)
             .map(function (_value, index) {
-            var nuindex;
+            var time;
             if (!_this.countingUp) {
-                nuindex = (_this.config.duration - (_this.seqConfig.period * index)) * .001;
+                time = (_this.config.duration - (_this.seqConfig.period * index)) * .001;
             }
             else {
-                nuindex = (_this.seqConfig.period * index) * .001;
+                time = (_this.seqConfig.period * index) * .001;
             }
-            nuindex = parseFloat(nuindex.toFixed(3));
-            var slot = _this.stateExp.checkForSlot(nuindex);
-            return { time: nuindex, interval: _this.interval, state: slot };
+            time = parseFloat(time.toFixed(3));
+            return { time: time, interval: _this.interval, state: _this.stateExp.getStateEmission(time) };
         })
             .takeWhile(function (value) {
-            if (lastElement == false) {
+            if (lastElementOfSeq == false) {
                 if (!_this.countingUp) {
                     return value.time > 0;
                 }
@@ -114,35 +113,35 @@ var StateExpression = /** @class */ (function () {
         this.countingUp = countingUp;
         this.timemap = new Map();
         this.parse(config);
-        if (this.flaggedToApplySpreading) {
+        if (this.toApplySpreading) {
             this.applySpreading();
         }
     }
     StateExpression.prototype.parse = function (config) {
         if (config.states) {
-            var statetime = config.states;
-            var len = statetime.length;
-            for (var index = 0; index < len; index++) {
-                for (var property in statetime[index]) {
-                    var state = statetime[index].state;
+            var states = config.states;
+            var statesLength = states.length;
+            for (var index = 0; index < statesLength; index++) {
+                for (var property in states[index]) {
+                    var state = states[index].state;
                     switch (property) {
                         case "timeAt":
-                            this.setInstantStates(statetime[index].timeAt, state);
+                            this.setInstantStates(states[index].timeAt, state);
                             break;
                         case "timeLessThan":
-                            var time2 = parseFloat(statetime[index].timeLessThan) - this.seqConfig.period;
+                            var time2 = parseFloat(states[index].timeLessThan) - this.seqConfig.period;
                             this.setSpreadState("lessThan", time2, state);
                             break;
                         case "timeLessThanOrEqualTo":
-                            var time3 = parseFloat(statetime[index].timeLessThanOrEqualTo);
+                            var time3 = parseFloat(states[index].timeLessThanOrEqualTo);
                             this.setSpreadState("lessThan", time3, state);
                             break;
                         case "timeGreaterThan":
-                            var time4 = parseFloat(statetime[index].timeGreaterThan) + this.seqConfig.period;
+                            var time4 = parseFloat(states[index].timeGreaterThan) + this.seqConfig.period;
                             this.setSpreadState("greaterThan", time4, state);
                             break;
                         case "timeGreaterThanOrEqualTo":
-                            var time5 = parseFloat(statetime[index].timeGreaterThanOrEqualTo);
+                            var time5 = parseFloat(states[index].timeGreaterThanOrEqualTo);
                             this.setSpreadState("greaterThan", time5, state);
                             break;
                     }
@@ -151,51 +150,49 @@ var StateExpression = /** @class */ (function () {
         }
     };
     StateExpression.prototype.applySpreading = function () {
-        var pointerTimeMap = Array
+        // create an array from timemap and sort it...
+        var pointerTimemap = Array
             .from(this.timemap)
             .sort(function (a, b) {
             return b[0] - a[0];
         });
-        var firstSpreadIndex = pointerTimeMap
+        // find the first element that has a spread with length...
+        var firstSpreadIndex = pointerTimemap
             .findIndex(function (value) {
             return value[1].spread.length > 0;
         });
-        var factor = parseFloat((1000 / this.seqConfig.period).toFixed(1));
-        var timeforEachElement = parseFloat((this.seqConfig.period * .001).toFixed(1));
-        var lastTouchedElement;
-        for (var i = firstSpreadIndex; i < pointerTimeMap.length; i++) {
-            var pointerElement = (lastTouchedElement) ? lastTouchedElement : pointerTimeMap[i];
+        // calculate the time for the element to be spread...
+        var timeFactor = parseFloat((1000 / this.seqConfig.period).toFixed(1));
+        var timeForElement = parseFloat((this.seqConfig.period * .001).toFixed(1));
+        var lastAddedElement;
+        // for each spread element in this timesegment calculate the time between it, and the next element or end of segment. 
+        for (var i = firstSpreadIndex; i < pointerTimemap.length; i++) {
+            var pointerElement = (lastAddedElement) ? lastAddedElement : pointerTimemap[i];
             var pointerElementIndex = pointerElement[0];
-            var nextPointerElement = pointerTimeMap[i + 1];
-            var timeInBetween = void 0;
+            var nextPointerElement = pointerTimemap[i + 1];
+            var timeInBetweenElements = void 0;
             if (nextPointerElement) {
-                timeInBetween = Math.abs(pointerElementIndex - nextPointerElement[0]);
+                timeInBetweenElements = Math.abs(pointerElementIndex - nextPointerElement[0]);
             }
             else {
-                timeInBetween = pointerElementIndex;
+                timeInBetweenElements = pointerElementIndex;
             }
-            var numberOfElementsNeeded = timeInBetween * factor;
-            var spreadFill = pointerElement[1].spread;
-            var spreadFillSlot = this.newSlot([], spreadFill);
+            var numberOfElementsNeeded = timeInBetweenElements * timeFactor;
+            var spreadThisEmission = this.newStateEmission([], pointerElement[1].spread);
             for (var j = 1; j <= numberOfElementsNeeded; j++) {
-                var nuIndex = void 0;
-                if (!this.countingUp) {
-                    nuIndex = parseFloat((pointerElementIndex - (timeforEachElement * j)).toFixed(1));
-                }
-                else {
-                    nuIndex = parseFloat((pointerElementIndex + (timeforEachElement * j)).toFixed(1));
-                }
+                var newIndex = (!this.countingUp) ? pointerElementIndex - (timeForElement * j) : pointerElementIndex + (timeForElement * j);
+                newIndex = parseFloat(newIndex.toFixed(1));
                 if (j !== numberOfElementsNeeded) {
-                    this.timemap.set(nuIndex, spreadFillSlot);
+                    this.timemap.set(newIndex, spreadThisEmission);
                 }
                 else {
-                    if (this.timemap.has(nuIndex)) {
-                        var el = this.timemap.get(nuIndex);
-                        var nuInstant = el.instant;
-                        var nuSpread = el.spread.concat(spreadFillSlot.spread);
-                        var nuSlot = this.newSlot(nuInstant, nuSpread);
-                        this.timemap.set(nuIndex, nuSlot);
-                        lastTouchedElement = [nuIndex, nuSlot];
+                    if (this.timemap.has(newIndex)) {
+                        var emission = this.timemap.get(newIndex);
+                        var newInstant = emission.instant;
+                        var newSpread = emission.spread.concat(spreadThisEmission.spread);
+                        var newEmission = this.newStateEmission(newInstant, newSpread);
+                        this.timemap.set(newIndex, newEmission);
+                        lastAddedElement = [newIndex, newEmission];
                     }
                     else {
                         return;
@@ -206,13 +203,13 @@ var StateExpression = /** @class */ (function () {
     };
     StateExpression.prototype.setInstantStates = function (times, state) {
         var _this = this;
-        var time_expression = /(\d+)/g;
-        var results = times.match(time_expression);
+        var timeExpression = /(\d+)/g;
+        var results = times.match(timeExpression);
         if (results) {
             results.map(function (value) {
                 var time = parseFloat(value);
                 if (!_this.timemap.has(time)) {
-                    _this.timemap.set(time, _this.newSlot([state]));
+                    _this.timemap.set(time, _this.newStateEmission([state]));
                 }
                 else {
                     _this.timemap.get(time).instant.push(state);
@@ -221,9 +218,9 @@ var StateExpression = /** @class */ (function () {
         }
     };
     StateExpression.prototype.setSpreadState = function (_operation, time, state) {
-        this.flaggedToApplySpreading = true;
+        this.toApplySpreading = true;
         if (!this.timemap.has(time)) {
-            this.timemap.set(time, this.newSlot([], [state]));
+            this.timemap.set(time, this.newStateEmission([], [state]));
         }
         else {
             this.timemap.get(time).spread.push(state);
@@ -241,10 +238,10 @@ var StateExpression = /** @class */ (function () {
         }
         */
     };
-    StateExpression.prototype.checkForSlot = function (time) {
+    StateExpression.prototype.getStateEmission = function (time) {
         return this.timemap.get(time);
     };
-    StateExpression.prototype.newSlot = function (instant, spread) {
+    StateExpression.prototype.newStateEmission = function (instant, spread) {
         var _this = this;
         if (instant === void 0) { instant = []; }
         if (spread === void 0) { spread = []; }
@@ -305,9 +302,6 @@ var StateExpression = /** @class */ (function () {
             }
         }
     };
-    StateExpression.applySpread = "::ON";
-    StateExpression.removeSpread = "::OFF";
-    StateExpression.spread_regex = /(\w+)(?:\:{2})/g;
     return StateExpression;
 }());
 exports.StateExpression = StateExpression;

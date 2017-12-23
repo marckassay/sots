@@ -167,8 +167,7 @@ var Sequencer = /** @class */ (function () {
     Sequencer.prototype.publish = function () {
         var _this = this;
         this.source = this.collection.toSequencedObservable();
-        return Rx_1.Observable.from(this.source)
-            .zip(this.pauseObserv.switchMap(function (value) { return (value) ? Rx_1.Observable.interval(_this.config.period) : Rx_1.Observable.never(); }), function (value) { return value; });
+        return this.source.zip(this.pauseObserv.switchMap(function (value) { return (value) ? Rx_1.Observable.interval(_this.config.period) : Rx_1.Observable.never(); }), function (value) { return value; });
     };
     Sequencer.prototype.subscribe = function (nextOrObserver, error, complete) {
         if (typeof nextOrObserver !== 'function') {

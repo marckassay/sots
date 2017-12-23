@@ -175,10 +175,9 @@ export class Sequencer implements SegmentInterface, Subscribable {
     publish(): Observable<TimeEmission> {
         this.source = this.collection.toSequencedObservable();
 
-        return Observable.from(this.source)
-            .zip(this.pauseObserv.switchMap(
-                (value) => (value) ? Observable.interval(this.config.period) : Observable.never<number>()),
-            (value: TimeEmission) => value);
+        return this.source.zip(this.pauseObserv.switchMap(
+            (value) => (value) ? Observable.interval(this.config.period) : Observable.never<number>()
+        ), (value: TimeEmission) => value);
     }
 
     /**

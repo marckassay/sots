@@ -1,16 +1,16 @@
 import { Observable } from 'rxjs/Rx';
-import { TimeEmission, IntervalEmissionShape, SlotEmissionShape } from './api/Emission';
+import { TimeEmission, IntervalEmission, StateEmission } from './api/Emission';
 import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
 import { SegmentCollection } from './Sequencer';
 export declare class TimeSegment implements SegmentInterface {
-    seqConfig: SequenceConfigShape;
-    interval: IntervalEmissionShape;
-    collection: SegmentCollection;
     config: SegmentConfigShape;
-    stateExp: StateExpression;
-    countingUp: boolean;
+    seqConfig: SequenceConfigShape;
+    collection: SegmentCollection;
+    interval: IntervalEmission;
+    private countingUp;
+    private stateExp;
     constructor(config: SegmentConfigShape, countingUp?: boolean);
-    initializeObservable(lastElement?: boolean): Observable<TimeEmission>;
+    initializeObservable(lastElementOfSeq?: boolean): Observable<TimeEmission>;
     /**
      * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
      * @param ctor    A type being subclass of TimeSegment,  Specifically CountupSegment or CountdownSegment.
@@ -44,17 +44,14 @@ export declare class CountupSegment extends TimeSegment {
 export declare class StateExpression {
     seqConfig: SequenceConfigShape;
     countingUp: boolean;
-    static applySpread: string;
-    static removeSpread: string;
-    static spread_regex: RegExp;
     private timemap;
-    private flaggedToApplySpreading;
+    private toApplySpreading;
     constructor(config: SegmentConfigShape, seqConfig: SequenceConfigShape, countingUp: boolean);
     private parse(config);
     private applySpreading();
     private setInstantStates(times, state);
     private setSpreadState(_operation, time, state);
-    checkForSlot(time: number): SlotEmissionShape | undefined;
-    newSlot(instant?: Array<string | number>, spread?: Array<string | number>): SlotEmissionShape;
+    getStateEmission(time: number): StateEmission | undefined;
+    newStateEmission(instant?: Array<string | number>, spread?: Array<string | number>): StateEmission;
     private getStateValues(instant, spread, state, compareAsBitwise?);
 }

@@ -19,18 +19,18 @@ export class TimeSegment implements SegmentInterface {
 
     public initializeObservable(lastElementOfSeq: boolean = false): Observable<TimeEmission> {
         this.stateExp = new StateExpression(this.config, this.seqConfig, this.countingUp);
-        let numberOfElements: number = this.config.duration / this.seqConfig.period;
-        let source: Observable<TimeEmission> = Observable.range(0, numberOfElements)
+        //let numberOfElements: number = this.config.duration / this.seqConfig.period;
+        let source: Observable<TimeEmission> = Observable.interval(this.seqConfig.period)
             .map((_value: number, index: number): TimeEmission => {
-                let newIndex: number;
+                let time: number;
                 if (!this.countingUp) {
-                    newIndex = (this.config.duration - (this.seqConfig.period * index)) * .001;
+                    time = (this.config.duration - (this.seqConfig.period * index)) * .001;
                 } else {
-                    newIndex = (this.seqConfig.period * index) * .001;
+                    time = (this.seqConfig.period * index) * .001;
                 }
-                newIndex = parseFloat(newIndex.toFixed(3));
+                time = parseFloat(time.toFixed(3));
 
-                return { time: newIndex, interval: this.interval, state: this.stateExp.getStateEmission(newIndex) };
+                return { time: time, interval: this.interval, state: this.stateExp.getStateEmission(time) };
             })
             .takeWhile((value: TimeEmission) => {
                 if (lastElementOfSeq == false) {
@@ -154,6 +154,7 @@ export class StateExpression {
             .findIndex((value: Array<number | StateEmission>) => {
                 return (value[1] as StateEmission).spread.length > 0;
             });
+
         // calculate the time for the element to be spread...
         const timeFactor: number = parseFloat((1000 / this.seqConfig.period).toFixed(1));
         const timeForElement: number = parseFloat((this.seqConfig.period * .001).toFixed(1));
