@@ -52,7 +52,7 @@ const sequencer: Sequencer = new Sequencer({ period: 100, compareAsBitwise: true
 sequencer.add(CountdownSegment, {
     duration: 10000,
     states: [
-        { state: AppStates.Beep, timeAt: "10,2,1" },
+        { state: AppStates.Beep, timeAt: "mod1" },
         { state: AppStates.Warning, timeLessThanOrEqualTo: "5" }
     ]
 })
@@ -112,7 +112,7 @@ time: 9.4
 time: 9.3
 time: 9.2
 time: 9.1
-time: 9
+time: 9 valueOf: 2 state: 'beep'
 time: 8.9
 time: 8.8
 time: 8.7
@@ -122,7 +122,7 @@ time: 8.4
 time: 8.3
 time: 8.2
 time: 8.1
-time: 8
+time: 8 valueOf: 2 state: 'beep'
 time: 7.9
 time: 7.8
 time: 7.7
@@ -132,7 +132,7 @@ time: 7.4
 time: 7.3
 time: 7.2
 pausing for 3 seconds until reset.
-reset completed.restarting in 3 seconds.
+reset completed.  restarting in 3 seconds.
 (re)started!
 time: 10 valueOf: 2 state: 'beep'
 time: 9.9
@@ -144,7 +144,7 @@ time: 9.4
 time: 9.3
 time: 9.2
 time: 9.1
-time: 9
+time: 9 valueOf: 2 state: 'beep'
 time: 8.9
 time: 8.8
 time: 8.7
@@ -154,7 +154,7 @@ time: 8.4
 time: 8.3
 time: 8.2
 time: 8.1
-time: 8
+time: 8 valueOf: 2 state: 'beep'
 time: 7.9
 time: 7.8
 time: 7.7
@@ -164,7 +164,7 @@ time: 7.4
 time: 7.3
 time: 7.2
 time: 7.1
-time: 7
+time: 7 valueOf: 2 state: 'beep'
 time: 6.9
 time: 6.8
 time: 6.7
@@ -174,7 +174,7 @@ time: 6.4
 time: 6.3
 time: 6.2
 time: 6.1
-time: 6
+time: 6 valueOf: 2 state: 'beep'
 time: 5.9
 time: 5.8
 time: 5.7
@@ -184,7 +184,7 @@ time: 5.4
 time: 5.3
 time: 5.2
 time: 5.1
-time: 5 valueOf: 4 state: 'warning'
+time: 5 valueOf: 6 state: 'alert!'
 time: 4.9 valueOf: 4 state: 'warning'
 time: 4.8 valueOf: 4 state: 'warning'
 time: 4.7 valueOf: 4 state: 'warning'
@@ -194,7 +194,7 @@ time: 4.4 valueOf: 4 state: 'warning'
 time: 4.3 valueOf: 4 state: 'warning'
 time: 4.2 valueOf: 4 state: 'warning'
 time: 4.1 valueOf: 4 state: 'warning'
-time: 4 valueOf: 4 state: 'warning'
+time: 4 valueOf: 6 state: 'alert!'
 time: 3.9 valueOf: 4 state: 'warning'
 time: 3.8 valueOf: 4 state: 'warning'
 time: 3.7 valueOf: 4 state: 'warning'
@@ -204,7 +204,7 @@ time: 3.4 valueOf: 4 state: 'warning'
 time: 3.3 valueOf: 4 state: 'warning'
 time: 3.2 valueOf: 4 state: 'warning'
 time: 3.1 valueOf: 4 state: 'warning'
-time: 3 valueOf: 4 state: 'warning'
+time: 3 valueOf: 6 state: 'alert!'
 time: 2.9 valueOf: 4 state: 'warning'
 time: 2.8 valueOf: 4 state: 'warning'
 time: 2.7 valueOf: 4 state: 'warning'

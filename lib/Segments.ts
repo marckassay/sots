@@ -95,7 +95,7 @@ export class StateExpression {
     private timemap: Map<number, StateEmission>;
     private toApplySpreading: boolean;
 
-    constructor(config: SegmentConfigShape, public seqConfig: SequenceConfigShape, public countingUp: boolean) {
+    constructor(public config: SegmentConfigShape, public seqConfig: SequenceConfigShape, public countingUp: boolean) {
         this.timemap = new Map<number, StateEmission>();
         this.parse(config);
         if (this.toApplySpreading) {
@@ -200,16 +200,30 @@ export class StateExpression {
     }
 
     private setInstantStates(times: string, state: string | number): void {
-        const timeExpression: RegExp = /(\d+)/g;
-
+        const timeExpression: RegExp = /[^,]+/g;
+        const moduloExpression: RegExp = /(mod\s*|%\s*)\d+/;
         let results: RegExpMatchArray | null = times.match(timeExpression);
+
+        let insertInstantState = (value: number): void => {
+            if (!this.timemap.has(value)) {
+                this.timemap.set(value, this.newStateEmission([state]));
+            } else {
+                this.timemap.get(value)!.instant.push(state);
+            }
+        };
+
         if (results) {
             results.map((value: string) => {
-                const time: number = parseFloat(value);
-                if (!this.timemap.has(time)) {
-                    this.timemap.set(time, this.newStateEmission([state]));
+                if (value.search(moduloExpression) == -1) {
+                    const time: number = parseFloat(value);
+                    insertInstantState(time);
                 } else {
-                    this.timemap.get(time)!.instant.push(state);
+                    const modTime: number = parseInt(value.match(/\d+/)![0]);
+                    let modTimeFactor: number = modTime;
+                    while ((modTimeFactor * 1000) <= this.config.duration) {
+                        insertInstantState(modTimeFactor);
+                        modTimeFactor += modTime;
+                    }
                 }
             });
         }

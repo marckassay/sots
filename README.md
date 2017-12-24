@@ -46,7 +46,7 @@ seq.start();
 
 ## Definitions
 * instant (state): 
-These states are momentary, as they are emitted only at a specific instant in time.  The time value needs to be defined in units of a second.
+These states are momentary, as they are emitted only at a specific instant in time.  The time value needs to be defined in units of a second.  A value can have a modulo operator prefixed in the form of (`mod[n]` or `%[n]`) that will be applied to its segment.  See Example 3 on how this is used.
 
 * spread (state): 
 These states are non-momentary, as they "spread" over time until termination of its time segment.  The time value needs to be defined in units of a second. 
@@ -73,18 +73,18 @@ Starts sequence or if sots is paused will resume sequence.
 Pauses the running sequence.  Since this has idempotent behavior, a call to `start` is needed to restart/resume the sequence.
 
 * `reset(): void` 
-Can only be used if `subscribe` has been called with an observer.  This method will unsubscribe and subscribe the sequence.  See example-3 on how this is being used.
+Can only be used if `subscribe` has been called with an observer.  This method will unsubscribe and subscribe the sequence.  See Example 3 on how this is being used.
 
 The only method (2 overloads) for subscribing to a sots' sequence, are the following:
 * `subscribe(next?: (value: TimeEmission) => void, error?: (error: any) => void, complete?: () => void): Subscription` 
 In order to make observations of sots' emissions, this is needed to be called.  See 'Explanation of Basic Usage' section on how this is called with value for its `next` parameter.
 
 * `subscribe(observer: PartialObserver<TimeEmission>): Subscription` 
-Used when a sequence will be needed to reset.  The `observer` parameter must have the same shape as `PartialObserver<TimeEmission>`.  See example-3 on how this is used.
+Used when a sequence will be needed to reset.  The `observer` parameter must have the same shape as `PartialObserver<TimeEmission>`.  See Example 3 on how this is used.
 
 The emitted value (TimeEmission) has 1 property method:
 * `valueOf: (state?: string | number, compareAsBitwise?: boolean) => boolean | number` 
-When called with a value for state, this method will return a boolean value of true if found.  If this method is called with no value, then all numeric states totaled for this emission will be returned.  See example-3 on how this is used both with and without arguments.
+When called with a value for state, this method will return a boolean value of true if found.  If this method is called with no value, then all numeric states totaled for this emission will be returned.  See Example 3 on how this is used both with and without arguments.
 
 ## Examples
 The following are links to examples using sots.  These examples will run as-is if copied-and-pasted into the index.ts file of sotsHarness folder *if* that folder is setup as explained in the 'Contribute' section.
@@ -115,6 +115,7 @@ This example is derived from example 2 and in an addition demonstrates the usage
 * The JS `setTimeout` will be used to call the following methods in sequential order: `start`, `pause`, `reset`, and `start` .
 * A shape of `PartialObserver<TimeEmission>` is passed in `subscribe` since in this example resetting is performed.
 * This example is also using `valueOf` with and without arguments.
+* The `mod` (modulo) operator is being used in the first segement to have an instant state of AppStates.Beep be applied to every whole second.
 
 See this example here: https://github.com/marckassay/sots/blob/master/example/example-3.ts
 

@@ -109,6 +109,7 @@ var CountupSegment = /** @class */ (function (_super) {
 exports.CountupSegment = CountupSegment;
 var StateExpression = /** @class */ (function () {
     function StateExpression(config, seqConfig, countingUp) {
+        this.config = config;
         this.seqConfig = seqConfig;
         this.countingUp = countingUp;
         this.timemap = new Map();
@@ -203,16 +204,30 @@ var StateExpression = /** @class */ (function () {
     };
     StateExpression.prototype.setInstantStates = function (times, state) {
         var _this = this;
-        var timeExpression = /(\d+)/g;
+        var timeExpression = /[^,]+/g;
+        var moduloExpression = /(mod\s*|%\s*)\d+/;
         var results = times.match(timeExpression);
+        var insertInstantState = function (value) {
+            if (!_this.timemap.has(value)) {
+                _this.timemap.set(value, _this.newStateEmission([state]));
+            }
+            else {
+                _this.timemap.get(value).instant.push(state);
+            }
+        };
         if (results) {
             results.map(function (value) {
-                var time = parseFloat(value);
-                if (!_this.timemap.has(time)) {
-                    _this.timemap.set(time, _this.newStateEmission([state]));
+                if (value.search(moduloExpression) == -1) {
+                    var time = parseFloat(value);
+                    insertInstantState(time);
                 }
                 else {
-                    _this.timemap.get(time).instant.push(state);
+                    var modTime = parseInt(value.match(/\d+/)[0]);
+                    var modTimeFactor = modTime;
+                    while ((modTimeFactor * 1000) <= _this.config.duration) {
+                        insertInstantState(modTimeFactor);
+                        modTimeFactor += modTime;
+                    }
                 }
             });
         }

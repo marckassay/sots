@@ -42,6 +42,7 @@ export declare class CountupSegment extends TimeSegment {
     constructor(config: SegmentConfigShape);
 }
 export declare class StateExpression {
+    config: SegmentConfigShape;
     seqConfig: SequenceConfigShape;
     countingUp: boolean;
     private timemap;
