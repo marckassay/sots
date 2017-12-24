@@ -115,7 +115,7 @@ This example is derived from example 2 and in an addition demonstrates the usage
 * The JS `setTimeout` will be used to call the following methods in sequential order: `start`, `pause`, `reset`, and `start` .
 * A shape of `PartialObserver<TimeEmission>` is passed in `subscribe` since in this example resetting is performed.
 * This example is also using `valueOf` with and without arguments.
-* The `mod` (modulo) operator is being used in the first segement to have an instant state of AppStates.Beep be applied to every whole second.
+* The `mod` (modulo) operator is being used in the first segment to have an instant state of AppStates.Beep be applied to every whole second.
 
 See this example here: https://github.com/marckassay/sots/blob/master/example/example-3.ts
 
