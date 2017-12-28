@@ -192,29 +192,29 @@ export class StateExpression {
 
         emissions = this.instantEmissions.get(time);
 
-        // get keys greater or equal in value of time, then add to emissions
-        this.spreadEmissions.forEach((value: StateEmission, key: number, map: Map<number, StateEmission>): void => {
-            if ((!this.countingUp) ? key >= time : key <= time) {
-                if (!emissions) {
-                    emissions = this.newStateEmission([], value.spread);
-                } else {
-                    emissions.spread.concat(value.spread);
-                }
-            }
-            map!;
-        });
-
         // determine if any moduloInstantEmissions apply to this moment in time
-        this.moduloInstantEmissions.forEach((value: string | number, key: number, map: Map<number, string | number>): void => {
+        this.moduloInstantEmissions.forEach((value: string | number, key: number): void => {
             ///const timeFloat: number = (typeof value === 'string') ? parseFloat(value) : value;
             if (time % key === 0) {
                 if (!emissions) {
-                    emissions = this.newStateEmission([], [value]);
+                    emissions = this.newStateEmission([value]);
                 } else {
                     emissions.instant.push(value);
                 }
             }
-            map!;
+        });
+
+        // get keys greater-equal or lesser-equal in value of time, then add to emissions
+        this.spreadEmissions.forEach((value: StateEmission, key: number): void => {
+            if ((!this.countingUp) ? key >= time : key <= time) {
+                if (!emissions) {
+                    emissions = this.newStateEmission([], value.spread);
+                } else {
+                    value.spread.forEach((value: string | number) => {
+                        emissions!.spread.push(value);
+                    });
+                }
+            }
         });
 
         return emissions;

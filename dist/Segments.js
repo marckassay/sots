@@ -193,30 +193,30 @@ var StateExpression = /** @class */ (function () {
         var _this = this;
         var emissions;
         emissions = this.instantEmissions.get(time);
-        // get keys greater or equal in value of time, then add to emissions
-        this.spreadEmissions.forEach(function (value, key, map) {
-            if ((!_this.countingUp) ? key >= time : key <= time) {
-                if (!emissions) {
-                    emissions = _this.newStateEmission([], value.spread);
-                }
-                else {
-                    emissions.spread.concat(value.spread);
-                }
-            }
-            map;
-        });
         // determine if any moduloInstantEmissions apply to this moment in time
-        this.moduloInstantEmissions.forEach(function (value, key, map) {
+        this.moduloInstantEmissions.forEach(function (value, key) {
             ///const timeFloat: number = (typeof value === 'string') ? parseFloat(value) : value;
             if (time % key === 0) {
                 if (!emissions) {
-                    emissions = _this.newStateEmission([], [value]);
+                    emissions = _this.newStateEmission([value]);
                 }
                 else {
                     emissions.instant.push(value);
                 }
             }
-            map;
+        });
+        // get keys greater-equal or lesser-equal in value of time, then add to emissions
+        this.spreadEmissions.forEach(function (value, key) {
+            if ((!_this.countingUp) ? key >= time : key <= time) {
+                if (!emissions) {
+                    emissions = _this.newStateEmission([], value.spread);
+                }
+                else {
+                    value.spread.forEach(function (value) {
+                        emissions.spread.push(value);
+                    });
+                }
+            }
         });
         return emissions;
     };
