@@ -45,11 +45,11 @@ export declare class StateExpression {
     config: SegmentConfigShape;
     seqConfig: SequenceConfigShape;
     countingUp: boolean;
-    private timemap;
-    private toApplySpreading;
+    private instantEmissions;
+    private spreadEmissions;
+    private moduloInstantEmissions;
     constructor(config: SegmentConfigShape, seqConfig: SequenceConfigShape, countingUp: boolean);
     private parse(config);
-    private applySpreading();
     private setInstantStates(times, state);
     private setSpreadState(_operation, time, state);
     getStateEmission(time: number): StateEmission | undefined;

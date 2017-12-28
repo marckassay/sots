@@ -92,15 +92,21 @@ export class CountupSegment extends TimeSegment {
 }
 
 export class StateExpression {
-    private timemap: Map<number, StateEmission>;
-    private toApplySpreading: boolean;
+    // holds instant and spread states that the user defined.
+    private instantEmissions: Map<number, StateEmission>;
+    // when a state is "spread", this map accumalates such emissions
+    // until segment terminates.
+    private spreadEmissions: Map<number, StateEmission>;
+    // this map simply holds all mod states of the segment.  this will
+    // need to be check every time the seq emits.
+    private moduloInstantEmissions: Map<number, string | number>;
 
     constructor(public config: SegmentConfigShape, public seqConfig: SequenceConfigShape, public countingUp: boolean) {
-        this.timemap = new Map<number, StateEmission>();
+        this.instantEmissions = new Map<number, StateEmission>();
+        this.spreadEmissions = new Map<number, StateEmission>();
+        this.moduloInstantEmissions = new Map<number, string | number>();
+
         this.parse(config);
-        if (this.toApplySpreading) {
-            this.applySpreading();
-        }
     }
 
     private parse(config: SegmentConfigShape): void {
@@ -141,74 +147,16 @@ export class StateExpression {
         }
     }
 
-    private applySpreading(): void {
-        // create an array from timemap and sort it...
-        const pointerTimemap: Array<Array<number | StateEmission>> = Array
-            .from(this.timemap)
-            .sort((a: [number, StateEmission], b: [number, StateEmission]) => {
-                return b[0] - a[0];
-            });
-
-        // find the first element that has a spread with length...
-        const firstSpreadIndex: number = pointerTimemap
-            .findIndex((value: Array<number | StateEmission>) => {
-                return (value[1] as StateEmission).spread.length > 0;
-            });
-
-        // calculate the time for the element to be spread...
-        const timeFactor: number = parseFloat((1000 / this.seqConfig.period).toFixed(1));
-        const timeForElement: number = parseFloat((this.seqConfig.period * .001).toFixed(1));
-
-        let lastAddedElement: Array<number | StateEmission> | undefined;
-
-        // for each spread element in this timesegment calculate the time between it, and the next element or end of segment. 
-        for (var i: number = firstSpreadIndex; i < pointerTimemap.length; i++) {
-            const pointerElement: Array<number | StateEmission> = (lastAddedElement) ? lastAddedElement : pointerTimemap[i];
-            const pointerElementIndex: number = (pointerElement[0] as number);
-            const nextPointerElement: Array<number | StateEmission> = pointerTimemap[i + 1];
-            let timeInBetweenElements: number;
-            if (nextPointerElement) {
-                timeInBetweenElements = Math.abs(pointerElementIndex - (nextPointerElement[0] as number));
-            } else {
-                timeInBetweenElements = pointerElementIndex;
-            }
-
-            const numberOfElementsNeeded: number = timeInBetweenElements * timeFactor;
-            const spreadThisEmission: StateEmission = this.newStateEmission([], (pointerElement[1] as StateEmission).spread);
-
-            for (let j: number = 1; j <= numberOfElementsNeeded; j++) {
-                let newIndex: number = (!this.countingUp) ? pointerElementIndex - (timeForElement * j) : pointerElementIndex + (timeForElement * j);
-                newIndex = parseFloat(newIndex.toFixed(1));
-
-                if (j !== numberOfElementsNeeded) {
-                    this.timemap.set(newIndex, spreadThisEmission);
-                } else {
-                    if (this.timemap.has(newIndex)) {
-                        const emission: StateEmission = this.timemap.get(newIndex)!;
-                        let newInstant = emission.instant;
-                        let newSpread = emission.spread.concat(spreadThisEmission.spread);
-                        let newEmission = this.newStateEmission(newInstant, newSpread);
-                        this.timemap.set(newIndex, newEmission);
-
-                        lastAddedElement = [newIndex, newEmission];
-                    } else {
-                        return;
-                    }
-                }
-            }
-        }
-    }
-
     private setInstantStates(times: string, state: string | number): void {
-        const timeExpression: RegExp = /[^,]+/g;
+        const excludeCommaExpression: RegExp = /[^,]+/g;
         const moduloExpression: RegExp = /(mod\s*|%\s*)\d+/;
-        let results: RegExpMatchArray | null = times.match(timeExpression);
+        let results: RegExpMatchArray | null = times.match(excludeCommaExpression);
 
         let insertInstantState = (value: number): void => {
-            if (!this.timemap.has(value)) {
-                this.timemap.set(value, this.newStateEmission([state]));
+            if (!this.instantEmissions.has(value)) {
+                this.instantEmissions.set(value, this.newStateEmission([state]));
             } else {
-                this.timemap.get(value)!.instant.push(state);
+                this.instantEmissions.get(value)!.instant.push(state);
             }
         };
 
@@ -219,10 +167,12 @@ export class StateExpression {
                     insertInstantState(time);
                 } else {
                     const modTime: number = parseInt(value.match(/\d+/)![0]);
-                    let modTimeFactor: number = modTime;
-                    while ((modTimeFactor * 1000) <= this.config.duration) {
-                        insertInstantState(modTimeFactor);
-                        modTimeFactor += modTime;
+
+                    if (!this.moduloInstantEmissions.has(modTime)) {
+                        this.moduloInstantEmissions.set(modTime, state);
+                    } else {
+                        const current: string | number = this.moduloInstantEmissions.get(modTime)!;
+                        this.moduloInstantEmissions.set(modTime, current + ',' + state);
                     }
                 }
             });
@@ -230,30 +180,44 @@ export class StateExpression {
     }
 
     private setSpreadState(_operation: "lessThan" | "greaterThan", time: number, state: string | number): void {
-        this.toApplySpreading = true;
-
-        if (!this.timemap.has(time)) {
-            this.timemap.set(time, this.newStateEmission([], [state]));
+        if (!this.spreadEmissions.has(time)) {
+            this.spreadEmissions.set(time, this.newStateEmission([], [state]));
         } else {
-            this.timemap.get(time)!.spread.push(state);
+            this.spreadEmissions.get(time)!.spread.push(state);
         }
-
-        // TODO: currently when spreads are appiled, it will exists to the 
-        // end of its segment. StateExpression.spread_off may need to be 
-        // used for some purposes, if so modification (at minimum) here 
-        // will be needed.
-        /*
-        const polarend: number = (operation == 'lessThan') ? 0 : Number.MAX_VALUE;
-        if (!this.timemap[polarend]) {
-            // this.timemap[polarend] = state + StateExpression.spread_off;
-        } else {
-            // this.timemap[polarend] += "," + state + StateExpression.spread_off;
-        }
-        */
     }
 
     getStateEmission(time: number): StateEmission | undefined {
-        return this.timemap.get(time);
+        let emissions: StateEmission | undefined;
+
+        emissions = this.instantEmissions.get(time);
+
+        // get keys greater or equal in value of time, then add to emissions
+        this.spreadEmissions.forEach((value: StateEmission, key: number, map: Map<number, StateEmission>): void => {
+            if ((!this.countingUp) ? key >= time : key <= time) {
+                if (!emissions) {
+                    emissions = this.newStateEmission([], value.spread);
+                } else {
+                    emissions.spread.concat(value.spread);
+                }
+            }
+            map!;
+        });
+
+        // determine if any moduloInstantEmissions apply to this moment in time
+        this.moduloInstantEmissions.forEach((value: string | number, key: number, map: Map<number, string | number>): void => {
+            ///const timeFloat: number = (typeof value === 'string') ? parseFloat(value) : value;
+            if (time % key === 0) {
+                if (!emissions) {
+                    emissions = this.newStateEmission([], [value]);
+                } else {
+                    emissions.instant.push(value);
+                }
+            }
+            map!;
+        });
+
+        return emissions;
     }
 
     newStateEmission(instant: Array<string | number> = [], spread: Array<string | number> = []): StateEmission {

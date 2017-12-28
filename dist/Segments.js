@@ -112,11 +112,10 @@ var StateExpression = /** @class */ (function () {
         this.config = config;
         this.seqConfig = seqConfig;
         this.countingUp = countingUp;
-        this.timemap = new Map();
+        this.instantEmissions = new Map();
+        this.spreadEmissions = new Map();
+        this.moduloInstantEmissions = new Map();
         this.parse(config);
-        if (this.toApplySpreading) {
-            this.applySpreading();
-        }
     }
     StateExpression.prototype.parse = function (config) {
         if (config.states) {
@@ -150,69 +149,17 @@ var StateExpression = /** @class */ (function () {
             }
         }
     };
-    StateExpression.prototype.applySpreading = function () {
-        // create an array from timemap and sort it...
-        var pointerTimemap = Array
-            .from(this.timemap)
-            .sort(function (a, b) {
-            return b[0] - a[0];
-        });
-        // find the first element that has a spread with length...
-        var firstSpreadIndex = pointerTimemap
-            .findIndex(function (value) {
-            return value[1].spread.length > 0;
-        });
-        // calculate the time for the element to be spread...
-        var timeFactor = parseFloat((1000 / this.seqConfig.period).toFixed(1));
-        var timeForElement = parseFloat((this.seqConfig.period * .001).toFixed(1));
-        var lastAddedElement;
-        // for each spread element in this timesegment calculate the time between it, and the next element or end of segment. 
-        for (var i = firstSpreadIndex; i < pointerTimemap.length; i++) {
-            var pointerElement = (lastAddedElement) ? lastAddedElement : pointerTimemap[i];
-            var pointerElementIndex = pointerElement[0];
-            var nextPointerElement = pointerTimemap[i + 1];
-            var timeInBetweenElements = void 0;
-            if (nextPointerElement) {
-                timeInBetweenElements = Math.abs(pointerElementIndex - nextPointerElement[0]);
-            }
-            else {
-                timeInBetweenElements = pointerElementIndex;
-            }
-            var numberOfElementsNeeded = timeInBetweenElements * timeFactor;
-            var spreadThisEmission = this.newStateEmission([], pointerElement[1].spread);
-            for (var j = 1; j <= numberOfElementsNeeded; j++) {
-                var newIndex = (!this.countingUp) ? pointerElementIndex - (timeForElement * j) : pointerElementIndex + (timeForElement * j);
-                newIndex = parseFloat(newIndex.toFixed(1));
-                if (j !== numberOfElementsNeeded) {
-                    this.timemap.set(newIndex, spreadThisEmission);
-                }
-                else {
-                    if (this.timemap.has(newIndex)) {
-                        var emission = this.timemap.get(newIndex);
-                        var newInstant = emission.instant;
-                        var newSpread = emission.spread.concat(spreadThisEmission.spread);
-                        var newEmission = this.newStateEmission(newInstant, newSpread);
-                        this.timemap.set(newIndex, newEmission);
-                        lastAddedElement = [newIndex, newEmission];
-                    }
-                    else {
-                        return;
-                    }
-                }
-            }
-        }
-    };
     StateExpression.prototype.setInstantStates = function (times, state) {
         var _this = this;
-        var timeExpression = /[^,]+/g;
+        var excludeCommaExpression = /[^,]+/g;
         var moduloExpression = /(mod\s*|%\s*)\d+/;
-        var results = times.match(timeExpression);
+        var results = times.match(excludeCommaExpression);
         var insertInstantState = function (value) {
-            if (!_this.timemap.has(value)) {
-                _this.timemap.set(value, _this.newStateEmission([state]));
+            if (!_this.instantEmissions.has(value)) {
+                _this.instantEmissions.set(value, _this.newStateEmission([state]));
             }
             else {
-                _this.timemap.get(value).instant.push(state);
+                _this.instantEmissions.get(value).instant.push(state);
             }
         };
         if (results) {
@@ -223,38 +170,55 @@ var StateExpression = /** @class */ (function () {
                 }
                 else {
                     var modTime = parseInt(value.match(/\d+/)[0]);
-                    var modTimeFactor = modTime;
-                    while ((modTimeFactor * 1000) <= _this.config.duration) {
-                        insertInstantState(modTimeFactor);
-                        modTimeFactor += modTime;
+                    if (!_this.moduloInstantEmissions.has(modTime)) {
+                        _this.moduloInstantEmissions.set(modTime, state);
+                    }
+                    else {
+                        var current = _this.moduloInstantEmissions.get(modTime);
+                        _this.moduloInstantEmissions.set(modTime, current + ',' + state);
                     }
                 }
             });
         }
     };
     StateExpression.prototype.setSpreadState = function (_operation, time, state) {
-        this.toApplySpreading = true;
-        if (!this.timemap.has(time)) {
-            this.timemap.set(time, this.newStateEmission([], [state]));
+        if (!this.spreadEmissions.has(time)) {
+            this.spreadEmissions.set(time, this.newStateEmission([], [state]));
         }
         else {
-            this.timemap.get(time).spread.push(state);
+            this.spreadEmissions.get(time).spread.push(state);
         }
-        // TODO: currently when spreads are appiled, it will exists to the 
-        // end of its segment. StateExpression.spread_off may need to be 
-        // used for some purposes, if so modification (at minimum) here 
-        // will be needed.
-        /*
-        const polarend: number = (operation == 'lessThan') ? 0 : Number.MAX_VALUE;
-        if (!this.timemap[polarend]) {
-            // this.timemap[polarend] = state + StateExpression.spread_off;
-        } else {
-            // this.timemap[polarend] += "," + state + StateExpression.spread_off;
-        }
-        */
     };
     StateExpression.prototype.getStateEmission = function (time) {
-        return this.timemap.get(time);
+        var _this = this;
+        var emissions;
+        emissions = this.instantEmissions.get(time);
+        // get keys greater or equal in value of time, then add to emissions
+        this.spreadEmissions.forEach(function (value, key, map) {
+            if ((!_this.countingUp) ? key >= time : key <= time) {
+                if (!emissions) {
+                    emissions = _this.newStateEmission([], value.spread);
+                }
+                else {
+                    emissions.spread.concat(value.spread);
+                }
+            }
+            map;
+        });
+        // determine if any moduloInstantEmissions apply to this moment in time
+        this.moduloInstantEmissions.forEach(function (value, key, map) {
+            ///const timeFloat: number = (typeof value === 'string') ? parseFloat(value) : value;
+            if (time % key === 0) {
+                if (!emissions) {
+                    emissions = _this.newStateEmission([], [value]);
+                }
+                else {
+                    emissions.instant.push(value);
+                }
+            }
+            map;
+        });
+        return emissions;
     };
     StateExpression.prototype.newStateEmission = function (instant, spread) {
         var _this = this;
