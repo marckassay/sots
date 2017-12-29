@@ -129,7 +129,7 @@ var StateExpression = /** @class */ (function () {
                             this.setInstantStates(states[index].timeAt, state);
                             break;
                         case "timeLessThan":
-                            var time2 = parseFloat(states[index].timeLessThan) - this.seqConfig.period;
+                            var time2 = parseFloat(states[index].timeLessThan) - (this.seqConfig.period * .001);
                             this.setSpreadState("lessThan", time2, state);
                             break;
                         case "timeLessThanOrEqualTo":
@@ -137,7 +137,7 @@ var StateExpression = /** @class */ (function () {
                             this.setSpreadState("lessThan", time3, state);
                             break;
                         case "timeGreaterThan":
-                            var time4 = parseFloat(states[index].timeGreaterThan) + this.seqConfig.period;
+                            var time4 = parseFloat(states[index].timeGreaterThan) + (this.seqConfig.period * .001);
                             this.setSpreadState("greaterThan", time4, state);
                             break;
                         case "timeGreaterThanOrEqualTo":

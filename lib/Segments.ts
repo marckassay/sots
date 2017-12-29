@@ -123,7 +123,7 @@ export class StateExpression {
                             break;
 
                         case "timeLessThan":
-                            let time2: number = parseFloat((states[index] as StateConfig2).timeLessThan) - this.seqConfig.period;
+                            let time2: number = parseFloat((states[index] as StateConfig2).timeLessThan) - (this.seqConfig.period * .001);
                             this.setSpreadState("lessThan", time2, state);
                             break;
 
@@ -133,7 +133,7 @@ export class StateExpression {
                             break;
 
                         case "timeGreaterThan":
-                            let time4: number = parseFloat((states[index] as StateConfig4).timeGreaterThan) + this.seqConfig.period;
+                            let time4: number = parseFloat((states[index] as StateConfig4).timeGreaterThan) + (this.seqConfig.period * .001);
                             this.setSpreadState("greaterThan", time4, state);
                             break;
 
