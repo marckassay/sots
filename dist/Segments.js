@@ -21,7 +21,7 @@ var TimeSegment = /** @class */ (function () {
         var _this = this;
         if (lastElementOfSeq === void 0) { lastElementOfSeq = false; }
         this.stateExp = new StateExpression(this.config, this.seqConfig, this.countingUp);
-        var source = Rx_1.Observable.interval(this.seqConfig.period)
+        var source = Rx_1.Observable.timer(0, this.seqConfig.period)
             .map(function (_value, index) {
             var time;
             if (!_this.countingUp) {

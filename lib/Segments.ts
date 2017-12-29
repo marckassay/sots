@@ -19,7 +19,7 @@ export class TimeSegment implements SegmentInterface {
 
     public initializeObservable(lastElementOfSeq: boolean = false): Observable<TimeEmission> {
         this.stateExp = new StateExpression(this.config, this.seqConfig, this.countingUp);
-        let source: Observable<TimeEmission> = Observable.interval(this.seqConfig.period)
+        let source: Observable<TimeEmission> = Observable.timer(0, this.seqConfig.period)
             .map((_value: number, index: number): TimeEmission => {
                 let time: number;
                 if (!this.countingUp) {
