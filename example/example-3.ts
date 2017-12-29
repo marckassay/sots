@@ -1,5 +1,5 @@
 import { Sequencer, CountdownSegment, CountupSegment, TimeEmission, add } from '../sots/dist/index';
-import { Observer } from '../sots/node_modules/rxjs/Observer';
+import { PartialObserver } from '../sots/node_modules/rxjs/Observer';
 
 enum AppStates {
     Beep = 2,
@@ -9,7 +9,7 @@ enum AppStates {
     Alert = AppStates.Beep + AppStates.Warning
 }
 
-let observer: Observer<TimeEmission> = {
+let observer: PartialObserver<TimeEmission> = {
     next: (value: TimeEmission): void => {
         let output: string = "time: " + value.time;
 

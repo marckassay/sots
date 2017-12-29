@@ -21,7 +21,6 @@ var TimeSegment = /** @class */ (function () {
         var _this = this;
         if (lastElementOfSeq === void 0) { lastElementOfSeq = false; }
         this.stateExp = new StateExpression(this.config, this.seqConfig, this.countingUp);
-        //let numberOfElements: number = this.config.duration / this.seqConfig.period;
         var source = Rx_1.Observable.interval(this.seqConfig.period)
             .map(function (_value, index) {
             var time;
@@ -130,19 +129,19 @@ var StateExpression = /** @class */ (function () {
                             break;
                         case "timeLessThan":
                             var time2 = parseFloat(states[index].timeLessThan) - (this.seqConfig.period * .001);
-                            this.setSpreadState("lessThan", time2, state);
+                            this.setSpreadState(time2, state);
                             break;
                         case "timeLessThanOrEqualTo":
                             var time3 = parseFloat(states[index].timeLessThanOrEqualTo);
-                            this.setSpreadState("lessThan", time3, state);
+                            this.setSpreadState(time3, state);
                             break;
                         case "timeGreaterThan":
                             var time4 = parseFloat(states[index].timeGreaterThan) + (this.seqConfig.period * .001);
-                            this.setSpreadState("greaterThan", time4, state);
+                            this.setSpreadState(time4, state);
                             break;
                         case "timeGreaterThanOrEqualTo":
                             var time5 = parseFloat(states[index].timeGreaterThanOrEqualTo);
-                            this.setSpreadState("greaterThan", time5, state);
+                            this.setSpreadState(time5, state);
                             break;
                     }
                 }
@@ -156,10 +155,10 @@ var StateExpression = /** @class */ (function () {
         var results = times.match(excludeCommaExpression);
         var insertInstantState = function (value) {
             if (!_this.instantEmissions.has(value)) {
-                _this.instantEmissions.set(value, _this.newStateEmission([state]));
+                _this.instantEmissions.set(value, _this.newStateEmission(new Set([state])));
             }
             else {
-                _this.instantEmissions.get(value).instant.push(state);
+                _this.instantEmissions.get(value).instant.add(state);
             }
         };
         if (results) {
@@ -174,19 +173,19 @@ var StateExpression = /** @class */ (function () {
                         _this.moduloInstantEmissions.set(modTime, state);
                     }
                     else {
-                        var current = _this.moduloInstantEmissions.get(modTime);
-                        _this.moduloInstantEmissions.set(modTime, current + ',' + state);
+                        var currentValue = _this.moduloInstantEmissions.get(modTime);
+                        _this.moduloInstantEmissions.set(modTime, currentValue + ',' + state);
                     }
                 }
             });
         }
     };
-    StateExpression.prototype.setSpreadState = function (_operation, time, state) {
+    StateExpression.prototype.setSpreadState = function (time, state) {
         if (!this.spreadEmissions.has(time)) {
-            this.spreadEmissions.set(time, this.newStateEmission([], [state]));
+            this.spreadEmissions.set(time, this.newStateEmission(new Set(), new Set([state])));
         }
         else {
-            this.spreadEmissions.get(time).spread.push(state);
+            this.spreadEmissions.get(time).spread.add(state);
         }
     };
     StateExpression.prototype.getStateEmission = function (time) {
@@ -198,10 +197,10 @@ var StateExpression = /** @class */ (function () {
             ///const timeFloat: number = (typeof value === 'string') ? parseFloat(value) : value;
             if (time % key === 0) {
                 if (!emissions) {
-                    emissions = _this.newStateEmission([value]);
+                    emissions = _this.newStateEmission(new Set([value]));
                 }
                 else {
-                    emissions.instant.push(value);
+                    emissions.instant.add(value);
                 }
             }
         });
@@ -209,11 +208,11 @@ var StateExpression = /** @class */ (function () {
         this.spreadEmissions.forEach(function (value, key) {
             if ((!_this.countingUp) ? key >= time : key <= time) {
                 if (!emissions) {
-                    emissions = _this.newStateEmission([], value.spread);
+                    emissions = _this.newStateEmission(new Set(), value.spread);
                 }
                 else {
                     value.spread.forEach(function (value) {
-                        emissions.spread.push(value);
+                        emissions.spread.add(value);
                     });
                 }
             }
@@ -222,15 +221,15 @@ var StateExpression = /** @class */ (function () {
     };
     StateExpression.prototype.newStateEmission = function (instant, spread) {
         var _this = this;
-        if (instant === void 0) { instant = []; }
-        if (spread === void 0) { spread = []; }
+        if (instant === void 0) { instant = new Set(); }
+        if (spread === void 0) { spread = new Set(); }
         return {
             instant: instant,
             spread: spread,
             valueOf: function (state, compareAsBitwise) {
                 var results;
                 if (state !== undefined) {
-                    results = (_this.getStateValues(instant, spread, state, compareAsBitwise) >= 0);
+                    results = (_this.getStateValues(instant, spread, state, compareAsBitwise) > 0);
                 }
                 else {
                     results = _this.getStateValues(instant, spread, -1, true);
@@ -251,8 +250,9 @@ var StateExpression = /** @class */ (function () {
             useBitwiseCompare = false;
         }
         if (useBitwiseCompare === false) {
-            if (instant.indexOf(state) === -1) {
-                return spread.indexOf(state);
+            // here returning numbers (1,0) and not boolean to conform to this method's return type
+            if (instant.has(state) === false) {
+                return (spread.has(state) ? 1 : 0);
             }
             else {
                 return 1;

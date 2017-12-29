@@ -5,8 +5,8 @@ export interface TimeEmission {
 }
 
 export interface StateEmission {
-    instant: Array<string | number>;
-    spread: Array<string | number>;
+    instant: Set<string | number>;
+    spread: Set<string | number>;
     valueOf: (state?: string | number, compareAsBitwise?: boolean) => boolean | number;
 }
 

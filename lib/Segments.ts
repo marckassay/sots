@@ -19,7 +19,6 @@ export class TimeSegment implements SegmentInterface {
 
     public initializeObservable(lastElementOfSeq: boolean = false): Observable<TimeEmission> {
         this.stateExp = new StateExpression(this.config, this.seqConfig, this.countingUp);
-        //let numberOfElements: number = this.config.duration / this.seqConfig.period;
         let source: Observable<TimeEmission> = Observable.interval(this.seqConfig.period)
             .map((_value: number, index: number): TimeEmission => {
                 let time: number;
@@ -124,22 +123,22 @@ export class StateExpression {
 
                         case "timeLessThan":
                             let time2: number = parseFloat((states[index] as StateConfig2).timeLessThan) - (this.seqConfig.period * .001);
-                            this.setSpreadState("lessThan", time2, state);
+                            this.setSpreadState(time2, state);
                             break;
 
                         case "timeLessThanOrEqualTo":
                             let time3: number = parseFloat((states[index] as StateConfig3).timeLessThanOrEqualTo);
-                            this.setSpreadState("lessThan", time3, state);
+                            this.setSpreadState(time3, state);
                             break;
 
                         case "timeGreaterThan":
                             let time4: number = parseFloat((states[index] as StateConfig4).timeGreaterThan) + (this.seqConfig.period * .001);
-                            this.setSpreadState("greaterThan", time4, state);
+                            this.setSpreadState(time4, state);
                             break;
 
                         case "timeGreaterThanOrEqualTo":
                             let time5: number = parseFloat((states[index] as StateConfig5).timeGreaterThanOrEqualTo);
-                            this.setSpreadState("greaterThan", time5, state);
+                            this.setSpreadState(time5, state);
                             break;
                     }
                 }
@@ -154,9 +153,9 @@ export class StateExpression {
 
         let insertInstantState = (value: number): void => {
             if (!this.instantEmissions.has(value)) {
-                this.instantEmissions.set(value, this.newStateEmission([state]));
+                this.instantEmissions.set(value, this.newStateEmission(new Set([state])));
             } else {
-                this.instantEmissions.get(value)!.instant.push(state);
+                this.instantEmissions.get(value)!.instant.add(state);
             }
         };
 
@@ -171,19 +170,19 @@ export class StateExpression {
                     if (!this.moduloInstantEmissions.has(modTime)) {
                         this.moduloInstantEmissions.set(modTime, state);
                     } else {
-                        const current: string | number = this.moduloInstantEmissions.get(modTime)!;
-                        this.moduloInstantEmissions.set(modTime, current + ',' + state);
+                        const currentValue: string | number = this.moduloInstantEmissions.get(modTime)!;
+                        this.moduloInstantEmissions.set(modTime, currentValue + ',' + state);
                     }
                 }
             });
         }
     }
 
-    private setSpreadState(_operation: "lessThan" | "greaterThan", time: number, state: string | number): void {
+    private setSpreadState(time: number, state: string | number): void {
         if (!this.spreadEmissions.has(time)) {
-            this.spreadEmissions.set(time, this.newStateEmission([], [state]));
+            this.spreadEmissions.set(time, this.newStateEmission(new Set(), new Set([state])));
         } else {
-            this.spreadEmissions.get(time)!.spread.push(state);
+            this.spreadEmissions.get(time)!.spread.add(state);
         }
     }
 
@@ -197,9 +196,9 @@ export class StateExpression {
             ///const timeFloat: number = (typeof value === 'string') ? parseFloat(value) : value;
             if (time % key === 0) {
                 if (!emissions) {
-                    emissions = this.newStateEmission([value]);
+                    emissions = this.newStateEmission(new Set([value]));
                 } else {
-                    emissions.instant.push(value);
+                    emissions.instant.add(value);
                 }
             }
         });
@@ -208,10 +207,10 @@ export class StateExpression {
         this.spreadEmissions.forEach((value: StateEmission, key: number): void => {
             if ((!this.countingUp) ? key >= time : key <= time) {
                 if (!emissions) {
-                    emissions = this.newStateEmission([], value.spread);
+                    emissions = this.newStateEmission(new Set(), value.spread);
                 } else {
                     value.spread.forEach((value: string | number) => {
-                        emissions!.spread.push(value);
+                        emissions!.spread.add(value);
                     });
                 }
             }
@@ -220,14 +219,15 @@ export class StateExpression {
         return emissions;
     }
 
-    newStateEmission(instant: Array<string | number> = [], spread: Array<string | number> = []): StateEmission {
+    private newStateEmission(instant: Set<string | number> = new Set<string | number>(),
+        spread: Set<string | number> = new Set<string | number>()): StateEmission {
         return {
             instant: instant,
             spread: spread,
             valueOf: (state?: string | number, compareAsBitwise?: boolean): boolean | number => {
                 let results: boolean | number;
                 if (state !== undefined) {
-                    results = (this.getStateValues(instant, spread, state, compareAsBitwise) >= 0);
+                    results = (this.getStateValues(instant, spread, state, compareAsBitwise) > 0);
                 } else {
                     results = this.getStateValues(instant, spread, -1, true);
                 }
@@ -237,7 +237,7 @@ export class StateExpression {
         } as StateEmission;
     }
 
-    private getStateValues(instant: Array<string | number>, spread: Array<string | number>, state: string | number, compareAsBitwise?: boolean): number {
+    private getStateValues(instant: Set<string | number>, spread: Set<string | number>, state: string | number, compareAsBitwise?: boolean): number {
         let useBitwiseCompare: boolean;
         if (compareAsBitwise != undefined) {
             useBitwiseCompare = compareAsBitwise;
@@ -250,8 +250,9 @@ export class StateExpression {
         }
 
         if (useBitwiseCompare === false) {
-            if (instant.indexOf(state) === -1) {
-                return spread.indexOf(state);
+            // here returning numbers (1,0) and not boolean to conform to this method's return type
+            if (instant.has(state) === false) {
+                return (spread.has(state) ? 1 : 0);
             } else {
                 return 1;
             }

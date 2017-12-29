@@ -51,8 +51,8 @@ export declare class StateExpression {
     constructor(config: SegmentConfigShape, seqConfig: SequenceConfigShape, countingUp: boolean);
     private parse(config);
     private setInstantStates(times, state);
-    private setSpreadState(_operation, time, state);
+    private setSpreadState(time, state);
     getStateEmission(time: number): StateEmission | undefined;
-    newStateEmission(instant?: Array<string | number>, spread?: Array<string | number>): StateEmission;
+    private newStateEmission(instant?, spread?);
     private getStateValues(instant, spread, state, compareAsBitwise?);
 }

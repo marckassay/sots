@@ -97,7 +97,6 @@ This example contains:
 
 See this example here: https://github.com/marckassay/sots/blob/master/example/example-1.ts
 
-
 ### Example 2
 This example contains:
 * Usage of binary Enum for states by setting the `compareAsBitwise` to `true` in sequencer config.  You can override sequencer's `compareAsBitwise` by setting `compareAsBitwise` on individual segments if needed.
@@ -109,7 +108,6 @@ This example contains:
 
 See this example here: https://github.com/marckassay/sots/blob/master/example/example-2.ts
 
-
 ### Example 3
 This example is derived from example 2 and in an addition demonstrates the usage of control methods:
 * The JS `setTimeout` will be used to call the following methods in sequential order: `start`, `pause`, `reset`, and `start` .
@@ -118,6 +116,14 @@ This example is derived from example 2 and in an addition demonstrates the usage
 * The `mod` (modulo) operator is being used in the first segment to have an instant state of AppStates.Beep be applied to every whole second.
 
 See this example here: https://github.com/marckassay/sots/blob/master/example/example-3.ts
+
+### Example 4
+This example demonstrates an infinite sequence:
+* By setting the `duration` to `Number.MAX_SAFE_INTEGER`.
+* A shape of `PartialObserver<TimeEmission>` (versus `Observer<TimeEmission>`) is passed in `subscribe` since the complete callback is not needed.
+* The `mod` (modulo) operator is repeatedly used.
+
+See this example here: https://github.com/marckassay/sots/blob/master/example/example-4.ts
 
 ## Contribute
 If you want to fork sots and give it a go, deploy 'sotsHarness' and 'sots.code-workspace' from the harness folder into the parent directory of sots.
