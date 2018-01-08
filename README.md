@@ -1,3 +1,5 @@
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/marckassay/sots/blob/master/LICENSE)
+
 sots (Sequence of Time Segments) is a JS module that allows you to structure complex sequences of time segments.  By chaining sots' `add` and `group` methods, a complex sequence can be created with little development time on your end.
 
 sots is capable of being stateful relative to individual time segments, states can be momentary or non-momentary.  When setting states, you can use a string or a number type. And when its a number type you have the option to set sots' to use the Bitwise AND comparison operator.  This is beneficial, if for instance, you're setting states using binary Enums.
@@ -7,7 +9,7 @@ sots is capable of being stateful relative to individual time segments, states c
 ```bash
 npm install sots
 ```
-link: [npmjs.com/package/sots](https://www.npmjs.com/package/sots)
+[![npm version](https://img.shields.io/npm/v/sots.svg?style=flat)](https://www.npmjs.com/package/sots)
 
 ### yarn
 ```bash
