@@ -1,23 +1,23 @@
 export type StateConfig<T> = {
-    [P in keyof T]: T[P];
+  [P in keyof T]: T[P];
 }
 export interface TimeState {
-    state: string | number;
+  state: string | number;
 }
 export interface TimeAt extends TimeState {
-    timeAt: string;
+  timeAt: string;
 }
 export interface TimeLessThan extends TimeState {
-    timeLessThan: string;
+  timeLessThan: string;
 }
 export interface TimeLessThanOrEqualTo extends TimeState {
-    timeLessThanOrEqualTo: string;
+  timeLessThanOrEqualTo: string;
 }
 export interface TimeGreaterThan extends TimeState {
-    timeGreaterThan: string;
+  timeGreaterThan: string;
 }
 export interface TimeGreaterThanOrEqualTo extends TimeState {
-    timeGreaterThanOrEqualTo: string;
+  timeGreaterThanOrEqualTo: string;
 }
 export type StateConfig1 = StateConfig<TimeAt>;
 export type StateConfig2 = StateConfig<TimeLessThan>;

@@ -1,36 +1,36 @@
 {
   "compilerOptions": {
-      "module": "commonjs",
-      "moduleResolution": "node",
-      "target": "es5",
-      "lib": [
-          "dom",
-          "es2015"
-      ],
-      "experimentalDecorators": true,
-      "noImplicitAny": true,
-      "strictNullChecks": true,
-      "noFallthroughCasesInSwitch": true,
-      "noImplicitReturns": true,
-      "noImplicitThis": true,
-      "noUnusedLocals": true,
-      "noUnusedParameters": true,
-      "forceConsistentCasingInFileNames": true,
-      "skipLibCheck": false,
-      // 'strictFunctionTypes' below is disabled to circumvent: https://github.com/ReactiveX/rxjs/issues/3031
-      "strictFunctionTypes": false,
-      "sourceMap": true,
-      "declaration": true,
-      "listFiles": false,
-      "noEmitOnError": true,
-      "inlineSources": true,
-      "newLine": "LF",
-      "listEmittedFiles": false,
-      "traceResolution": false,
-      "stripInternal": true,
-      "outDir": "./dist"
-    },
-    "files": [
-        "lib/index.ts"
-    ]
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "es5",
+    "lib": [
+      "dom",
+      "es2015"
+    ],
+    "experimentalDecorators": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": false,
+    // 'strictFunctionTypes' below is disabled to circumvent: https://github.com/ReactiveX/rxjs/issues/3031
+    "strictFunctionTypes": false,
+    "sourceMap": true,
+    "declaration": true,
+    "listFiles": false,
+    "noEmitOnError": true,
+    "inlineSources": true,
+    "newLine": "LF",
+    "listEmittedFiles": false,
+    "traceResolution": false,
+    "stripInternal": true,
+    "outDir": "./dist"
+  },
+  "files": [
+    "lib/index.ts"
+  ]
 }

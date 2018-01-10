@@ -1,77 +1,77 @@
 import { Sequencer, CountdownSegment, CountupSegment, TimeEmission, add } from '../sots/dist/index';
 
 enum AppStates {
-    Beep = 2,
-    Warning = 4,
-    Rest = 8,
-    Active = 16,
-    Alert = AppStates.Beep + AppStates.Warning
+  Beep = 2,
+  Warning = 4,
+  Rest = 8,
+  Active = 16,
+  Alert = AppStates.Beep + AppStates.Warning
 }
 
 const sequencer: Sequencer = new Sequencer({ period: 100, compareAsBitwise: true });
 sequencer.add(CountdownSegment, {
-    duration: 10000,
-    states: [
-        { state: AppStates.Beep, timeAt: "10,2,1" },
-        { state: AppStates.Warning, timeLessThanOrEqualTo: "5" }
-    ]
+  duration: 10000,
+  states: [
+    { state: AppStates.Beep, timeAt: "10,2,1" },
+    { state: AppStates.Warning, timeLessThanOrEqualTo: "5" }
+  ]
 })
-    .group(3,
-    add(CountdownSegment, {
-        duration: 1000 * 2,
-        omitFirst: true,
-        states: [
-            { state: AppStates.Rest, timeLessThanOrEqualTo: "2" },
-            { state: AppStates.Beep, timeAt: "2" }
-        ]
-    }),
-    add(CountdownSegment, {
-        duration: 1000 * 2,
-        states: [
-            { state: AppStates.Active, timeLessThanOrEqualTo: "2" },
-            { state: AppStates.Beep, timeAt: "2" }
-        ]
-    })
-    )
-    .add(CountupSegment, {
-        duration: 5000,
-        states: [
-            { state: AppStates.Beep, timeAt: "0,3,4" },
-            { state: AppStates.Warning, timeGreaterThanOrEqualTo: "3" }]
-    });
+  .group(3,
+  add(CountdownSegment, {
+    duration: 1000 * 2,
+    omitFirst: true,
+    states: [
+      { state: AppStates.Rest, timeLessThanOrEqualTo: "2" },
+      { state: AppStates.Beep, timeAt: "2" }
+    ]
+  }),
+  add(CountdownSegment, {
+    duration: 1000 * 2,
+    states: [
+      { state: AppStates.Active, timeLessThanOrEqualTo: "2" },
+      { state: AppStates.Beep, timeAt: "2" }
+    ]
+  })
+  )
+  .add(CountupSegment, {
+    duration: 5000,
+    states: [
+      { state: AppStates.Beep, timeAt: "0,3,4" },
+      { state: AppStates.Warning, timeGreaterThanOrEqualTo: "3" }]
+  });
 
 sequencer.subscribe((value: TimeEmission) => {
-    let output: string = "time: " + value.time;
+  let output: string = "time: " + value.time;
 
-    if (value.state) {
-        if (value.state.valueOf(AppStates.Alert)) {
-            output += " state: 'alert!'";
-        }
-        else if (value.state.valueOf(AppStates.Warning)) {
-            output += " state: 'warning'";
-        }
-        else if (value.state.valueOf(AppStates.Beep)) {
-            output += " state: 'beep'";
-        }
-
-        if (value.state.valueOf(AppStates.Rest)) {
-            output += " state: 'rest'";
-        }
-        else if (value.state.valueOf(AppStates.Active)) {
-            output += " state: 'active'";
-        }
+  if (value.state) {
+    if (value.state.valueOf(AppStates.Alert)) {
+      output += " state: 'alert!'";
+    }
+    else if (value.state.valueOf(AppStates.Warning)) {
+      output += " state: 'warning'";
+    }
+    else if (value.state.valueOf(AppStates.Beep)) {
+      output += " state: 'beep'";
     }
 
-    if (value.interval) {
-        output += " interval.current: " + value.interval.current;
-        output += " interval.total: " + value.interval.total;
+    if (value.state.valueOf(AppStates.Rest)) {
+      output += " state: 'rest'";
     }
+    else if (value.state.valueOf(AppStates.Active)) {
+      output += " state: 'active'";
+    }
+  }
 
-    console.log(output);
+  if (value.interval) {
+    output += " interval.current: " + value.interval.current;
+    output += " interval.total: " + value.interval.total;
+  }
+
+  console.log(output);
 }, (error) => {
-    console.error(error);
+  console.error(error);
 }, () => {
-    console.log("Play final beep!");
+  console.log("Play final beep!");
 });
 
 sequencer.start();

@@ -2,44 +2,44 @@ import { Sequencer, CountupSegment, TimeEmission, add } from '../sots/dist/index
 import { PartialObserver } from '../sots/node_modules/rxjs/Observer';
 
 enum AppStates {
-    Beep = 2,
-    Active = 4,
-    Alert = AppStates.Active + AppStates.Beep
+  Beep = 2,
+  Active = 4,
+  Alert = AppStates.Active + AppStates.Beep
 }
 
 let observer: PartialObserver<TimeEmission> = {
-    next: (value: TimeEmission): void => {
-        let output: string = "time: " + value.time;
+  next: (value: TimeEmission): void => {
+    let output: string = "time: " + value.time;
 
-        if (value.state) {
-            output += " valueOf: " + value.state.valueOf();
-            if (value.state.valueOf(AppStates.Alert)) {
-                output += " state: 'alert!'";
-            }
-            else if (value.state.valueOf(AppStates.Active)) {
-                output += " state: 'active'";
-            }
-            else if (value.state.valueOf(AppStates.Beep)) {
-                output += " state: 'beep'";
-            }
-        }
-
-        console.log(output);
-    },
-    error: (error: any): void => {
-        console.error(error);
+    if (value.state) {
+      output += " valueOf: " + value.state.valueOf();
+      if (value.state.valueOf(AppStates.Alert)) {
+        output += " state: 'alert!'";
+      }
+      else if (value.state.valueOf(AppStates.Active)) {
+        output += " state: 'active'";
+      }
+      else if (value.state.valueOf(AppStates.Beep)) {
+        output += " state: 'beep'";
+      }
     }
+
+    console.log(output);
+  },
+  error: (error: any): void => {
+    console.error(error);
+  }
 }
 
 const sequencer: Sequencer = new Sequencer({ period: 1000, compareAsBitwise: true });
 sequencer.add(CountupSegment, {
-    duration: Number.MAX_SAFE_INTEGER,
-    states: [
-        { state: AppStates.Active, timeGreaterThan: "0" },
-        { state: AppStates.Beep, timeAt: "mod15" },
-        { state: AppStates.Beep, timeAt: "mod30" },
-        { state: AppStates.Beep, timeAt: "mod60" }
-    ]
+  duration: Number.MAX_SAFE_INTEGER,
+  states: [
+    { state: AppStates.Active, timeGreaterThan: "0" },
+    { state: AppStates.Beep, timeAt: "mod15" },
+    { state: AppStates.Beep, timeAt: "mod30" },
+    { state: AppStates.Beep, timeAt: "mod60" }
+  ]
 });
 sequencer.subscribe(observer);
 sequencer.start();

@@ -2,36 +2,36 @@ import { Sequencer, CountdownSegment, CountupSegment, TimeEmission } from '../so
 
 const sequencer: Sequencer = new Sequencer({ period: 1000 });
 sequencer.add(CountdownSegment, {
+  duration: 3000,
+  states: [
+    { state: "Started!", timeAt: "3" }
+  ]
+})
+  .add(CountupSegment, {
     duration: 3000,
     states: [
-        { state: "Started!", timeAt: "3" }
+      { state: "Halfway", timeAt: "0" }
     ]
-})
-    .add(CountupSegment, {
-        duration: 3000,
-        states: [
-            { state: "Halfway", timeAt: "0" }
-        ]
-    });
+  });
 
 sequencer.subscribe((value: TimeEmission) => {
-    let output: string;
+  let output: string;
 
-    output = "time: " + value.time;
-    if (value.state) {
+  output = "time: " + value.time;
+  if (value.state) {
 
-        if (value.state.valueOf("Started!")) {
-            output += "<play audible for start>";
-        }
-        else if (value.state.valueOf("Halfway")) {
-            output += "<play audible for halfway point>";
-        }
+    if (value.state.valueOf("Started!")) {
+      output += "<play audible for start>";
     }
-    console.log(output);
+    else if (value.state.valueOf("Halfway")) {
+      output += "<play audible for halfway point>";
+    }
+  }
+  console.log(output);
 }, (error) => {
-    console.error(error);
+  console.error(error);
 }, () => {
-    console.log("<play audible for completed>");
+  console.log("<play audible for completed>");
 });
 
 sequencer.start();
