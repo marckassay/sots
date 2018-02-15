@@ -184,7 +184,7 @@ var StateExpression = /** @class */ (function () {
     };
     StateExpression.prototype.setSpreadState = function (time, state) {
         if (!this.spreadEmissions.has(time)) {
-            this.spreadEmissions.set(time, new StateEmission_1.StateEmission(new Set(), new Set([state])));
+            this.spreadEmissions.set(time, new StateEmission_1.StateEmission(undefined, new Set([state])));
         }
         else {
             this.spreadEmissions.get(time).spread.add(state);
@@ -210,15 +210,17 @@ var StateExpression = /** @class */ (function () {
         this.spreadEmissions.forEach(function (value, key) {
             if ((!_this.countingUp) ? key >= time : key <= time) {
                 if (!emissions) {
-                    emissions = new StateEmission_1.StateEmission(new Set(), value.spread);
+                    emissions = new StateEmission_1.StateEmission(undefined, value.spread);
                 }
                 else {
-                    value.spread.forEach(function (value) {
-                        emissions.spread.add(value);
-                    });
+                    value.spread.forEach(function (val) { return emissions.spread.add(val); });
                 }
             }
         });
+        // HACK: circumventing issue when valueOf is used.
+        //if (emissions && emissions.spread) {
+        //   emissions!.spread = new Set(emissions.spread);
+        // }
         return emissions;
     };
     return StateExpression;

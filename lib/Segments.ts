@@ -183,7 +183,7 @@ export class StateExpression {
 
   private setSpreadState(time: number, state: string | number): void {
     if (!this.spreadEmissions.has(time)) {
-      this.spreadEmissions.set(time, new StateEmission(new Set(), new Set([state])));
+      this.spreadEmissions.set(time, new StateEmission(undefined, new Set([state])));
     } else {
       this.spreadEmissions.get(time)!.spread.add(state);
     }
@@ -209,14 +209,17 @@ export class StateExpression {
     this.spreadEmissions.forEach((value: StateEmission, key: number): void => {
       if ((!this.countingUp) ? key >= time : key <= time) {
         if (!emissions) {
-          emissions = new StateEmission(new Set(), value.spread);
+          emissions = new StateEmission(undefined, value.spread);
         } else {
-          value.spread.forEach((value: string | number) => {
-            emissions!.spread.add(value);
-          });
+          value.spread.forEach((val: string | number) => emissions!.spread.add(val));
         }
       }
     });
+
+    // HACK: circumventing issue when valueOf is used.
+    //if (emissions && emissions.spread) {
+    //   emissions!.spread = new Set(emissions.spread);
+    // }
 
     return emissions;
   }

@@ -1,10 +1,14 @@
 import { SequenceConfigShape } from './api/Segment';
 
 export class StateEmission implements StateEmission {
-  static seqConfig: SequenceConfigShape
+  static seqConfig: SequenceConfigShape;
+  instant: Set<string | number>;
+  spread: Set<string | number>;
 
-  constructor(public instant: Set<string | number> = new Set<string | number>(),
-    public spread: Set<string | number> = new Set<string | number>()) {
+  constructor(instant: Set<string | number> = new Set<string | number>(),
+    spread: Set<string | number> = new Set<string | number>()) {
+    this.instant = instant;
+    this.spread = spread;
   }
 
   valueOf(state?: string | number, compareAsBitwise?: boolean): boolean | number {
