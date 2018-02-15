@@ -31,7 +31,11 @@ var TimeSegment = /** @class */ (function () {
                 time = (_this.seqConfig.period * index) * .001;
             }
             time = parseFloat(time.toFixed(3));
-            return { time: time, interval: _this.interval, state: _this.stateExp.getStateEmission(time) };
+            var outstate = _this.stateExp.getStateEmission(time);
+            if (outstate) {
+                console.log('inner :: ' + outstate.spread.size);
+            }
+            return { time: time, interval: _this.interval, state: outstate };
         })
             .takeWhile(function (value) {
             if (lastElementOfSeq == false) {
@@ -217,6 +221,9 @@ var StateExpression = /** @class */ (function () {
                 }
             }
         });
+        if (emissions && emissions.spread) {
+            emissions.spread = new Set(emissions.spread);
+        }
         return emissions;
     };
     StateExpression.prototype.newStateEmission = function (instant, spread) {

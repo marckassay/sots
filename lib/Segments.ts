@@ -28,8 +28,12 @@ export class TimeSegment implements SegmentInterface {
           time = (this.seqConfig.period * index) * .001;
         }
         time = parseFloat(time.toFixed(3));
+        let outstate: StateEmission | undefined = this.stateExp.getStateEmission(time);
+        if (outstate) {
+          console.log('inner :: ' + outstate.spread.size)
+        }
 
-        return { time: time, interval: this.interval, state: this.stateExp.getStateEmission(time) };
+        return { time: time, interval: this.interval, state: outstate };
       })
       .takeWhile((value: TimeEmission) => {
         if (lastElementOfSeq == false) {
@@ -188,7 +192,6 @@ export class StateExpression {
 
   getStateEmission(time: number): StateEmission | undefined {
     let emissions: StateEmission | undefined;
-
     emissions = this.instantEmissions.get(time);
 
     // determine if any moduloInstantEmissions apply to this moment in time
@@ -216,6 +219,10 @@ export class StateExpression {
       }
     });
 
+    if (emissions && emissions.spread) {
+      emissions!.spread = new Set(emissions.spread);
+    }
+
     return emissions;
   }
 
@@ -239,6 +246,7 @@ export class StateExpression {
 
   private getStateValues(instant: Set<string | number>, spread: Set<string | number>, state: string | number, compareAsBitwise?: boolean): number {
     let useBitwiseCompare: boolean;
+
     if (compareAsBitwise != undefined) {
       useBitwiseCompare = compareAsBitwise;
     }
