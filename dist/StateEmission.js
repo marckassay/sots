@@ -17,6 +17,10 @@ var StateEmission = /** @class */ (function () {
         }
         return results;
     };
+    StateEmission.prototype.mapToSpread = function (value) {
+        var _this = this;
+        value.forEach(function (val) { return _this.spread.add(val); });
+    };
     StateEmission.prototype.getStateValues = function (state, compareAsBitwise) {
         var useBitwiseCompare;
         if (compareAsBitwise != undefined) {

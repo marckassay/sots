@@ -211,15 +211,16 @@ export class StateExpression {
         if (!emissions) {
           emissions = new StateEmission(undefined, value.spread);
         } else {
-          value.spread.forEach((val: string | number) => emissions!.spread.add(val));
+          emissions.mapToSpread(value.spread);
         }
       }
-    });
+    }, emissions);
 
-    // HACK: circumventing issue when valueOf is used.
-    //if (emissions && emissions.spread) {
-    //   emissions!.spread = new Set(emissions.spread);
-    // }
+    // HACK: circumventing issue when valueOf() is used.
+    // See https://github.com/marckassay/sots/issues/3
+    if (emissions && emissions.spread) {
+      emissions.spread = new Set(emissions.spread);
+    }
 
     return emissions;
   }

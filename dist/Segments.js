@@ -213,14 +213,15 @@ var StateExpression = /** @class */ (function () {
                     emissions = new StateEmission_1.StateEmission(undefined, value.spread);
                 }
                 else {
-                    value.spread.forEach(function (val) { return emissions.spread.add(val); });
+                    emissions.mapToSpread(value.spread);
                 }
             }
-        });
-        // HACK: circumventing issue when valueOf is used.
-        //if (emissions && emissions.spread) {
-        //   emissions!.spread = new Set(emissions.spread);
-        // }
+        }, emissions);
+        // HACK: circumventing issue when valueOf() is used.
+        // See https://github.com/marckassay/sots/issues/3
+        if (emissions && emissions.spread) {
+            emissions.spread = new Set(emissions.spread);
+        }
         return emissions;
     };
     return StateExpression;

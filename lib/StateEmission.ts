@@ -22,6 +22,10 @@ export class StateEmission implements StateEmission {
     return results;
   }
 
+  mapToSpread(value: Set<string | number>) {
+    value.forEach(val => this.spread.add(val))
+  }
+
   private getStateValues(state: string | number, compareAsBitwise?: boolean): number {
     let useBitwiseCompare: boolean;
 
