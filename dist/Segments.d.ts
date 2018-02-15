@@ -1,5 +1,6 @@
 import { Observable } from 'rxjs/Rx';
-import { TimeEmission, IntervalEmission, StateEmission } from './api/Emission';
+import { TimeEmission, IntervalEmission } from './api/Emission';
+import { StateEmission } from './StateEmission';
 import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
 import { SegmentCollection } from './Sequencer';
 export declare class TimeSegment implements SegmentInterface {
@@ -53,6 +54,4 @@ export declare class StateExpression {
     private setInstantStates(times, state);
     private setSpreadState(time, state);
     getStateEmission(time: number): StateEmission | undefined;
-    private newStateEmission(instant?, spread?);
-    private getStateValues(instant, spread, state, compareAsBitwise?);
 }

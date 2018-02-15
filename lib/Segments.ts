@@ -1,5 +1,6 @@
 import { Observable } from 'rxjs/Rx';
-import { TimeEmission, IntervalEmission, StateEmission } from './api/Emission';
+import { TimeEmission, IntervalEmission } from './api/Emission';
+import { StateEmission } from './StateEmission';
 import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
 import { StateConfig1, StateConfig2, StateConfig3, StateConfig4, StateConfig5 } from './api/StateConfigs';
 import { SegmentCollection } from './Sequencer';
@@ -28,12 +29,8 @@ export class TimeSegment implements SegmentInterface {
           time = (this.seqConfig.period * index) * .001;
         }
         time = parseFloat(time.toFixed(3));
-        let outstate: StateEmission | undefined = this.stateExp.getStateEmission(time);
-        if (outstate) {
-          console.log('inner :: ' + outstate.spread.size)
-        }
 
-        return { time: time, interval: this.interval, state: outstate };
+        return { time: time, interval: this.interval, state: this.stateExp.getStateEmission(time) };
       })
       .takeWhile((value: TimeEmission) => {
         if (lastElementOfSeq == false) {
@@ -105,6 +102,8 @@ export class StateExpression {
   private moduloInstantEmissions: Map<number, string | number>;
 
   constructor(public config: SegmentConfigShape, public seqConfig: SequenceConfigShape, public countingUp: boolean) {
+    StateEmission.seqConfig = seqConfig;
+
     this.instantEmissions = new Map<number, StateEmission>();
     this.spreadEmissions = new Map<number, StateEmission>();
     this.moduloInstantEmissions = new Map<number, string | number>();
@@ -157,7 +156,7 @@ export class StateExpression {
 
     let insertInstantState = (value: number): void => {
       if (!this.instantEmissions.has(value)) {
-        this.instantEmissions.set(value, this.newStateEmission(new Set([state])));
+        this.instantEmissions.set(value, new StateEmission(new Set([state])));
       } else {
         this.instantEmissions.get(value)!.instant.add(state);
       }
@@ -184,7 +183,7 @@ export class StateExpression {
 
   private setSpreadState(time: number, state: string | number): void {
     if (!this.spreadEmissions.has(time)) {
-      this.spreadEmissions.set(time, this.newStateEmission(new Set(), new Set([state])));
+      this.spreadEmissions.set(time, new StateEmission(new Set(), new Set([state])));
     } else {
       this.spreadEmissions.get(time)!.spread.add(state);
     }
@@ -199,7 +198,7 @@ export class StateExpression {
       ///const timeFloat: number = (typeof value === 'string') ? parseFloat(value) : value;
       if (time % key === 0) {
         if (!emissions) {
-          emissions = this.newStateEmission(new Set([value]));
+          emissions = new StateEmission(new Set([value]));
         } else {
           emissions.instant.add(value);
         }
@@ -210,7 +209,7 @@ export class StateExpression {
     this.spreadEmissions.forEach((value: StateEmission, key: number): void => {
       if ((!this.countingUp) ? key >= time : key <= time) {
         if (!emissions) {
-          emissions = this.newStateEmission(new Set(), value.spread);
+          emissions = new StateEmission(new Set(), value.spread);
         } else {
           value.spread.forEach((value: string | number) => {
             emissions!.spread.add(value);
@@ -219,72 +218,6 @@ export class StateExpression {
       }
     });
 
-    if (emissions && emissions.spread) {
-      emissions!.spread = new Set(emissions.spread);
-    }
-
     return emissions;
-  }
-
-  private newStateEmission(instant: Set<string | number> = new Set<string | number>(),
-    spread: Set<string | number> = new Set<string | number>()): StateEmission {
-    return {
-      instant: instant,
-      spread: spread,
-      valueOf: (state?: string | number, compareAsBitwise?: boolean): boolean | number => {
-        let results: boolean | number;
-        if (state !== undefined) {
-          results = (this.getStateValues(instant, spread, state, compareAsBitwise) > 0);
-        } else {
-          results = this.getStateValues(instant, spread, -1, true);
-        }
-
-        return results;
-      }
-    } as StateEmission;
-  }
-
-  private getStateValues(instant: Set<string | number>, spread: Set<string | number>, state: string | number, compareAsBitwise?: boolean): number {
-    let useBitwiseCompare: boolean;
-
-    if (compareAsBitwise != undefined) {
-      useBitwiseCompare = compareAsBitwise;
-    }
-    else if (this.seqConfig.compareAsBitwise != undefined) {
-      useBitwiseCompare = this.seqConfig.compareAsBitwise;
-    }
-    else {
-      useBitwiseCompare = false;
-    }
-
-    if (useBitwiseCompare === false) {
-      // here returning numbers (1,0) and not boolean to conform to this method's return type
-      if (instant.has(state) === false) {
-        return (spread.has(state) ? 1 : 0);
-      } else {
-        return 1;
-      }
-    } else if (typeof state === 'string') {
-      throw "valueOf() has been called with a string and flagged to use bitwise comparisons."
-    } else {
-      let total: number = 0;
-      instant.forEach((value: string | number) => {
-        if (typeof value === 'number') {
-          total += value;
-        }
-      }, total);
-
-      spread.forEach((value: string | number) => {
-        if (typeof value === 'number') {
-          total += value;
-        }
-      }, total);
-
-      if (state === -1) {
-        return total;
-      } else {
-        return ((total & state) === state) ? 1 : -1;
-      }
-    }
   }
 }

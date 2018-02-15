@@ -11,6 +11,7 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var Rx_1 = require("rxjs/Rx");
+var StateEmission_1 = require("./StateEmission");
 var TimeSegment = /** @class */ (function () {
     function TimeSegment(config, countingUp) {
         if (countingUp === void 0) { countingUp = false; }
@@ -31,11 +32,7 @@ var TimeSegment = /** @class */ (function () {
                 time = (_this.seqConfig.period * index) * .001;
             }
             time = parseFloat(time.toFixed(3));
-            var outstate = _this.stateExp.getStateEmission(time);
-            if (outstate) {
-                console.log('inner :: ' + outstate.spread.size);
-            }
-            return { time: time, interval: _this.interval, state: outstate };
+            return { time: time, interval: _this.interval, state: _this.stateExp.getStateEmission(time) };
         })
             .takeWhile(function (value) {
             if (lastElementOfSeq == false) {
@@ -115,6 +112,7 @@ var StateExpression = /** @class */ (function () {
         this.config = config;
         this.seqConfig = seqConfig;
         this.countingUp = countingUp;
+        StateEmission_1.StateEmission.seqConfig = seqConfig;
         this.instantEmissions = new Map();
         this.spreadEmissions = new Map();
         this.moduloInstantEmissions = new Map();
@@ -159,7 +157,7 @@ var StateExpression = /** @class */ (function () {
         var results = times.match(excludeCommaExpression);
         var insertInstantState = function (value) {
             if (!_this.instantEmissions.has(value)) {
-                _this.instantEmissions.set(value, _this.newStateEmission(new Set([state])));
+                _this.instantEmissions.set(value, new StateEmission_1.StateEmission(new Set([state])));
             }
             else {
                 _this.instantEmissions.get(value).instant.add(state);
@@ -186,7 +184,7 @@ var StateExpression = /** @class */ (function () {
     };
     StateExpression.prototype.setSpreadState = function (time, state) {
         if (!this.spreadEmissions.has(time)) {
-            this.spreadEmissions.set(time, this.newStateEmission(new Set(), new Set([state])));
+            this.spreadEmissions.set(time, new StateEmission_1.StateEmission(new Set(), new Set([state])));
         }
         else {
             this.spreadEmissions.get(time).spread.add(state);
@@ -201,7 +199,7 @@ var StateExpression = /** @class */ (function () {
             ///const timeFloat: number = (typeof value === 'string') ? parseFloat(value) : value;
             if (time % key === 0) {
                 if (!emissions) {
-                    emissions = _this.newStateEmission(new Set([value]));
+                    emissions = new StateEmission_1.StateEmission(new Set([value]));
                 }
                 else {
                     emissions.instant.add(value);
@@ -212,7 +210,7 @@ var StateExpression = /** @class */ (function () {
         this.spreadEmissions.forEach(function (value, key) {
             if ((!_this.countingUp) ? key >= time : key <= time) {
                 if (!emissions) {
-                    emissions = _this.newStateEmission(new Set(), value.spread);
+                    emissions = new StateEmission_1.StateEmission(new Set(), value.spread);
                 }
                 else {
                     value.spread.forEach(function (value) {
@@ -221,72 +219,7 @@ var StateExpression = /** @class */ (function () {
                 }
             }
         });
-        if (emissions && emissions.spread) {
-            emissions.spread = new Set(emissions.spread);
-        }
         return emissions;
-    };
-    StateExpression.prototype.newStateEmission = function (instant, spread) {
-        var _this = this;
-        if (instant === void 0) { instant = new Set(); }
-        if (spread === void 0) { spread = new Set(); }
-        return {
-            instant: instant,
-            spread: spread,
-            valueOf: function (state, compareAsBitwise) {
-                var results;
-                if (state !== undefined) {
-                    results = (_this.getStateValues(instant, spread, state, compareAsBitwise) > 0);
-                }
-                else {
-                    results = _this.getStateValues(instant, spread, -1, true);
-                }
-                return results;
-            }
-        };
-    };
-    StateExpression.prototype.getStateValues = function (instant, spread, state, compareAsBitwise) {
-        var useBitwiseCompare;
-        if (compareAsBitwise != undefined) {
-            useBitwiseCompare = compareAsBitwise;
-        }
-        else if (this.seqConfig.compareAsBitwise != undefined) {
-            useBitwiseCompare = this.seqConfig.compareAsBitwise;
-        }
-        else {
-            useBitwiseCompare = false;
-        }
-        if (useBitwiseCompare === false) {
-            // here returning numbers (1,0) and not boolean to conform to this method's return type
-            if (instant.has(state) === false) {
-                return (spread.has(state) ? 1 : 0);
-            }
-            else {
-                return 1;
-            }
-        }
-        else if (typeof state === 'string') {
-            throw "valueOf() has been called with a string and flagged to use bitwise comparisons.";
-        }
-        else {
-            var total_1 = 0;
-            instant.forEach(function (value) {
-                if (typeof value === 'number') {
-                    total_1 += value;
-                }
-            }, total_1);
-            spread.forEach(function (value) {
-                if (typeof value === 'number') {
-                    total_1 += value;
-                }
-            }, total_1);
-            if (state === -1) {
-                return total_1;
-            }
-            else {
-                return ((total_1 & state) === state) ? 1 : -1;
-            }
-        }
     };
     return StateExpression;
 }());
