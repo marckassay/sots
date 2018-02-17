@@ -1,11 +1,10 @@
 import { SequenceConfigShape } from './api/Segment';
 
 export class StateEmission implements StateEmission {
-  static seqConfig: SequenceConfigShape;
   instant: Set<string | number>;
   spread: Set<string | number>;
 
-  constructor(instant: Set<string | number> = new Set<string | number>(),
+  constructor(public compareAsBitwise?: boolean, instant: Set<string | number> = new Set<string | number>(),
     spread: Set<string | number> = new Set<string | number>()) {
     this.instant = instant;
     this.spread = spread;
@@ -18,7 +17,7 @@ export class StateEmission implements StateEmission {
     } else {
       results = this.getStateValues(-1, true);
     }
-
+    console.log('-' + this.spread.size)
     return results;
   }
 
@@ -32,8 +31,8 @@ export class StateEmission implements StateEmission {
     if (compareAsBitwise != undefined) {
       useBitwiseCompare = compareAsBitwise;
     }
-    else if (StateEmission.seqConfig.compareAsBitwise != undefined) {
-      useBitwiseCompare = StateEmission.seqConfig.compareAsBitwise;
+    else if (this.compareAsBitwise != undefined) {
+      useBitwiseCompare = this.compareAsBitwise;
     }
     else {
       useBitwiseCompare = false;

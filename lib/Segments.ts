@@ -20,18 +20,21 @@ export class TimeSegment implements SegmentInterface {
 
   public initializeObservable(lastElementOfSeq: boolean = false): Observable<TimeEmission> {
     this.stateExp = new StateExpression(this.config, this.seqConfig, this.countingUp);
-    let source: Observable<TimeEmission> = Observable.timer(0, this.seqConfig.period)
-      .map((_value: number, index: number): TimeEmission => {
-        let time: number;
-        if (!this.countingUp) {
-          time = (this.config.duration - (this.seqConfig.period * index)) * .001;
-        } else {
-          time = (this.seqConfig.period * index) * .001;
-        }
-        time = parseFloat(time.toFixed(3));
 
-        return { time: time, interval: this.interval, state: this.stateExp.getStateEmission(time) };
-      })
+    //let generator: Observable<number> = Observable.timer(0, this.seqConfig.period);
+    let generator: Observable<number> = Observable.interval(this.seqConfig.period);
+
+    let source: Observable<TimeEmission> = generator.map((_value: number, index: number): TimeEmission => {
+      let time: number;
+      if (!this.countingUp) {
+        time = (this.config.duration - (this.seqConfig.period * index)) * .001;
+      } else {
+        time = (this.seqConfig.period * index) * .001;
+      }
+      time = parseFloat(time.toFixed(3));
+
+      return { time: time, interval: this.interval, state: this.stateExp.getStateEmission(time) };
+    })
       .takeWhile((value: TimeEmission) => {
         if (lastElementOfSeq == false) {
           if (!this.countingUp) {
@@ -102,8 +105,6 @@ export class StateExpression {
   private moduloInstantEmissions: Map<number, string | number>;
 
   constructor(public config: SegmentConfigShape, public seqConfig: SequenceConfigShape, public countingUp: boolean) {
-    StateEmission.seqConfig = seqConfig;
-
     this.instantEmissions = new Map<number, StateEmission>();
     this.spreadEmissions = new Map<number, StateEmission>();
     this.moduloInstantEmissions = new Map<number, string | number>();
@@ -156,7 +157,7 @@ export class StateExpression {
 
     let insertInstantState = (value: number): void => {
       if (!this.instantEmissions.has(value)) {
-        this.instantEmissions.set(value, new StateEmission(new Set([state])));
+        this.instantEmissions.set(value, new StateEmission(this.seqConfig.compareAsBitwise, new Set([state])));
       } else {
         this.instantEmissions.get(value)!.instant.add(state);
       }
@@ -183,7 +184,7 @@ export class StateExpression {
 
   private setSpreadState(time: number, state: string | number): void {
     if (!this.spreadEmissions.has(time)) {
-      this.spreadEmissions.set(time, new StateEmission(undefined, new Set([state])));
+      this.spreadEmissions.set(time, new StateEmission(this.seqConfig.compareAsBitwise, undefined, new Set([state])));
     } else {
       this.spreadEmissions.get(time)!.spread.add(state);
     }
@@ -198,7 +199,7 @@ export class StateExpression {
       ///const timeFloat: number = (typeof value === 'string') ? parseFloat(value) : value;
       if (time % key === 0) {
         if (!emissions) {
-          emissions = new StateEmission(new Set([value]));
+          emissions = new StateEmission(this.seqConfig.compareAsBitwise, new Set([value]));
         } else {
           emissions.instant.add(value);
         }
@@ -209,7 +210,7 @@ export class StateExpression {
     this.spreadEmissions.forEach((value: StateEmission, key: number): void => {
       if ((!this.countingUp) ? key >= time : key <= time) {
         if (!emissions) {
-          emissions = new StateEmission(undefined, value.spread);
+          emissions = new StateEmission(this.seqConfig.compareAsBitwise, undefined, value.spread);
         } else {
           emissions.mapToSpread(value.spread);
         }
@@ -220,6 +221,7 @@ export class StateExpression {
     // See https://github.com/marckassay/sots/issues/3
     if (emissions && emissions.spread) {
       emissions.spread = new Set(emissions.spread);
+      console.log('+' + emissions.spread.size)
     }
 
     return emissions;

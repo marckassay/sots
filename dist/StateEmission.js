@@ -15,6 +15,7 @@ var StateEmission = /** @class */ (function () {
         else {
             results = this.getStateValues(-1, true);
         }
+        console.log('-' + this.spread.size);
         return results;
     };
     StateEmission.prototype.mapToSpread = function (value) {
