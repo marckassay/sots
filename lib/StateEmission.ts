@@ -1,5 +1,3 @@
-import { SequenceConfigShape } from './api/Segment';
-
 export class StateEmission implements StateEmission {
   instant: Set<string | number>;
   spread: Set<string | number>;
@@ -10,6 +8,14 @@ export class StateEmission implements StateEmission {
     this.spread = spread;
   }
 
+  /**
+   * This function is to be called when `sequencer.subscribe.next()` emits an item.
+   *
+   * @param state An optional parameter that specifies to assert if this state is current in this
+   * moment of time.  If no value, a number will be returned representing all states.
+   *
+   * @param compareAsBitwise when make assertion using bitwise logic.
+   */
   valueOf(state?: string | number, compareAsBitwise?: boolean): boolean | number {
     let results: boolean | number;
     if (state !== undefined) {
@@ -17,10 +23,13 @@ export class StateEmission implements StateEmission {
     } else {
       results = this.getStateValues(-1, true);
     }
-    console.log('-' + this.spread.size)
     return results;
   }
 
+  /**
+   * Called in StateExpression when constructing a seqeunce.  Its called specifically when
+   * additional value is add to spread Set.
+   */
   mapToSpread(value: Set<string | number>) {
     value.forEach(val => this.spread.add(val))
   }

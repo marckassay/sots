@@ -1,12 +1,21 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var StateEmission = /** @class */ (function () {
-    function StateEmission(instant, spread) {
+    function StateEmission(compareAsBitwise, instant, spread) {
         if (instant === void 0) { instant = new Set(); }
         if (spread === void 0) { spread = new Set(); }
+        this.compareAsBitwise = compareAsBitwise;
         this.instant = instant;
         this.spread = spread;
     }
+    /**
+     * This function is to be called when `sequencer.subscribe.next()` emits an item.
+     *
+     * @param state An optional parameter that specifies to assert if this state is current in this
+     * moment of time.  If no value, a number will be returned representing all states.
+     *
+     * @param compareAsBitwise when make assertion using bitwise logic.
+     */
     StateEmission.prototype.valueOf = function (state, compareAsBitwise) {
         var results;
         if (state !== undefined) {
@@ -15,9 +24,12 @@ var StateEmission = /** @class */ (function () {
         else {
             results = this.getStateValues(-1, true);
         }
-        console.log('-' + this.spread.size);
         return results;
     };
+    /**
+     * Called in StateExpression when constructing a seqeunce.  Its called specifically when
+     * additional value is add to spread Set.
+     */
     StateEmission.prototype.mapToSpread = function (value) {
         var _this = this;
         value.forEach(function (val) { return _this.spread.add(val); });
@@ -27,8 +39,8 @@ var StateEmission = /** @class */ (function () {
         if (compareAsBitwise != undefined) {
             useBitwiseCompare = compareAsBitwise;
         }
-        else if (StateEmission.seqConfig.compareAsBitwise != undefined) {
-            useBitwiseCompare = StateEmission.seqConfig.compareAsBitwise;
+        else if (this.compareAsBitwise != undefined) {
+            useBitwiseCompare = this.compareAsBitwise;
         }
         else {
             useBitwiseCompare = false;

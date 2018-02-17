@@ -1,4 +1,4 @@
-import { Observable } from 'rxjs/Rx';
+import { Observable, Subject } from 'rxjs/Rx';
 import { TimeEmission, IntervalEmission } from './api/Emission';
 import { StateEmission } from './StateEmission';
 import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
@@ -8,10 +8,12 @@ import { SegmentCollection } from './Sequencer';
 export class TimeSegment implements SegmentInterface {
   config: SegmentConfigShape;
   seqConfig: SequenceConfigShape;
+  pauseObserv: Subject<boolean>;
   collection: SegmentCollection;
   interval: IntervalEmission;
   private countingUp: boolean;
   private stateExp: StateExpression;
+
 
   constructor(config: SegmentConfigShape, countingUp: boolean = false) {
     this.config = config;
@@ -21,20 +23,20 @@ export class TimeSegment implements SegmentInterface {
   public initializeObservable(lastElementOfSeq: boolean = false): Observable<TimeEmission> {
     this.stateExp = new StateExpression(this.config, this.seqConfig, this.countingUp);
 
-    //let generator: Observable<number> = Observable.timer(0, this.seqConfig.period);
-    let generator: Observable<number> = Observable.interval(this.seqConfig.period);
+    let source: Observable<TimeEmission> = this.pauseObserv.startWith(true).switchMap(
+      (value) => (value) ? Observable.timer(0, this.seqConfig.period) : Observable.never<number>()
+    )
+      .map((_value: number, index: number): TimeEmission => {
+        let time: number;
+        if (!this.countingUp) {
+          time = (this.config.duration - (this.seqConfig.period * index)) * .001;
+        } else {
+          time = (this.seqConfig.period * index) * .001;
+        }
+        time = parseFloat(time.toFixed(3));
 
-    let source: Observable<TimeEmission> = generator.map((_value: number, index: number): TimeEmission => {
-      let time: number;
-      if (!this.countingUp) {
-        time = (this.config.duration - (this.seqConfig.period * index)) * .001;
-      } else {
-        time = (this.seqConfig.period * index) * .001;
-      }
-      time = parseFloat(time.toFixed(3));
-
-      return { time: time, interval: this.interval, state: this.stateExp.getStateEmission(time) };
-    })
+        return { time: time, interval: this.interval, state: this.stateExp.getStateEmission(time) };
+      })
       .takeWhile((value: TimeEmission) => {
         if (lastElementOfSeq == false) {
           if (!this.countingUp) {
@@ -56,9 +58,11 @@ export class TimeSegment implements SegmentInterface {
 
   /**
    * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
-   * @param ctor    A type being subclass of TimeSegment,  Specifically CountupSegment or CountdownSegment.
-   * @param config  Config file specifiying duration (required) and states (optional).  When used inside a group
-   * function, the omitFirst can be used to omit this segment when its assigned to the first interval.
+   * @param ctor    A type being subclass of TimeSegment,  Specifically CountupSegment or
+   * CountdownSegment.
+   * @param config  Config file specifiying duration (required) and states (optional).  When used
+   * inside a group function, the omitFirst can be used to omit this segment when its assigned to
+   * the first interval.
    * @returns       An instance of T type, which is a subclass of TimeSegment.
    */
   add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T {
@@ -67,7 +71,8 @@ export class TimeSegment implements SegmentInterface {
 
   /**
    * Multiply its combined add() invocations and returns a TimeSegment.
-   * @param intervals The number intervals or cycles to be added of segments.  Must be 1 or greater in value.
+   * @param intervals The number intervals or cycles to be added of segments.  Must be 1 or greater
+   * in value.
    * @param segments  Consists of add() invocations.
    * @returns         An instance of T type, which is a subclass of TimeSegment.
    */
@@ -221,7 +226,6 @@ export class StateExpression {
     // See https://github.com/marckassay/sots/issues/3
     if (emissions && emissions.spread) {
       emissions.spread = new Set(emissions.spread);
-      console.log('+' + emissions.spread.size)
     }
 
     return emissions;

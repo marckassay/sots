@@ -1,4 +1,4 @@
-import { Observable } from 'rxjs/Rx';
+import { Observable, Subject } from 'rxjs/Rx';
 import { TimeEmission, IntervalEmission } from './api/Emission';
 import { StateEmission } from './StateEmission';
 import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
@@ -6,6 +6,7 @@ import { SegmentCollection } from './Sequencer';
 export declare class TimeSegment implements SegmentInterface {
     config: SegmentConfigShape;
     seqConfig: SequenceConfigShape;
+    pauseObserv: Subject<boolean>;
     collection: SegmentCollection;
     interval: IntervalEmission;
     private countingUp;
@@ -14,15 +15,18 @@ export declare class TimeSegment implements SegmentInterface {
     initializeObservable(lastElementOfSeq?: boolean): Observable<TimeEmission>;
     /**
      * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
-     * @param ctor    A type being subclass of TimeSegment,  Specifically CountupSegment or CountdownSegment.
-     * @param config  Config file specifiying duration (required) and states (optional).  When used inside a group
-     * function, the omitFirst can be used to omit this segment when its assigned to the first interval.
+     * @param ctor    A type being subclass of TimeSegment,  Specifically CountupSegment or
+     * CountdownSegment.
+     * @param config  Config file specifiying duration (required) and states (optional).  When used
+     * inside a group function, the omitFirst can be used to omit this segment when its assigned to
+     * the first interval.
      * @returns       An instance of T type, which is a subclass of TimeSegment.
      */
     add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T;
     /**
      * Multiply its combined add() invocations and returns a TimeSegment.
-     * @param intervals The number intervals or cycles to be added of segments.  Must be 1 or greater in value.
+     * @param intervals The number intervals or cycles to be added of segments.  Must be 1 or greater
+     * in value.
      * @param segments  Consists of add() invocations.
      * @returns         An instance of T type, which is a subclass of TimeSegment.
      */

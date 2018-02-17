@@ -22,7 +22,7 @@ var TimeSegment = /** @class */ (function () {
         var _this = this;
         if (lastElementOfSeq === void 0) { lastElementOfSeq = false; }
         this.stateExp = new StateExpression(this.config, this.seqConfig, this.countingUp);
-        var source = Rx_1.Observable.range(1, 10)
+        var source = this.pauseObserv.startWith(true).switchMap(function (value) { return (value) ? Rx_1.Observable.timer(0, _this.seqConfig.period) : Rx_1.Observable.never(); })
             .map(function (_value, index) {
             var time;
             if (!_this.countingUp) {
@@ -56,9 +56,11 @@ var TimeSegment = /** @class */ (function () {
     };
     /**
      * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
-     * @param ctor    A type being subclass of TimeSegment,  Specifically CountupSegment or CountdownSegment.
-     * @param config  Config file specifiying duration (required) and states (optional).  When used inside a group
-     * function, the omitFirst can be used to omit this segment when its assigned to the first interval.
+     * @param ctor    A type being subclass of TimeSegment,  Specifically CountupSegment or
+     * CountdownSegment.
+     * @param config  Config file specifiying duration (required) and states (optional).  When used
+     * inside a group function, the omitFirst can be used to omit this segment when its assigned to
+     * the first interval.
      * @returns       An instance of T type, which is a subclass of TimeSegment.
      */
     TimeSegment.prototype.add = function (ctor, config) {
@@ -66,7 +68,8 @@ var TimeSegment = /** @class */ (function () {
     };
     /**
      * Multiply its combined add() invocations and returns a TimeSegment.
-     * @param intervals The number intervals or cycles to be added of segments.  Must be 1 or greater in value.
+     * @param intervals The number intervals or cycles to be added of segments.  Must be 1 or greater
+     * in value.
      * @param segments  Consists of add() invocations.
      * @returns         An instance of T type, which is a subclass of TimeSegment.
      */
@@ -112,7 +115,6 @@ var StateExpression = /** @class */ (function () {
         this.config = config;
         this.seqConfig = seqConfig;
         this.countingUp = countingUp;
-        StateEmission_1.StateEmission.seqConfig = seqConfig;
         this.instantEmissions = new Map();
         this.spreadEmissions = new Map();
         this.moduloInstantEmissions = new Map();
@@ -157,7 +159,7 @@ var StateExpression = /** @class */ (function () {
         var results = times.match(excludeCommaExpression);
         var insertInstantState = function (value) {
             if (!_this.instantEmissions.has(value)) {
-                _this.instantEmissions.set(value, new StateEmission_1.StateEmission(new Set([state])));
+                _this.instantEmissions.set(value, new StateEmission_1.StateEmission(_this.seqConfig.compareAsBitwise, new Set([state])));
             }
             else {
                 _this.instantEmissions.get(value).instant.add(state);
@@ -184,7 +186,7 @@ var StateExpression = /** @class */ (function () {
     };
     StateExpression.prototype.setSpreadState = function (time, state) {
         if (!this.spreadEmissions.has(time)) {
-            this.spreadEmissions.set(time, new StateEmission_1.StateEmission(undefined, new Set([state])));
+            this.spreadEmissions.set(time, new StateEmission_1.StateEmission(this.seqConfig.compareAsBitwise, undefined, new Set([state])));
         }
         else {
             this.spreadEmissions.get(time).spread.add(state);
@@ -199,7 +201,7 @@ var StateExpression = /** @class */ (function () {
             ///const timeFloat: number = (typeof value === 'string') ? parseFloat(value) : value;
             if (time % key === 0) {
                 if (!emissions) {
-                    emissions = new StateEmission_1.StateEmission(new Set([value]));
+                    emissions = new StateEmission_1.StateEmission(_this.seqConfig.compareAsBitwise, new Set([value]));
                 }
                 else {
                     emissions.instant.add(value);
@@ -210,7 +212,7 @@ var StateExpression = /** @class */ (function () {
         this.spreadEmissions.forEach(function (value, key) {
             if ((!_this.countingUp) ? key >= time : key <= time) {
                 if (!emissions) {
-                    emissions = new StateEmission_1.StateEmission(undefined, value.spread);
+                    emissions = new StateEmission_1.StateEmission(_this.seqConfig.compareAsBitwise, undefined, value.spread);
                 }
                 else {
                     emissions.mapToSpread(value.spread);
@@ -221,7 +223,6 @@ var StateExpression = /** @class */ (function () {
         // See https://github.com/marckassay/sots/issues/3
         if (emissions && emissions.spread) {
             emissions.spread = new Set(emissions.spread);
-            console.log('+' + emissions.spread.size);
         }
         return emissions;
     };
