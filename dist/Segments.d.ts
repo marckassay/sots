@@ -12,7 +12,7 @@ export declare class TimeSegment implements SegmentInterface {
     private countingUp;
     private stateExp;
     constructor(config: SegmentConfigShape, countingUp?: boolean);
-    initializeObservable(lastElementOfSeq?: boolean): Observable<TimeEmission>;
+    initializeObservable(firstElementOfSeq?: boolean, lastElementOfSeq?: boolean): Observable<TimeEmission>;
     /**
      * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
      * @param ctor    A type being subclass of TimeSegment,  Specifically CountupSegment or

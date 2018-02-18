@@ -59,10 +59,20 @@ var SegmentCollection = /** @class */ (function () {
         this.segments.forEach(function (value, index) {
             var observable;
             if (index === _this.segments.length - 1) {
-                observable = value.initializeObservable(true);
+                if (index !== 0) {
+                    observable = value.initializeObservable(false, true);
+                }
+                else {
+                    observable = value.initializeObservable(true, true);
+                }
             }
             else {
-                observable = value.initializeObservable();
+                if (index !== 0) {
+                    observable = value.initializeObservable();
+                }
+                else {
+                    observable = value.initializeObservable(true);
+                }
             }
             if (concatObservs) {
                 concatObservs = concatObservs.concat(observable);

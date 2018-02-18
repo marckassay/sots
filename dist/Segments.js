@@ -18,11 +18,12 @@ var TimeSegment = /** @class */ (function () {
         this.config = config;
         this.countingUp = countingUp;
     }
-    TimeSegment.prototype.initializeObservable = function (lastElementOfSeq) {
+    TimeSegment.prototype.initializeObservable = function (firstElementOfSeq, lastElementOfSeq) {
         var _this = this;
+        if (firstElementOfSeq === void 0) { firstElementOfSeq = false; }
         if (lastElementOfSeq === void 0) { lastElementOfSeq = false; }
         this.stateExp = new StateExpression(this.config, this.seqConfig, this.countingUp);
-        var source = this.pauseObserv.startWith(true).switchMap(function (value) { return (value) ? Rx_1.Observable.timer(0, _this.seqConfig.period) : Rx_1.Observable.never(); })
+        var source = this.pauseObserv.startWith(!firstElementOfSeq).switchMap(function (value) { return (value) ? Rx_1.Observable.timer(0, _this.seqConfig.period) : Rx_1.Observable.never(); })
             .map(function (_value, index) {
             var time;
             if (!_this.countingUp) {

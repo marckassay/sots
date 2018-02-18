@@ -61,9 +61,17 @@ export class SegmentCollection {
       let observable: Observable<TimeEmission>;
 
       if (index === this.segments.length - 1) {
-        observable = value.initializeObservable(true);
+        if (index !== 0) {
+          observable = value.initializeObservable(false, true);
+        } else {
+          observable = value.initializeObservable(true, true);
+        }
       } else {
-        observable = value.initializeObservable();
+        if (index !== 0) {
+          observable = value.initializeObservable();
+        } else {
+          observable = value.initializeObservable(true);
+        }
       }
 
       if (concatObservs) {
