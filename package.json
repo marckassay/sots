@@ -24,7 +24,7 @@
     "typescript": "^2.6.1"
   },
   "dependencies": {
-    "rxjs": "^5.5.2"
+    "rxjs": "^5.5.11"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
