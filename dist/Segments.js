@@ -220,11 +220,6 @@ var StateExpression = /** @class */ (function () {
                 }
             }
         }, emissions);
-        // HACK: circumventing issue when valueOf() is used.
-        // See https://github.com/marckassay/sots/issues/3
-        if (emissions && emissions.spread) {
-            emissions.spread = new Set(emissions.spread);
-        }
         return emissions;
     };
     return StateExpression;
