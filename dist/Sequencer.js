@@ -126,8 +126,8 @@ var Sequencer = /** @class */ (function () {
         for (var _i = 1; _i < arguments.length; _i++) {
             segments[_i - 1] = arguments[_i];
         }
-        return (_a = this.collection).group.apply(_a, [intervals].concat(segments));
         var _a;
+        return (_a = this.collection).group.apply(_a, [intervals].concat(segments));
     };
     /**
      * Starts internal Observable to start emitting.  This must be called after the `subscribe()` or

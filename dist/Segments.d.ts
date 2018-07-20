@@ -54,8 +54,8 @@ export declare class StateExpression {
     private spreadEmissions;
     private moduloInstantEmissions;
     constructor(config: SegmentConfigShape, seqConfig: SequenceConfigShape, countingUp: boolean);
-    private parse(config);
-    private setInstantStates(times, state);
-    private setSpreadState(time, state);
+    private parse;
+    private setInstantStates;
+    private setSpreadState;
     getStateEmission(time: number): StateEmission | undefined;
 }

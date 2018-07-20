@@ -1,5 +1,5 @@
 export declare class StateEmission implements StateEmission {
-    compareAsBitwise: boolean | undefined;
+    compareAsBitwise?: boolean | undefined;
     instant: Set<string | number>;
     spread: Set<string | number>;
     constructor(compareAsBitwise?: boolean | undefined, instant?: Set<string | number>, spread?: Set<string | number>);
@@ -17,5 +17,5 @@ export declare class StateEmission implements StateEmission {
      * additional value is add to spread Set.
      */
     mapToSpread(value: Set<string | number>): void;
-    private getStateValues(state, compareAsBitwise?);
+    private getStateValues;
 }
