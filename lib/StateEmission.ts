@@ -31,7 +31,12 @@ export class StateEmission implements StateEmission {
    * additional value is add to spread Set.
    */
   mapToSpread(value: Set<string | number>) {
-    value.forEach(val => this.spread.add(val))
+    let spr = new Set(this.spread);
+    for (var val of value) {
+      spr.add(val)
+    }
+    this.spread = spr;
+    return this.spread;
   }
 
   private getStateValues(state: string | number, compareAsBitwise?: boolean): number {

@@ -16,6 +16,6 @@ export declare class StateEmission implements StateEmission {
      * Called in StateExpression when constructing a seqeunce.  Its called specifically when
      * additional value is add to spread Set.
      */
-    mapToSpread(value: Set<string | number>): void;
+    mapToSpread(value: Set<string | number>): Set<string | number>;
     private getStateValues;
 }

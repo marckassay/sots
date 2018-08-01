@@ -220,7 +220,7 @@ export class StateExpression {
           emissions.mapToSpread(value.spread);
         }
       }
-    }, emissions);
+    });
 
     return emissions;
   }
