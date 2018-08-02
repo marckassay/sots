@@ -1,14 +1,4 @@
 "use strict";
-var __values = (this && this.__values) || function (o) {
-    var m = typeof Symbol === "function" && o[Symbol.iterator], i = 0;
-    if (m) return m.call(o);
-    return {
-        next: function () {
-            if (o && i >= o.length) o = void 0;
-            return { value: o && o[i++], done: !o };
-        }
-    };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 var StateEmission = /** @class */ (function () {
     function StateEmission(compareAsBitwise, instant, spread) {
@@ -41,22 +31,11 @@ var StateEmission = /** @class */ (function () {
      * additional value is add to spread Set.
      */
     StateEmission.prototype.mapToSpread = function (value) {
-        var e_1, _a;
-        var spr = new Set(this.spread);
-        try {
-            for (var value_1 = __values(value), value_1_1 = value_1.next(); !value_1_1.done; value_1_1 = value_1.next()) {
-                var val = value_1_1.value;
-                spr.add(val);
-            }
-        }
-        catch (e_1_1) { e_1 = { error: e_1_1 }; }
-        finally {
-            try {
-                if (value_1_1 && !value_1_1.done && (_a = value_1.return)) _a.call(value_1);
-            }
-            finally { if (e_1) throw e_1.error; }
-        }
-        this.spread = spr;
+        var _this = this;
+        this.spread = new Set(this.spread);
+        value.forEach(function (val) {
+            _this.spread.add(val);
+        });
         return this.spread;
     };
     StateEmission.prototype.getStateValues = function (state, compareAsBitwise) {
