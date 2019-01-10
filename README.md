@@ -6,6 +6,10 @@ sots is capable of being stateful relative to individual time segments, states c
 
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/marckassay/sots/blob/master/LICENSE) [![npm version](https://img.shields.io/npm/v/sots.svg?style=flat)](https://www.npmjs.com/package/sots)
 
+## Caveat
+
+If your host project has rxjs 6 as a dependency and because the latest version of sots depends on rxjs 5, you may need to install `rxjs-compat` for your host project if receiving compile errors.
+
 ## Install
 
 ### npm
