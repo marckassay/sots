@@ -1,10 +1,9 @@
-import { Observable, Subject } from 'rxjs/Rx';
+import { interval, never, Observable, Observer, PartialObserver, Subject, Subscription, zip } from 'rxjs';
+import { concat, switchMap } from 'rxjs/operators';
 import { TimeEmission } from './api/Emission';
-import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
-import { TimeSegment } from './Segments';
-import { Subscription } from 'rxjs/Subscription';
-import { Observer, PartialObserver } from 'rxjs/Observer';
+import { GroupParameter, SegmentConfigShape, SegmentInterface, SegmentType, SequenceConfigShape } from './api/Segment';
 import { Subscribable } from './api/Subscribable';
+import { TimeSegment } from './Segments';
 
 /**
  * Simply a pass-thru function to be used with-in a group functions parentheses.
@@ -75,9 +74,9 @@ export class SegmentCollection {
       }
 
       if (concatObservs) {
-        concatObservs = concatObservs.concat(observable);
+        concatObservs = concatObservs.pipe(concat(observable));
       } else {
-        concatObservs = Observable.concat(observable);
+        concatObservs = observable;
       }
     });
 
@@ -185,12 +184,15 @@ export class Sequencer implements SegmentInterface, Subscribable {
    * returns.  Typically `subscribe()` is just used.
    * @returns Observable<TimeEmission>.
    */
-  publish(): Observable<TimeEmission> {
+  publish() /* Observable<TimeEmission> */ {
     this.source = this.collection.toSequencedObservable();
 
-    return this.source.zip(this.pauseObserv.switchMap(
-      (value) => (value) ? Observable.interval(this.config.period) : Observable.never<number>()
-    ), (value: TimeEmission) => value);
+    return zip(
+      this.source,
+      this.pauseObserv.pipe(
+        switchMap((value) => (value) ? interval(this.config.period) : never())
+      )
+    );
   }
 
   /**

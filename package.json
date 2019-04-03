@@ -1,6 +1,6 @@
 {
   "name": "sots",
-  "version": "3.0.2",
+  "version": "4.0.0",
   "description": "Sequence of Time Segments",
   "keywords": [
     "time",
@@ -16,22 +16,15 @@
   "author": "Marc Kassay",
   "license": "ISC",
   "devDependencies": {
-    "@types/sinon": "^4.0.0",
-    "rxjs-marbles": "^2.2.0",
-    "sinon": "^4.1.2",
-    "sinon-test": "^2.1.2",
-    "ts-node": "^3.3.0",
-    "typescript": "^3.0.1",
-    "typescript-formatter": "^7.2.2"
+    "typescript": "^3.4.1"
   },
   "dependencies": {
-    "rxjs": "^5.5.11"
+    "rxjs": "^6.4.0"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "prepare": "npm run build",
-    "build": "tsfmt && tsc",
-    "test": "mocha -r ts-node/register lib/spec/**/*.spec.ts"
+    "build": "npx tsc -p tsconfig.json"
   }
 }

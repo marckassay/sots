@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "es2015",
     "moduleResolution": "node",
-    "target": "es5",
+    "target": "es6",
     "lib": [
       "dom",
-      "es2015"
+      "es2018"
     ],
     "experimentalDecorators": true,
     "noImplicitAny": true,
@@ -18,11 +18,10 @@
     "noUnusedParameters": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": false,
-    // 'strictFunctionTypes' below is disabled to circumvent: https://github.com/ReactiveX/rxjs/issues/3031
     "strictFunctionTypes": false,
     "sourceMap": true,
-    "declaration": true,
-    "listFiles": false,
+    "declaration": false,
+    "listFiles": true,
     "noEmitOnError": true,
     "inlineSources": true,
     "newLine": "LF",
@@ -31,7 +30,7 @@
     "stripInternal": true,
     "outDir": "./dist"
   },
-  "files": [
-    "lib/index.ts"
+  "include": [
+    "lib/"
   ]
 }

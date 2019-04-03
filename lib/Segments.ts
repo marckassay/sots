@@ -1,9 +1,10 @@
-import { Observable, Subject } from 'rxjs/Rx';
-import { TimeEmission, IntervalEmission } from './api/Emission';
-import { StateEmission } from './StateEmission';
-import { SegmentType, SegmentConfigShape, GroupParameter, SegmentInterface, SequenceConfigShape } from './api/Segment';
+import { never, Observable, Subject, timer } from 'rxjs';
+import { map, startWith, switchMap, takeWhile } from 'rxjs/operators';
+import { IntervalEmission, TimeEmission } from './api/Emission';
+import { GroupParameter, SegmentConfigShape, SegmentInterface, SegmentType, SequenceConfigShape } from './api/Segment';
 import { StateConfig1, StateConfig2, StateConfig3, StateConfig4, StateConfig5 } from './api/StateConfigs';
 import { SegmentCollection } from './Sequencer';
+import { StateEmission } from './StateEmission';
 
 export class TimeSegment implements SegmentInterface {
   config: SegmentConfigShape;
@@ -23,10 +24,10 @@ export class TimeSegment implements SegmentInterface {
   public initializeObservable(firstElementOfSeq: boolean = false, lastElementOfSeq: boolean = false): Observable<TimeEmission> {
     this.stateExp = new StateExpression(this.config, this.seqConfig, this.countingUp);
 
-    let source: Observable<TimeEmission> = this.pauseObserv.startWith(!firstElementOfSeq).switchMap(
-      (value) => (value) ? Observable.timer(0, this.seqConfig.period) : Observable.never<number>()
-    )
-      .map((_value: number, index: number): TimeEmission => {
+    let source: Observable<TimeEmission> = this.pauseObserv.pipe(
+      startWith(!firstElementOfSeq),
+      switchMap((value) => (value) ? timer(0, this.seqConfig.period) : never()),
+      map((_value: number, index: number): TimeEmission => {
         let time: number;
         if (!this.countingUp) {
           time = (this.config.duration - (this.seqConfig.period * index)) * .001;
@@ -36,8 +37,8 @@ export class TimeSegment implements SegmentInterface {
         time = parseFloat(time.toFixed(3));
 
         return { time: time, interval: this.interval, state: this.stateExp.getStateEmission(time) };
-      })
-      .takeWhile((value: TimeEmission) => {
+      }),
+      takeWhile((value: TimeEmission) => {
         if (lastElementOfSeq == false) {
           if (!this.countingUp) {
             return value.time > 0;
@@ -51,7 +52,8 @@ export class TimeSegment implements SegmentInterface {
             return !(value.time === (this.config.duration * .001));
           }
         }
-      });
+      })
+    )
 
     return source;
   }

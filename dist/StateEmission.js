@@ -1,9 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var StateEmission = /** @class */ (function () {
-    function StateEmission(compareAsBitwise, instant, spread) {
-        if (instant === void 0) { instant = new Set(); }
-        if (spread === void 0) { spread = new Set(); }
+export class StateEmission {
+    constructor(compareAsBitwise, instant = new Set(), spread = new Set()) {
         this.compareAsBitwise = compareAsBitwise;
         this.instant = instant;
         this.spread = spread;
@@ -16,8 +12,8 @@ var StateEmission = /** @class */ (function () {
      *
      * @param compareAsBitwise when make assertion using bitwise logic.
      */
-    StateEmission.prototype.valueOf = function (state, compareAsBitwise) {
-        var results;
+    valueOf(state, compareAsBitwise) {
+        let results;
         if (state !== undefined) {
             results = (this.getStateValues(state, compareAsBitwise) > 0);
         }
@@ -25,21 +21,20 @@ var StateEmission = /** @class */ (function () {
             results = this.getStateValues(-1, true);
         }
         return results;
-    };
+    }
     /**
      * Called in StateExpression when constructing a seqeunce.  Its called specifically when
      * additional value is add to spread Set.
      */
-    StateEmission.prototype.mapToSpread = function (value) {
-        var _this = this;
+    mapToSpread(value) {
         this.spread = new Set(this.spread);
-        value.forEach(function (val) {
-            _this.spread.add(val);
+        value.forEach((val) => {
+            this.spread.add(val);
         });
         return this.spread;
-    };
-    StateEmission.prototype.getStateValues = function (state, compareAsBitwise) {
-        var useBitwiseCompare;
+    }
+    getStateValues(state, compareAsBitwise) {
+        let useBitwiseCompare;
         if (compareAsBitwise != undefined) {
             useBitwiseCompare = compareAsBitwise;
         }
@@ -62,26 +57,24 @@ var StateEmission = /** @class */ (function () {
             throw "valueOf() has been called with a string and flagged to use bitwise comparisons.";
         }
         else {
-            var total_1 = 0;
-            this.instant.forEach(function (value) {
+            let total = 0;
+            this.instant.forEach((value) => {
                 if (typeof value === 'number') {
-                    total_1 += value;
+                    total += value;
                 }
-            }, total_1);
-            this.spread.forEach(function (value) {
+            }, total);
+            this.spread.forEach((value) => {
                 if (typeof value === 'number') {
-                    total_1 += value;
+                    total += value;
                 }
-            }, total_1);
+            }, total);
             if (state === -1) {
-                return total_1;
+                return total;
             }
             else {
-                return ((total_1 & state) === state) ? 1 : -1;
+                return ((total & state) === state) ? 1 : -1;
             }
         }
-    };
-    return StateEmission;
-}());
-exports.StateEmission = StateEmission;
+    }
+}
 //# sourceMappingURL=StateEmission.js.map

@@ -1,6 +1,5 @@
+import { PartialObserver, Subscription } from 'rxjs';
 import { TimeEmission } from './Emission';
-import { PartialObserver } from 'rxjs/Observer';
-import { Subscription } from 'rxjs/Subscription';
 
 export interface Subscribable {
   subscribe(): Subscription;

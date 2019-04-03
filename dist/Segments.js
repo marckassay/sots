@@ -1,83 +1,43 @@
-"use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    }
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-var __read = (this && this.__read) || function (o, n) {
-    var m = typeof Symbol === "function" && o[Symbol.iterator];
-    if (!m) return o;
-    var i = m.call(o), r, ar = [], e;
-    try {
-        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-    }
-    catch (error) { e = { error: error }; }
-    finally {
-        try {
-            if (r && !r.done && (m = i["return"])) m.call(i);
-        }
-        finally { if (e) throw e.error; }
-    }
-    return ar;
-};
-var __spread = (this && this.__spread) || function () {
-    for (var ar = [], i = 0; i < arguments.length; i++) ar = ar.concat(__read(arguments[i]));
-    return ar;
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-var Rx_1 = require("rxjs/Rx");
-var StateEmission_1 = require("./StateEmission");
-var TimeSegment = /** @class */ (function () {
-    function TimeSegment(config, countingUp) {
-        if (countingUp === void 0) { countingUp = false; }
+import { never, timer } from 'rxjs';
+import { map, startWith, switchMap, takeWhile } from 'rxjs/operators';
+import { StateEmission } from './StateEmission';
+export class TimeSegment {
+    constructor(config, countingUp = false) {
         this.config = config;
         this.countingUp = countingUp;
     }
-    TimeSegment.prototype.initializeObservable = function (firstElementOfSeq, lastElementOfSeq) {
-        var _this = this;
-        if (firstElementOfSeq === void 0) { firstElementOfSeq = false; }
-        if (lastElementOfSeq === void 0) { lastElementOfSeq = false; }
+    initializeObservable(firstElementOfSeq = false, lastElementOfSeq = false) {
         this.stateExp = new StateExpression(this.config, this.seqConfig, this.countingUp);
-        var source = this.pauseObserv.startWith(!firstElementOfSeq).switchMap(function (value) { return (value) ? Rx_1.Observable.timer(0, _this.seqConfig.period) : Rx_1.Observable.never(); })
-            .map(function (_value, index) {
-            var time;
-            if (!_this.countingUp) {
-                time = (_this.config.duration - (_this.seqConfig.period * index)) * .001;
+        let source = this.pauseObserv.pipe(startWith(!firstElementOfSeq), switchMap((value) => (value) ? timer(0, this.seqConfig.period) : never()), map((_value, index) => {
+            let time;
+            if (!this.countingUp) {
+                time = (this.config.duration - (this.seqConfig.period * index)) * .001;
             }
             else {
-                time = (_this.seqConfig.period * index) * .001;
+                time = (this.seqConfig.period * index) * .001;
             }
             time = parseFloat(time.toFixed(3));
-            return { time: time, interval: _this.interval, state: _this.stateExp.getStateEmission(time) };
-        })
-            .takeWhile(function (value) {
+            return { time: time, interval: this.interval, state: this.stateExp.getStateEmission(time) };
+        }), takeWhile((value) => {
             if (lastElementOfSeq == false) {
-                if (!_this.countingUp) {
+                if (!this.countingUp) {
                     return value.time > 0;
                 }
                 else {
-                    return value.time < (_this.config.duration * .001);
+                    return value.time < (this.config.duration * .001);
                 }
             }
             else {
-                if (!_this.countingUp) {
+                if (!this.countingUp) {
                     return !(value.time === 0);
                 }
                 else {
-                    return !(value.time === (_this.config.duration * .001));
+                    return !(value.time === (this.config.duration * .001));
                 }
             }
-        });
+        }));
         return source;
-    };
+    }
     /**
      * Adds a single segment (CountupSegment or CountdownSegment) to a sequence.
      * @param ctor    A type being subclass of TimeSegment,  Specifically CountupSegment or
@@ -87,9 +47,9 @@ var TimeSegment = /** @class */ (function () {
      * the first interval.
      * @returns       An instance of T type, which is a subclass of TimeSegment.
      */
-    TimeSegment.prototype.add = function (ctor, config) {
+    add(ctor, config) {
         return this.collection.add(ctor, config);
-    };
+    }
     /**
      * Multiply its combined add() invocations and returns a TimeSegment.
      * @param intervals The number intervals or cycles to be added of segments.  Must be 1 or greater
@@ -97,45 +57,30 @@ var TimeSegment = /** @class */ (function () {
      * @param segments  Consists of add() invocations.
      * @returns         An instance of T type, which is a subclass of TimeSegment.
      */
-    TimeSegment.prototype.group = function (intervals) {
-        var segments = [];
-        for (var _i = 1; _i < arguments.length; _i++) {
-            segments[_i - 1] = arguments[_i];
-        }
-        var _a;
-        return (_a = this.collection).group.apply(_a, __spread([intervals], segments));
-    };
-    return TimeSegment;
-}());
-exports.TimeSegment = TimeSegment;
+    group(intervals, ...segments) {
+        return this.collection.group(intervals, ...segments);
+    }
+}
 /**
  * Counts down in time.  In otherwords, its descending time.
  */
-var CountdownSegment = /** @class */ (function (_super) {
-    __extends(CountdownSegment, _super);
-    function CountdownSegment(config) {
-        var _this = _super.call(this, config, false) || this;
-        _this.config = config;
-        return _this;
+export class CountdownSegment extends TimeSegment {
+    constructor(config) {
+        super(config, false);
+        this.config = config;
     }
-    return CountdownSegment;
-}(TimeSegment));
-exports.CountdownSegment = CountdownSegment;
+}
 /**
  * Counts up in time.  In otherwords, its ascending time.
  */
-var CountupSegment = /** @class */ (function (_super) {
-    __extends(CountupSegment, _super);
-    function CountupSegment(config) {
-        var _this = _super.call(this, config, true) || this;
-        _this.config = config;
-        return _this;
+export class CountupSegment extends TimeSegment {
+    constructor(config) {
+        super(config, true);
+        this.config = config;
     }
-    return CountupSegment;
-}(TimeSegment));
-exports.CountupSegment = CountupSegment;
-var StateExpression = /** @class */ (function () {
-    function StateExpression(config, seqConfig, countingUp) {
+}
+export class StateExpression {
+    constructor(config, seqConfig, countingUp) {
         this.config = config;
         this.seqConfig = seqConfig;
         this.countingUp = countingUp;
@@ -144,88 +89,86 @@ var StateExpression = /** @class */ (function () {
         this.moduloInstantEmissions = new Map();
         this.parse(config);
     }
-    StateExpression.prototype.parse = function (config) {
+    parse(config) {
         if (config.states) {
-            var states = config.states;
-            var statesLength = states.length;
-            for (var index = 0; index < statesLength; index++) {
-                for (var property in states[index]) {
-                    var state = states[index].state;
+            const states = config.states;
+            const statesLength = states.length;
+            for (let index = 0; index < statesLength; index++) {
+                for (let property in states[index]) {
+                    let state = states[index].state;
                     switch (property) {
                         case "timeAt":
                             this.setInstantStates(states[index].timeAt, state);
                             break;
                         case "timeLessThan":
-                            var time2 = parseFloat(states[index].timeLessThan) - (this.seqConfig.period * .001);
+                            let time2 = parseFloat(states[index].timeLessThan) - (this.seqConfig.period * .001);
                             this.setSpreadState(time2, state);
                             break;
                         case "timeLessThanOrEqualTo":
-                            var time3 = parseFloat(states[index].timeLessThanOrEqualTo);
+                            let time3 = parseFloat(states[index].timeLessThanOrEqualTo);
                             this.setSpreadState(time3, state);
                             break;
                         case "timeGreaterThan":
-                            var time4 = parseFloat(states[index].timeGreaterThan) + (this.seqConfig.period * .001);
+                            let time4 = parseFloat(states[index].timeGreaterThan) + (this.seqConfig.period * .001);
                             this.setSpreadState(time4, state);
                             break;
                         case "timeGreaterThanOrEqualTo":
-                            var time5 = parseFloat(states[index].timeGreaterThanOrEqualTo);
+                            let time5 = parseFloat(states[index].timeGreaterThanOrEqualTo);
                             this.setSpreadState(time5, state);
                             break;
                     }
                 }
             }
         }
-    };
-    StateExpression.prototype.setInstantStates = function (times, state) {
-        var _this = this;
-        var excludeCommaExpression = /[^,]+/g;
-        var moduloExpression = /(mod\s*|%\s*)\d+/;
-        var results = times.match(excludeCommaExpression);
-        var insertInstantState = function (value) {
-            if (!_this.instantEmissions.has(value)) {
-                _this.instantEmissions.set(value, new StateEmission_1.StateEmission(_this.seqConfig.compareAsBitwise, new Set([state])));
+    }
+    setInstantStates(times, state) {
+        const excludeCommaExpression = /[^,]+/g;
+        const moduloExpression = /(mod\s*|%\s*)\d+/;
+        let results = times.match(excludeCommaExpression);
+        let insertInstantState = (value) => {
+            if (!this.instantEmissions.has(value)) {
+                this.instantEmissions.set(value, new StateEmission(this.seqConfig.compareAsBitwise, new Set([state])));
             }
             else {
-                _this.instantEmissions.get(value).instant.add(state);
+                this.instantEmissions.get(value).instant.add(state);
             }
         };
         if (results) {
-            results.map(function (value) {
+            results.map((value) => {
                 if (value.search(moduloExpression) == -1) {
-                    var time = parseFloat(value);
+                    const time = parseFloat(value);
                     insertInstantState(time);
                 }
                 else {
-                    var modTime = parseInt(value.match(/\d+/)[0]);
-                    if (!_this.moduloInstantEmissions.has(modTime)) {
-                        _this.moduloInstantEmissions.set(modTime, state);
+                    const modTime = parseInt(value.match(/\d+/)[0]);
+                    if (!this.moduloInstantEmissions.has(modTime)) {
+                        this.moduloInstantEmissions.set(modTime, state);
                     }
                     else {
-                        var currentValue = _this.moduloInstantEmissions.get(modTime);
-                        _this.moduloInstantEmissions.set(modTime, currentValue + ',' + state);
+                        const currentValue = this.moduloInstantEmissions.get(modTime);
+                        this.moduloInstantEmissions.set(modTime, currentValue + ',' + state);
                     }
                 }
             });
         }
-    };
-    StateExpression.prototype.setSpreadState = function (time, state) {
+    }
+    setSpreadState(time, state) {
         if (!this.spreadEmissions.has(time)) {
-            this.spreadEmissions.set(time, new StateEmission_1.StateEmission(this.seqConfig.compareAsBitwise, undefined, new Set([state])));
+            this.spreadEmissions.set(time, new StateEmission(this.seqConfig.compareAsBitwise, undefined, new Set([state])));
         }
         else {
             this.spreadEmissions.get(time).spread.add(state);
         }
-    };
-    StateExpression.prototype.getStateEmission = function (time) {
-        var _this = this;
-        var emissions;
+    }
+    getStateEmission(time) {
+        let emissions;
         emissions = this.instantEmissions.get(time);
         // determine if any moduloInstantEmissions apply to this moment in time
-        this.moduloInstantEmissions.forEach(function (value, key) {
+        this.moduloInstantEmissions.forEach((value, key) => {
             ///const timeFloat: number = (typeof value === 'string') ? parseFloat(value) : value;
             if (time % key === 0) {
                 if (!emissions) {
-                    emissions = new StateEmission_1.StateEmission(_this.seqConfig.compareAsBitwise, new Set([value]));
+                    emissions = new StateEmission(this.seqConfig.compareAsBitwise, new Set([value]));
                 }
                 else {
                     emissions.instant.add(value);
@@ -233,10 +176,10 @@ var StateExpression = /** @class */ (function () {
             }
         });
         // get keys greater-equal or lesser-equal in value of time, then add to emissions
-        this.spreadEmissions.forEach(function (value, key) {
-            if ((!_this.countingUp) ? key >= time : key <= time) {
+        this.spreadEmissions.forEach((value, key) => {
+            if ((!this.countingUp) ? key >= time : key <= time) {
                 if (!emissions) {
-                    emissions = new StateEmission_1.StateEmission(_this.seqConfig.compareAsBitwise, undefined, value.spread);
+                    emissions = new StateEmission(this.seqConfig.compareAsBitwise, undefined, value.spread);
                 }
                 else {
                     emissions.mapToSpread(value.spread);
@@ -244,8 +187,6 @@ var StateExpression = /** @class */ (function () {
             }
         });
         return emissions;
-    };
-    return StateExpression;
-}());
-exports.StateExpression = StateExpression;
+    }
+}
 //# sourceMappingURL=Segments.js.map

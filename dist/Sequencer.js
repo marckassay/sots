@@ -1,26 +1,5 @@
-"use strict";
-var __read = (this && this.__read) || function (o, n) {
-    var m = typeof Symbol === "function" && o[Symbol.iterator];
-    if (!m) return o;
-    var i = m.call(o), r, ar = [], e;
-    try {
-        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-    }
-    catch (error) { e = { error: error }; }
-    finally {
-        try {
-            if (r && !r.done && (m = i["return"])) m.call(i);
-        }
-        finally { if (e) throw e.error; }
-    }
-    return ar;
-};
-var __spread = (this && this.__spread) || function () {
-    for (var ar = [], i = 0; i < arguments.length; i++) ar = ar.concat(__read(arguments[i]));
-    return ar;
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-var Rx_1 = require("rxjs/Rx");
+import { interval, never, Subject, zip } from 'rxjs';
+import { concat, switchMap } from 'rxjs/operators';
 /**
  * Simply a pass-thru function to be used with-in a group functions parentheses.
  *
@@ -32,53 +11,42 @@ var Rx_1 = require("rxjs/Rx");
  * the first interval.
  * @returns       An instance of `T` type, which is a subclass of `TimeSegment`.
  */
-function add(ctor, config) {
-    return { ctor: ctor, config: config };
+export function add(ctor, config) {
+    return { ctor, config };
 }
-exports.add = add;
-var SegmentCollection = /** @class */ (function () {
-    function SegmentCollection(config, pauseObserv) {
+export class SegmentCollection {
+    constructor(config, pauseObserv) {
         this.config = config;
         this.pauseObserv = pauseObserv;
         this.segments = new Array();
     }
-    SegmentCollection.prototype.add = function (ctor, config) {
-        var segment = new ctor(config);
+    add(ctor, config) {
+        const segment = new ctor(config);
         segment.collection = this;
         segment.seqConfig = this.config;
         segment.pauseObserv = this.pauseObserv;
         this.segments.push(segment);
         return segment;
-    };
-    SegmentCollection.prototype.group = function (intervals) {
-        var _this = this;
-        if (intervals === void 0) { intervals = 1; }
-        var segments = [];
-        for (var _i = 1; _i < arguments.length; _i++) {
-            segments[_i - 1] = arguments[_i];
-        }
-        var segment;
-        var _loop_1 = function (index) {
-            segments.forEach(function (value) {
+    }
+    group(intervals = 1, ...segments) {
+        let segment;
+        // TODO: possibly use the 'repeat' operator in here..
+        for (let index = 0; index < intervals; index++) {
+            segments.forEach((value) => {
                 if ((index != 0) || (!value.config.omitFirst)) {
-                    segment = _this.add(value.ctor, value.config);
+                    segment = this.add(value.ctor, value.config);
                     segment.interval = { current: index + 1, total: intervals };
                 }
             });
-        };
-        // TODO: possibly use the 'repeat' operator in here..
-        for (var index = 0; index < intervals; index++) {
-            _loop_1(index);
         }
         // return the last instance, so that this group invocation can be chained if needed...
         return segment;
-    };
-    SegmentCollection.prototype.toSequencedObservable = function () {
-        var _this = this;
-        var concatObservs;
-        this.segments.forEach(function (value, index) {
-            var observable;
-            if (index === _this.segments.length - 1) {
+    }
+    toSequencedObservable() {
+        let concatObservs;
+        this.segments.forEach((value, index) => {
+            let observable;
+            if (index === this.segments.length - 1) {
                 if (index !== 0) {
                     observable = value.initializeObservable(false, true);
                 }
@@ -95,30 +63,28 @@ var SegmentCollection = /** @class */ (function () {
                 }
             }
             if (concatObservs) {
-                concatObservs = concatObservs.concat(observable);
+                concatObservs = concatObservs.pipe(concat(observable));
             }
             else {
-                concatObservs = Rx_1.Observable.concat(observable);
+                concatObservs = observable;
             }
         });
         return concatObservs;
-    };
+    }
     /** @internal */
-    SegmentCollection.prototype.__marauder = function () {
+    __marauder() {
         return { segments: this.segments };
-    };
-    return SegmentCollection;
-}());
-exports.SegmentCollection = SegmentCollection;
+    }
+}
 /**
  * Initiates a sequence with time period being defined in its constructor.
  * @param constructor  Sequencer must be instantiated with a value for period that is read in
  * milliseconds.  This value becomes static and global to its segments.
  */
-var Sequencer = /** @class */ (function () {
-    function Sequencer(config) {
+export class Sequencer {
+    constructor(config) {
         this.config = config;
-        this.pauseObserv = new Rx_1.Subject();
+        this.pauseObserv = new Subject();
         this.collection = new SegmentCollection(config, this.pauseObserv);
     }
     /**
@@ -130,9 +96,9 @@ var Sequencer = /** @class */ (function () {
      * assigned to the first interval.
      * @returns       An instance of `T` type, which is a subclass of TimeSegment.
      */
-    Sequencer.prototype.add = function (ctor, config) {
+    add(ctor, config) {
         return this.collection.add(ctor, config);
-    };
+    }
     /**
      * Multiply its combined `add()` invocations and returns a `TimeSegment`.
      * @param intervals The number intervals or cycles to be added of segments.  Must be 1 or greater
@@ -140,54 +106,48 @@ var Sequencer = /** @class */ (function () {
      * @param segments  Consists of `add()` invocations returns.
      * @returns         An instance of `T` type, which is a subclass of `TimeSegment`.
      */
-    Sequencer.prototype.group = function (intervals) {
-        if (intervals === void 0) { intervals = 1; }
-        var segments = [];
-        for (var _i = 1; _i < arguments.length; _i++) {
-            segments[_i - 1] = arguments[_i];
-        }
-        var _a;
-        return (_a = this.collection).group.apply(_a, __spread([intervals], segments));
-    };
+    group(intervals = 1, ...segments) {
+        return this.collection.group(intervals, ...segments);
+    }
     /**
      * Starts internal Observable to start emitting.  This must be called after the `subscribe()` or
      * `subscribeWith()` is called.
      * @returns void.
      */
-    Sequencer.prototype.start = function () {
+    start() {
         if (this.source) {
             this.pauseObserv.next(true);
         }
         else {
             throw "A call to subscribe() needs to be made prior to start(), pause() or reset().";
         }
-    };
+    }
     /**
      * Pauses internal Observable to start emitting.  This must be called after the `subscribe()` or
      * `subscribeWith()` is called.
      * @returns void.
      */
-    Sequencer.prototype.pause = function () {
+    pause() {
         if (this.source) {
             this.pauseObserv.next(false);
         }
         else {
             throw "A call to subscribe() needs to be made prior to start(), pause() or reset().";
         }
-    };
+    }
     /**
      * Resets the sequence.  This must be called after the `subscribeWith()` is called since a
      * callback object is needed.
      * That said, this method will unsubscribe and then subscribe again to "reset" the sequence.
      * @returns void.
      */
-    Sequencer.prototype.reset = function () {
+    reset() {
         if (this.source && this.observer) {
             this.unsubscribe();
             this.subscribe(this.observer);
         }
         else {
-            var mesg = "";
+            let mesg = "";
             if (!this.source) {
                 mesg += "A call to subscribe() needs to be made prior to start(), pause() or reset().";
             }
@@ -197,18 +157,17 @@ var Sequencer = /** @class */ (function () {
             }
             throw mesg;
         }
-    };
+    }
     /**
      * Returns an Observable<TimeEmission> object versus a Subscription object which `subscribe()`
      * returns.  Typically `subscribe()` is just used.
      * @returns Observable<TimeEmission>.
      */
-    Sequencer.prototype.publish = function () {
-        var _this = this;
+    publish() {
         this.source = this.collection.toSequencedObservable();
-        return this.source.zip(this.pauseObserv.switchMap(function (value) { return (value) ? Rx_1.Observable.interval(_this.config.period) : Rx_1.Observable.never(); }), function (value) { return value; });
-    };
-    Sequencer.prototype.subscribe = function (nextOrObserver, error, complete) {
+        return zip(this.source, this.pauseObserv.pipe(switchMap((value) => (value) ? interval(this.config.period) : never())));
+    }
+    subscribe(nextOrObserver, error, complete) {
         if (typeof nextOrObserver !== 'function') {
             this.observer = nextOrObserver;
         }
@@ -217,28 +176,26 @@ var Sequencer = /** @class */ (function () {
         }
         this.subscription = this.source.subscribe(nextOrObserver, error, complete);
         return this.subscription;
-    };
+    }
     /**
      * Unsubscribe the subscription that is create from `subscribe()` or `subscribeWith()`.  This also
      * calls the `remove()`
      * method.
      */
-    Sequencer.prototype.unsubscribe = function () {
+    unsubscribe() {
         this.remove();
         this.subscription.unsubscribe();
-    };
+    }
     /**
      * Calls the remove method on the subscription object that was create from `subscribe()` or
      * `subscribeWith()`.
      */
-    Sequencer.prototype.remove = function () {
+    remove() {
         this.subscription.remove(this.subscription);
-    };
+    }
     /** @internal */
-    Sequencer.prototype.__marauder = function () {
+    __marauder() {
         return { pauseObserv: this.pauseObserv, source: this.source };
-    };
-    return Sequencer;
-}());
-exports.Sequencer = Sequencer;
+    }
+}
 //# sourceMappingURL=Sequencer.js.map

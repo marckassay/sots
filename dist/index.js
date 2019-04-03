@@ -1,8 +1,3 @@
-"use strict";
-function __export(m) {
-    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
-}
-Object.defineProperty(exports, "__esModule", { value: true });
-__export(require("./Sequencer"));
-__export(require("./Segments"));
+export * from "./Sequencer";
+export * from "./Segments";
 //# sourceMappingURL=index.js.map
