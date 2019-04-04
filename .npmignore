@@ -1,6 +1,7 @@
-.vscode
-lib
-harness
-example
-tsconfig.json
-tsfmt.json
+.git/
+example/
+.vscode/
+node_modules/
+.editorconfig
+.gitignore
+tslint.json

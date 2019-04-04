@@ -1,41 +1,38 @@
-import { Sequencer, CountdownSegment, CountupSegment, TimeEmission, add } from '../sots/dist/index';
-import { PartialObserver } from '../sots/node_modules/rxjs/Observer';
+import { PartialObserver } from 'rxjs';
+import { add, CountdownSegment, CountupSegment, ITimeEmission, Sequencer } from 'sots';
 
 enum AppStates {
   Beep = 2,
   Warning = 4,
   Rest = 8,
   Active = 16,
-  Alert = AppStates.Beep + AppStates.Warning
+  Alert = AppStates.Beep + AppStates.Warning,
 }
 
-let observer: PartialObserver<TimeEmission> = {
-  next: (value: TimeEmission): void => {
-    let output: string = "time: " + value.time;
+const observer: PartialObserver<ITimeEmission> = {
+  next: (value: ITimeEmission): void => {
+    let output: string = 'time: ' + value.time;
 
     if (value.state) {
-      output += " valueOf: " + value.state.valueOf();
+      output += ' valueOf: ' + value.state.valueOf();
       if (value.state.valueOf(AppStates.Alert)) {
-        output += " state: 'alert!'";
-      }
-      else if (value.state.valueOf(AppStates.Warning)) {
-        output += " state: 'warning'";
-      }
-      else if (value.state.valueOf(AppStates.Beep)) {
-        output += " state: 'beep'";
+        output += ' state: \'alert!\'';
+      } else if (value.state.valueOf(AppStates.Warning)) {
+        output += ' state: \'warning\'';
+      } else if (value.state.valueOf(AppStates.Beep)) {
+        output += ' state: \'beep\'';
       }
 
       if (value.state.valueOf(AppStates.Rest)) {
-        output += " state: 'rest'";
-      }
-      else if (value.state.valueOf(AppStates.Active)) {
-        output += " state: 'active'";
+        output += ' state: \'rest\'';
+      } else if (value.state.valueOf(AppStates.Active)) {
+        output += ' state: \'active\'';
       }
     }
 
     if (value.interval) {
-      output += " interval.current: " + value.interval.current;
-      output += " interval.total: " + value.interval.total;
+      output += ' interval.current: ' + value.interval.current;
+      output += ' interval.total: ' + value.interval.total;
     }
 
     console.log(output);
@@ -44,59 +41,59 @@ let observer: PartialObserver<TimeEmission> = {
     console.error(error);
   },
   complete: (): void => {
-    console.log("Play final beep!");
-  }
-}
+    console.log('Play final beep!');
+  },
+};
 
 const sequencer: Sequencer = new Sequencer({ period: 100, compareAsBitwise: true });
 sequencer.add(CountdownSegment, {
   duration: 10000,
   states: [
-    { state: AppStates.Beep, timeAt: "mod1" },
-    { state: AppStates.Warning, timeLessThanOrEqualTo: "5" }
-  ]
+    { state: AppStates.Beep, timeAt: 'mod1' },
+    { state: AppStates.Warning, timeLessThanOrEqualTo: '5' },
+  ],
 })
   .group(3,
   add(CountdownSegment, {
     duration: 1000 * 2,
     omitFirst: true,
     states: [
-      { state: AppStates.Rest, timeLessThanOrEqualTo: "2" },
-      { state: AppStates.Beep, timeAt: "2" }
-    ]
+      { state: AppStates.Rest, timeLessThanOrEqualTo: '2' },
+      { state: AppStates.Beep, timeAt: '2' },
+    ],
   }),
   add(CountdownSegment, {
     duration: 1000 * 2,
     states: [
-      { state: AppStates.Active, timeLessThanOrEqualTo: "2" },
-      { state: AppStates.Beep, timeAt: "2" }
-    ]
+      { state: AppStates.Active, timeLessThanOrEqualTo: '2' },
+      { state: AppStates.Beep, timeAt: '2' },
+    ],
   })
   )
   .add(CountupSegment, {
     duration: 5000,
     states: [
-      { state: AppStates.Beep, timeAt: "0,3,4" },
-      { state: AppStates.Warning, timeGreaterThanOrEqualTo: "3" }]
+      { state: AppStates.Beep, timeAt: '0,3,4' },
+      { state: AppStates.Warning, timeGreaterThanOrEqualTo: '3' }],
   });
 
 sequencer.subscribe(observer);
 
 setTimeout(() => {
   sequencer.start();
-  console.log("started!");
+  console.log('started!');
 }, 3000);
 setTimeout(() => {
   sequencer.pause();
-  console.log("pausing for 3 seconds until reset.");
+  console.log('pausing for 3 seconds until reset.');
 }, 6000);
 setTimeout(() => {
   sequencer.reset();
-  console.log("reset completed.  restarting in 3 seconds.");
+  console.log('reset completed.  restarting in 3 seconds.');
 }, 9000);
 setTimeout(() => {
   sequencer.start();
-  console.log("(re)started!");
+  console.log('(re)started!');
 }, 12000);
 
 // Output:

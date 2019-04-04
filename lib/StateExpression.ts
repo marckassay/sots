@@ -1,6 +1,6 @@
 import { StateEmission } from './StateEmission';
-import { ISegmentConfigShape, ISequenceConfigShape } from './api/Segment';
-import { StateConfig1, StateConfig2, StateConfig3, StateConfig4, StateConfig5 } from './api/StateConfigs';
+import { ISegmentConfigShape, ISequenceConfigShape } from './types/Segment';
+import { StateConfig1, StateConfig2, StateConfig3, StateConfig4, StateConfig5 } from './types/StateConfigs';
 
 export class StateExpression {
   // holds instant and spread states that the user defined.
@@ -118,7 +118,7 @@ export class StateExpression {
   private setSpreadState(time: number, state: string | number): void {
     if (!this.spreadEmissions.has(time)) {
       this.spreadEmissions.set(
-        time, new StateEmission(this.seqConfig.compareAsBitwise, undefined, new Set([state])),
+        time, new StateEmission(this.seqConfig.compareAsBitwise, undefined, new Set([state]))
       );
     } else {
       this.spreadEmissions.get(time)!.spread.add(state);

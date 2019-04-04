@@ -4,19 +4,13 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Watch ts files",
+      "label": "Watch TS files",
       "type": "typescript",
       "tsconfig": "tsconfig.json",
       "option": "watch",
       "problemMatcher": [
         "$tsc-watch"
       ]
-    },
-    {
-      "label": "Run tslint",
-      "type": "npm",
-      "script": "lint",
-      "problemMatcher": []
     }
   ]
 }

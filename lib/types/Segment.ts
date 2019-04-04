@@ -1,4 +1,4 @@
-import { TimeSegment } from '../TimeSegment';
+import { TimeSegment } from '../segments/TimeSegment';
 import * as state from './StateConfigs';
 
 export interface ISequenceConfigShape {
