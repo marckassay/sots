@@ -1,10 +1,10 @@
 import { never, timer, Observable, Subject } from 'rxjs';
 import { map, startWith, switchMap, takeWhile } from 'rxjs/operators';
-import { SegmentCollection } from './SegmentCollection';
-import { StateExpression } from './StateExpression';
-import { IIntervalEmission, ITimeEmission } from './api/Emission';
+import { StateExpression } from '../StateExpression';
+import { IIntervalEmission, ITimeEmission } from '../types/Emission';
 // tslint:disable-next-line: max-line-length
-import { IGroupParameter, ISegmentConfigShape, ISegmentInterface, ISegmentType, ISequenceConfigShape } from './api/Segment';
+import { IGroupParameter, ISegmentConfigShape, ISegmentInterface, ISegmentType, ISequenceConfigShape } from '../types/Segment';
+import { SegmentCollection } from './SegmentCollection';
 
 export class TimeSegment implements ISegmentInterface {
   public config: ISegmentConfigShape;
@@ -53,7 +53,7 @@ export class TimeSegment implements ISegmentInterface {
             return !(value.time === (this.config.duration * .001));
           }
         }
-      }),
+      })
     );
 
     return source;

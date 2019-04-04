@@ -1,8 +1,8 @@
+import { ISegmentConfigShape } from '../types/Segment';
 import { TimeSegment } from './TimeSegment';
-import { ISegmentConfigShape } from './api/Segment';
 
 /**
- * Counts down in time.  In otherwords, its descending time.
+ * Counts down in time. In otherwords, it's descending time.
  */
 export class CountdownSegment extends TimeSegment {
   constructor(public config: ISegmentConfigShape) {

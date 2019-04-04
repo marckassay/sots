@@ -1,4 +1,4 @@
-import { IStateEmission } from './api/Emission';
+import { IStateEmission } from './types/Emission';
 
 export class StateEmission implements IStateEmission {
   public compareAsBitwise: boolean;

@@ -3,25 +3,45 @@
   "extends": [
     "tslint:recommended"
   ],
-  "jsRules": {},
+  "rulesDirectory": [
+    "node_modules/tslint-lines-between-class-members"
+  ],
   "rules": {
+    "forin": false,
+    "radix": false,
+    "no-bitwise": false,
+    "object-literal-sort-keys": true,
+    "lines-between-class-members": true,
+    "whitespace": [
+      true,
+      "check-branch",
+      "check-operator",
+      "check-typecast",
+      "check-separator",
+      "check-decl"
+    ],
     "quotemark": [
       true,
       "single"
     ],
-    "forin": false,
-    "radix": false,
-    "no-bitwise": false,
+    "trailing-comma": [
+      true,
+      {
+        "multiline": {
+          "objects": "always",
+          "arrays": "always",
+          "functions": "never",
+          "typeLiterals": "ignore"
+        },
+        "esSpecCompliant": true
+      }
+    ],
     "ordered-imports": [
       true,
       {
         "import-sources-order": "lowercase-last",
         "named-imports-order": "lowercase-first"
       }
-    ],
-    "lines-between-class-members": true
-  },
-  "rulesDirectory": [
-    "node_modules/tslint-lines-between-class-members"
-  ]
+    ]
+  }
 }

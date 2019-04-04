@@ -1,14 +1,10 @@
 # sots
 
-sots (Sequence of Time Segments) is a JS module that allows you to structure complex sequences of time segments.  By chaining sots' `add` and `group` methods, a complex sequence can be created with little development time on your end.
+sots (Sequence of Time Segments) is a node module that allows you to structure complex sequences of time segments.  By chaining sots' `add` and `group` methods, a complex sequence can be created with little development time on your end.
 
 sots is capable of being stateful relative to individual time segments, states can be momentary or non-momentary.  When setting states, you can use a string or a number type. And when its a number type you have the option to set sots' to use the Bitwise AND comparison operator.  This is beneficial, if for instance, you're setting states using binary Enums.
 
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/marckassay/sots/blob/master/LICENSE) [![npm version](https://img.shields.io/npm/v/sots.svg?style=flat)](https://www.npmjs.com/package/sots)
-
-## Caveat
-
-If your host project has rxjs 6 as a dependency and because the latest version of sots depends on rxjs 5, you may need to install `rxjs-compat` for your host project if receiving compile errors.
 
 ## Install
 
@@ -100,7 +96,7 @@ The emitted value (TimeEmission) has 1 property method:
 
 ## Examples
 
-The following are links to examples using sots.  These examples will run as-is if copied-and-pasted into the index.ts file of sotsHarness folder *if* that folder is setup as explained in the 'Contribute' section.
+The following are links to examples using sots.
 
 ### Example 1
 
@@ -158,19 +154,6 @@ This example demonstrates an infinite sequence:
 
 See this example here: [example-4.ts](https://github.com/marckassay/sots/blob/master/example/example-4.ts)
 
-## Contribute
-
-If you want to fork sots and give it a go, deploy 'sotsHarness' and 'sots.code-workspace' from the harness folder into the parent directory of sots.
-This will enable: multi-root workspace (for VS Code) with tasks and a debug launch configuration, and provide a test harness.  Any example files can be copied-and-pasted into index.ts file of 'sotsHarness'.
-
-In PowerShell, dot-source the following file in harness folder to move the contents for you:
-
-```powershell
-$ . .\Set-MultiRootWorkspace.ps1
-```
-
-Afterwards for Windows, right-click on 'sots.code-workspace' and from the context menu open VS Code.
-
 ### Issues
 
-Please add any feedback, concerns, requests and/or bugs in the 'Issues' section of this repository.
+Please add any feedback, requests and/or bugs in the [issues](https://github.com/marckassay/sots/issues) section of this repository.

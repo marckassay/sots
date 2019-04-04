@@ -1,11 +1,11 @@
 import { interval, never, zip, Observable, Observer, PartialObserver, Subject, Subscription } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
-import { SegmentCollection } from './SegmentCollection';
-import { TimeSegment } from './TimeSegment';
-import { ITimeEmission } from './api/Emission';
+import { SegmentCollection } from './segments/SegmentCollection';
+import { TimeSegment } from './segments/TimeSegment';
+import { ITimeEmission } from './types/Emission';
 // tslint:disable-next-line: max-line-length
-import { IGroupParameter, ISegmentConfigShape, ISegmentInterface, ISegmentType, ISequenceConfigShape } from './api/Segment';
-import { ISubscribable } from './api/Subscribable';
+import { IGroupParameter, ISegmentConfigShape, ISegmentInterface, ISegmentType, ISequenceConfigShape } from './types/Segment';
+import { ISubscribable } from './types/Subscribable';
 
 /**
  * Initiates a sequence with time period being defined in its constructor.
@@ -106,7 +106,7 @@ export class Sequencer implements ISegmentInterface, ISubscribable {
     this.source = this.collection.toSequencedObservable();
     return zip(
       this.source, this.pauseObserv.pipe(
-        switchMap((value) => (value) ? interval(this.config.period) : never())),
+        switchMap((value) => (value) ? interval(this.config.period) : never()))
       );
   }
 

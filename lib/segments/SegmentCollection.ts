@@ -1,8 +1,8 @@
 import { Observable, Subject } from 'rxjs';
 import { concat } from 'rxjs/operators';
+import { ITimeEmission } from '../types/Emission';
+import { IGroupParameter, ISegmentConfigShape, ISegmentType, ISequenceConfigShape } from '../types/Segment';
 import { TimeSegment } from './TimeSegment';
-import { ITimeEmission } from './api/Emission';
-import { IGroupParameter, ISegmentConfigShape, ISegmentType, ISequenceConfigShape } from './api/Segment';
 
 /**
  * Simply a pass-thru function to be used with-in a group functions parentheses.
