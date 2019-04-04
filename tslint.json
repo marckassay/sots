@@ -1,0 +1,27 @@
+{
+  "defaultSeverity": "error",
+  "extends": [
+    "tslint:recommended"
+  ],
+  "jsRules": {},
+  "rules": {
+    "quotemark": [
+      true,
+      "single"
+    ],
+    "forin": false,
+    "radix": false,
+    "no-bitwise": false,
+    "ordered-imports": [
+      true,
+      {
+        "import-sources-order": "lowercase-last",
+        "named-imports-order": "lowercase-first"
+      }
+    ],
+    "lines-between-class-members": true
+  },
+  "rulesDirectory": [
+    "node_modules/tslint-lines-between-class-members"
+  ]
+}

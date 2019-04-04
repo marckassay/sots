@@ -1,110 +1,29 @@
-import { interval, never, Observable, Observer, PartialObserver, Subject, Subscription, zip } from 'rxjs';
-import { concat, switchMap } from 'rxjs/operators';
-import { TimeEmission } from './api/Emission';
-import { GroupParameter, SegmentConfigShape, SegmentInterface, SegmentType, SequenceConfigShape } from './api/Segment';
-import { Subscribable } from './api/Subscribable';
-import { TimeSegment } from './Segments';
-
-/**
- * Simply a pass-thru function to be used with-in a group functions parentheses.
- *
- * Adds a single segment (`CountupSegment` or `CountdownSegment`) to a sequence.
- * @param ctor    A type being subclass of `TimeSegment`, specifically `CountupSegment` or
- * `CountdownSegment`.
- * @param config  Config file specifiying `duration` (required) and `states` (optional).  When used
- * inside a group function, the `omitFirst` can be used to omit this segment when its assigned to
- * the first interval.
- * @returns       An instance of `T` type, which is a subclass of `TimeSegment`.
- */
-export function add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): GroupParameter<T> {
-  return { ctor, config };
-}
-
-export class SegmentCollection {
-  private segments: Array<TimeSegment>;
-
-  constructor(public config: SequenceConfigShape, private pauseObserv: Subject<boolean>) {
-    this.segments = new Array();
-  }
-
-  add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T {
-    const segment: T = new ctor(config);
-    segment.collection = this;
-    segment.seqConfig = this.config;
-    segment.pauseObserv = this.pauseObserv;
-    this.segments.push(segment);
-
-    return segment;
-  }
-
-  group<T extends TimeSegment>(intervals: number = 1, ...segments: GroupParameter<T>[]): T {
-    let segment: TimeSegment;
-    // TODO: possibly use the 'repeat' operator in here..
-    for (let index = 0; index < intervals; index++) {
-      segments.forEach((value: GroupParameter<T>) => {
-        if ((index != 0) || (!value.config.omitFirst)) {
-          segment = this.add(value.ctor, value.config) as TimeSegment;
-          (segment as TimeSegment).interval = { current: index + 1, total: intervals };
-        }
-      });
-    }
-
-    // return the last instance, so that this group invocation can be chained if needed...
-    return segment! as T;
-  }
-
-  toSequencedObservable(): Observable<TimeEmission> {
-    let concatObservs: Observable<TimeEmission> | undefined;
-
-    this.segments.forEach((value: TimeSegment, index: number) => {
-      let observable: Observable<TimeEmission>;
-
-      if (index === this.segments.length - 1) {
-        if (index !== 0) {
-          observable = value.initializeObservable(false, true);
-        } else {
-          observable = value.initializeObservable(true, true);
-        }
-      } else {
-        if (index !== 0) {
-          observable = value.initializeObservable();
-        } else {
-          observable = value.initializeObservable(true);
-        }
-      }
-
-      if (concatObservs) {
-        concatObservs = concatObservs.pipe(concat(observable));
-      } else {
-        concatObservs = observable;
-      }
-    });
-
-    return concatObservs!;
-  }
-
-  /** @internal */
-  __marauder(): { segments: Array<TimeSegment> } {
-    return { segments: this.segments };
-  }
-}
+import { interval, never, zip, Observable, Observer, PartialObserver, Subject, Subscription } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
+import { SegmentCollection } from './SegmentCollection';
+import { TimeSegment } from './TimeSegment';
+import { ITimeEmission } from './api/Emission';
+// tslint:disable-next-line: max-line-length
+import { IGroupParameter, ISegmentConfigShape, ISegmentInterface, ISegmentType, ISequenceConfigShape } from './api/Segment';
+import { ISubscribable } from './api/Subscribable';
 
 /**
  * Initiates a sequence with time period being defined in its constructor.
  * @param constructor  Sequencer must be instantiated with a value for period that is read in
  * milliseconds.  This value becomes static and global to its segments.
  */
-export class Sequencer implements SegmentInterface, Subscribable {
-  collection: SegmentCollection;
-  subscription: Subscription;
+export class Sequencer implements ISegmentInterface, ISubscribable {
+  public collection: SegmentCollection;
+  public subscription: Subscription;
   private pauseObserv: Subject<boolean>;
-  private source: Observable<TimeEmission>;
-  private observer: Observer<TimeEmission>;
+  private source: Observable<ITimeEmission>;
+  private observer: Observer<ITimeEmission>;
 
-  constructor(public config: SequenceConfigShape) {
+  constructor(public config: ISequenceConfigShape) {
     this.pauseObserv = new Subject<boolean>();
     this.collection = new SegmentCollection(config, this.pauseObserv);
   }
+
   /**
    * Adds a single segment (`CountupSegment` or `CountdownSegment`) to a sequence.
    * @param ctor    A type being subclass of `TimeSegment`,  Specifically `CountupSegment` or
@@ -114,7 +33,7 @@ export class Sequencer implements SegmentInterface, Subscribable {
    * assigned to the first interval.
    * @returns       An instance of `T` type, which is a subclass of TimeSegment.
    */
-  add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T {
+  public add<T extends TimeSegment>(ctor: ISegmentType<T>, config: ISegmentConfigShape): T {
     return this.collection.add(ctor, config);
   }
 
@@ -125,7 +44,7 @@ export class Sequencer implements SegmentInterface, Subscribable {
    * @param segments  Consists of `add()` invocations returns.
    * @returns         An instance of `T` type, which is a subclass of `TimeSegment`.
    */
-  group<T extends TimeSegment>(intervals: number = 1, ...segments: GroupParameter<T>[]): T {
+  public group<T extends TimeSegment>(intervals: number = 1, ...segments: Array<IGroupParameter<T>>): T {
     return this.collection.group(intervals, ...segments);
   }
 
@@ -134,11 +53,11 @@ export class Sequencer implements SegmentInterface, Subscribable {
    * `subscribeWith()` is called.
    * @returns void.
    */
-  start(): void {
+  public start(): void {
     if (this.source) {
       this.pauseObserv.next(true);
     } else {
-      throw "A call to subscribe() needs to be made prior to start(), pause() or reset().";
+      throw new Error('A call to subscribe() needs to be made prior to start(), pause() or reset().');
     }
   }
 
@@ -147,11 +66,11 @@ export class Sequencer implements SegmentInterface, Subscribable {
    * `subscribeWith()` is called.
    * @returns void.
    */
-  pause(): void {
+  public pause(): void {
     if (this.source) {
       this.pauseObserv.next(false);
     } else {
-      throw "A call to subscribe() needs to be made prior to start(), pause() or reset().";
+      throw new Error('A call to subscribe() needs to be made prior to start(), pause() or reset().');
     }
   }
 
@@ -161,38 +80,34 @@ export class Sequencer implements SegmentInterface, Subscribable {
    * That said, this method will unsubscribe and then subscribe again to "reset" the sequence.
    * @returns void.
    */
-  reset(): void {
+  public reset(): void {
     if (this.source && this.observer) {
       this.unsubscribe();
       this.subscribe(this.observer);
     } else {
-      let mesg: string = "";
+      let mesg: string = '';
       if (!this.source) {
-        mesg += "A call to subscribe() needs to be made prior to start(), pause() or reset().";
+        mesg += 'A call to subscribe() needs to be made prior to start(), pause() or reset().';
       }
-
       if (!this.observer) {
-        mesg += (mesg.length > 0) ? "  Also, in " : "  In ";
-        mesg += "order to reset, an observer instance is needed.  See documentation on subscribe(observer).";
+        mesg += (mesg.length > 0) ? '  Also, in ' : '  In ';
+        mesg += 'order to reset, an observer instance is needed.  See documentation on subscribe(observer).';
       }
       throw mesg;
     }
   }
 
   /**
-   * Returns an Observable<TimeEmission> object versus a Subscription object which `subscribe()`
+   * Returns an Observable<ITimeEmission> object versus a Subscription object which `subscribe()`
    * returns.  Typically `subscribe()` is just used.
-   * @returns Observable<TimeEmission>.
+   * @returns Observable<ITimeEmission>.
    */
-  publish() /* Observable<TimeEmission> */ {
+  public publish() {
     this.source = this.collection.toSequencedObservable();
-
     return zip(
-      this.source,
-      this.pauseObserv.pipe(
-        switchMap((value) => (value) ? interval(this.config.period) : never())
-      )
-    );
+      this.source, this.pauseObserv.pipe(
+        switchMap((value) => (value) ? interval(this.config.period) : never())),
+      );
   }
 
   /**
@@ -200,19 +115,22 @@ export class Sequencer implements SegmentInterface, Subscribable {
    *
    * @returns Subscription.
    */
-  subscribe(observer: PartialObserver<TimeEmission>): Subscription;
-  subscribe(next?: (value: TimeEmission) => void, error?: (error: any) => void, complete?: () => void): Subscription;
-  subscribe(nextOrObserver: any, error?: (error: any) => void, complete?: () => void): Subscription {
+  public subscribe(observer: PartialObserver<ITimeEmission>): Subscription;
+
+  public subscribe(next?: (value: ITimeEmission) => void,
+                   error?: (error: any) => void,
+                   complete?: () => void): Subscription;
+
+  public subscribe(nextOrObserver: any,
+                   error?: (error: any) => void,
+                   complete?: () => void): Subscription {
     if (typeof nextOrObserver !== 'function') {
       this.observer = nextOrObserver;
     }
-
     if (!this.source) {
       this.publish();
     }
-
     this.subscription = this.source.subscribe(nextOrObserver, error, complete);
-
     return this.subscription;
   }
 
@@ -221,7 +139,7 @@ export class Sequencer implements SegmentInterface, Subscribable {
    * calls the `remove()`
    * method.
    */
-  unsubscribe(): void {
+  public unsubscribe(): void {
     this.remove();
     this.subscription.unsubscribe();
   }
@@ -230,12 +148,15 @@ export class Sequencer implements SegmentInterface, Subscribable {
    * Calls the remove method on the subscription object that was create from `subscribe()` or
    * `subscribeWith()`.
    */
-  remove(): void {
+  public remove(): void {
     this.subscription.remove(this.subscription);
   }
 
   /** @internal */
-  __marauder(): { pauseObserv: Subject<boolean>, source: Observable<TimeEmission> } {
+  public __marauder(): {
+    pauseObserv: Subject<boolean>;
+    source: Observable<ITimeEmission>;
+  } {
     return { pauseObserv: this.pauseObserv, source: this.source };
   }
 }

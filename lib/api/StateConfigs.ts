@@ -1,26 +1,33 @@
 export type StateConfig<T> = {
   [P in keyof T]: T[P];
-}
-export interface TimeState {
+};
+
+export interface ITimeState {
   state: string | number;
 }
-export interface TimeAt extends TimeState {
+
+export interface ITimeAt extends ITimeState {
   timeAt: string;
 }
-export interface TimeLessThan extends TimeState {
+
+export interface ITimeLessThan extends ITimeState {
   timeLessThan: string;
 }
-export interface TimeLessThanOrEqualTo extends TimeState {
+
+export interface ITimeLessThanOrEqualTo extends ITimeState {
   timeLessThanOrEqualTo: string;
 }
-export interface TimeGreaterThan extends TimeState {
+
+export interface ITimeGreaterThan extends ITimeState {
   timeGreaterThan: string;
 }
-export interface TimeGreaterThanOrEqualTo extends TimeState {
+
+export interface ITimeGreaterThanOrEqualTo extends ITimeState {
   timeGreaterThanOrEqualTo: string;
 }
-export type StateConfig1 = StateConfig<TimeAt>;
-export type StateConfig2 = StateConfig<TimeLessThan>;
-export type StateConfig3 = StateConfig<TimeLessThanOrEqualTo>;
-export type StateConfig4 = StateConfig<TimeGreaterThan>;
-export type StateConfig5 = StateConfig<TimeGreaterThanOrEqualTo>;
+
+export type StateConfig1 = StateConfig<ITimeAt>;
+export type StateConfig2 = StateConfig<ITimeLessThan>;
+export type StateConfig3 = StateConfig<ITimeLessThanOrEqualTo>;
+export type StateConfig4 = StateConfig<ITimeGreaterThan>;
+export type StateConfig5 = StateConfig<ITimeGreaterThanOrEqualTo>;

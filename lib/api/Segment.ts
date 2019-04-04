@@ -1,29 +1,30 @@
-import * as state from "./StateConfigs";
-import { TimeSegment } from "../Segments";
+import { TimeSegment } from '../TimeSegment';
+import * as state from './StateConfigs';
 
-export interface SequenceConfigShape {
+export interface ISequenceConfigShape {
   period: number;
   compareAsBitwise?: boolean;
 }
 
-export interface SegmentConfigShape {
+export interface ISegmentConfigShape {
   duration: number;
   omitFirst?: boolean;
   compareAsBitwise?: boolean;
-  states?: Array<state.StateConfig1 | state.StateConfig2 | state.StateConfig3 | state.StateConfig4 | state.StateConfig5>;
+  states?: Array<state.StateConfig1 |
+    state.StateConfig2 |
+    state.StateConfig3 |
+    state.StateConfig4 |
+    state.StateConfig5>;
 }
 
-export interface SegmentInterface {
-  add<T extends TimeSegment>(ctor: SegmentType<T>, config: SegmentConfigShape): T;
-  group<T extends TimeSegment>(intervals: number, ...segments: GroupParameter<T>[]): T;
+export interface ISegmentInterface {
+  add<T extends TimeSegment>(ctor: ISegmentType<T>, config: ISegmentConfigShape): T;
+  group<T extends TimeSegment>(intervals: number, ...segments: Array<IGroupParameter<T>>): T;
 }
 
-// static-side interface
-export interface SegmentType<T extends TimeSegment> {
-  new(config: SegmentConfigShape): T;
-}
+export type ISegmentType<T extends TimeSegment> = new (config: ISegmentConfigShape) => T;
 
-export interface GroupParameter<T extends TimeSegment> {
-  ctor: SegmentType<T>;
-  config: SegmentConfigShape;
+export interface IGroupParameter<T extends TimeSegment> {
+  ctor: ISegmentType<T>;
+  config: ISegmentConfigShape;
 }

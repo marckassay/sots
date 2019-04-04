@@ -1,0 +1,15 @@
+{
+  "npm.packageManager": "npm",
+  "editor.codeActionsOnSave": {
+    "source.fixAll": false,
+    "source.organizeImports": false,
+  },
+  "editor.formatOnSave": false,
+  "typescript.format.enable": false,
+  "typescript.format.insertSpaceBeforeAndAfterBinaryOperators": true,
+  "typescript.format.insertSpaceAfterSemicolonInForStatements": true,
+  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
+  "typescript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": true,
+  "typescript.format.insertSpaceAfterKeywordsInControlFlowStatements": true,
+  "typescript.format.insertSpaceAfterCommaDelimiter": true
+}

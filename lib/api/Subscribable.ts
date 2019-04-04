@@ -1,8 +1,7 @@
 import { PartialObserver, Subscription } from 'rxjs';
-import { TimeEmission } from './Emission';
+import { ITimeEmission } from './Emission';
 
-export interface Subscribable {
-  subscribe(): Subscription;
-  subscribe(observer: PartialObserver<TimeEmission>): Subscription;
-  subscribe(next?: (value: TimeEmission) => void, error?: (error: any) => void, complete?: () => void): Subscription
+export interface ISubscribable {
+  subscribe(observer?: PartialObserver<ITimeEmission>): Subscription;
+  subscribe(next?: (value: ITimeEmission) => void, error?: (error: any) => void, complete?: () => void): Subscription;
 }

@@ -1,9 +1,14 @@
-export class StateEmission implements StateEmission {
-  instant: Set<string | number>;
-  spread: Set<string | number>;
+import { IStateEmission } from './api/Emission';
 
-  constructor(public compareAsBitwise?: boolean, instant: Set<string | number> = new Set<string | number>(),
-    spread: Set<string | number> = new Set<string | number>()) {
+export class StateEmission implements IStateEmission {
+  public compareAsBitwise: boolean;
+  public instant: Set<string | number>;
+  public spread: Set<string | number>;
+
+  constructor(compareAsBitwise: boolean | undefined,
+              instant: Set<string | number> = new Set<string | number>(),
+              spread: Set<string | number> = new Set<string | number>()) {
+    this.compareAsBitwise = !!compareAsBitwise;
     this.instant = instant;
     this.spread = spread;
   }
@@ -16,7 +21,7 @@ export class StateEmission implements StateEmission {
    *
    * @param compareAsBitwise when make assertion using bitwise logic.
    */
-  valueOf(state?: string | number, compareAsBitwise?: boolean): boolean | number {
+  public valueOf(state?: string | number, compareAsBitwise?: boolean): boolean | number {
     let results: boolean | number;
     if (state !== undefined) {
       results = (this.getStateValues(state, compareAsBitwise) > 0);
@@ -30,11 +35,11 @@ export class StateEmission implements StateEmission {
    * Called in StateExpression when constructing a seqeunce.  Its called specifically when
    * additional value is add to spread Set.
    */
-  mapToSpread(value: Set<string | number>) {
+  public mapToSpread(value: Set<string | number>) {
     this.spread = new Set(this.spread);
 
     value.forEach((val) => {
-      this.spread.add(val)
+      this.spread.add(val);
     });
 
     return this.spread;
@@ -43,13 +48,11 @@ export class StateEmission implements StateEmission {
   private getStateValues(state: string | number, compareAsBitwise?: boolean): number {
     let useBitwiseCompare: boolean;
 
-    if (compareAsBitwise != undefined) {
+    if (compareAsBitwise !== undefined) {
       useBitwiseCompare = compareAsBitwise;
-    }
-    else if (this.compareAsBitwise != undefined) {
+    } else if (this.compareAsBitwise !== undefined) {
       useBitwiseCompare = this.compareAsBitwise;
-    }
-    else {
+    } else {
       useBitwiseCompare = false;
     }
 
@@ -61,7 +64,8 @@ export class StateEmission implements StateEmission {
         return 1;
       }
     } else if (typeof state === 'string') {
-      throw "valueOf() has been called with a string and flagged to use bitwise comparisons."
+      // tslint:disable-next-line: no-string-throw
+      throw 'valueOf() has been called with a string and flagged to use bitwise comparisons.';
     } else {
       let total: number = 0;
       this.instant.forEach((value: string | number) => {
