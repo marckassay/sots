@@ -39,10 +39,11 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
-    "lib",
-    "LICENSE",
-    "README.md",
-    "tsconfig.json"
+    "/lib",
+    "/dist",
+    "/LICENSE",
+    "/README.md",
+    "/tsconfig.json"
   ],
   "scripts": {
     "prepare": "tsc -p tsconfig.json",

@@ -1,7 +1,0 @@
-.git/
-example/
-.vscode/
-node_modules/
-.editorconfig
-.gitignore
-tslint.json
